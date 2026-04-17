@@ -1636,6 +1636,7 @@ function FeedbackModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const posthog = usePostHog();
   const [formData, setFormData] = useState({
     name: "",
     rating: "",
@@ -1663,6 +1664,14 @@ function FeedbackModal({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.rating) return;
+
+    posthog.capture("feedback_submitted", {
+      name: formData.name.trim() || "Anonymous",
+      rating: Number(formData.rating),
+      rating_label: ratingLabels[formData.rating],
+      feedback: formData.feedback.trim(),
+    });
+
     setSubmitted(true);
   };
 
@@ -1793,7 +1802,6 @@ function FeedbackModal({
     </div>
   );
 }
-
 function DealDetails({
   deal,
   onBack,
