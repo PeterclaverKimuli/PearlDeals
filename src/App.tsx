@@ -1318,7 +1318,7 @@ function AppHeader({
   const posthog = usePostHog();
 
   return (
-    <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div className="relative flex w-full items-center justify-center md:justify-start">
         {showMenuButton && (
           <button
@@ -1812,6 +1812,36 @@ function FeedbackModal({
     </div>
   );
 }
+
+function AppHeaderShell({
+  search,
+  setSearch,
+  onMenuClick,
+  showMenuButton = false,
+  maxWidthClass,
+}: {
+  search: string;
+  setSearch: (value: string) => void;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+  maxWidthClass: string;
+}) {
+  return (
+    <>
+      <div className="fixed top-0 right-0 left-0 z-50 border-b bg-gray-50 px-4 pt-2 pb-6 backdrop-blur md:px-6">
+        <div className={`mx-auto ${maxWidthClass}`}>
+          <AppHeader
+            search={search}
+            setSearch={setSearch}
+            showMenuButton={showMenuButton}
+            onMenuClick={onMenuClick}
+          />
+        </div>
+      </div>
+      <div aria-hidden="true" className="h-32 md:h-24" />
+    </>
+  );
+}
 function DealDetails({
   deal,
   onBack,
@@ -1971,7 +2001,7 @@ function DealDetails({
                             <button
                               type="button"
                               onClick={() => handleSiteClick(p.url, p.site)}
-                              className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-black px-3 py-2 text-xs text-white hover:bg-gray-800 md:mt-0 md:w-auto"
+                              className="mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-full bg-black px-3 py-2 text-xs text-white hover:bg-gray-800 md:mt-0 md:w-auto"
                             >
                               Go to Site
                             </button>
@@ -2446,17 +2476,16 @@ export default function DealsUI() {
 
   if (selectedCategory) {
     return (
-      <div className="min-h-screen overflow-x-hidden bg-gray-50 p-4 md:p-6">
-        <div className="mx-auto max-w-7xl">
-          <div className="sticky top-0 z-50 -mx-4 border-b bg-gray-50 px-4 pt-2 backdrop-blur md:-mx-6 md:px-6">
-            <AppHeader
-              search={search}
-              setSearch={setSearch}
-              showMenuButton
-              onMenuClick={() => setIsSidebarOpen(true)}
-            />
-          </div>
+      <div className="min-h-screen bg-gray-50 px-4 pb-4 md:px-6 md:pb-6">
+        <AppHeaderShell
+          search={search}
+          setSearch={setSearch}
+          showMenuButton
+          onMenuClick={() => setIsSidebarOpen(true)}
+          maxWidthClass="max-w-7xl"
+        />
 
+        <div className="mx-auto max-w-7xl">
           <MobileOffcanvas
             open={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
@@ -2536,17 +2565,16 @@ export default function DealsUI() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gray-50 p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="sticky top-0 z-50 -mx-4 border-b bg-gray-50 px-4 pt-2 backdrop-blur md:-mx-6 md:px-6">
-          <AppHeader
-            search={search}
-            setSearch={setSearch}
-            showMenuButton
-            onMenuClick={() => setIsSidebarOpen(true)}
-          />
-        </div>
+    <div className="min-h-screen bg-gray-50 px-4 pb-4 md:px-6 md:pb-6">
+      <AppHeaderShell
+        search={search}
+        setSearch={setSearch}
+        showMenuButton
+        onMenuClick={() => setIsSidebarOpen(true)}
+        maxWidthClass="max-w-6xl"
+      />
 
+      <div className="mx-auto max-w-6xl">
         <MobileOffcanvas
           open={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
