@@ -5,13 +5,9 @@ import { PostHogProvider } from "@posthog/react";
 import "./index.css";
 import App from "./App.tsx";
 
-const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN;
-const posthogHost =
-  import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-
-if (posthogKey) {
-  posthog.init(posthogKey, {
-    api_host: posthogHost,
+if (import.meta.env.VITE_POSTHOG_KEY) {
+  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
+    api_host: "https://app.posthog.com",
     defaults: "2026-01-30",
   });
 }
