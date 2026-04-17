@@ -1409,6 +1409,7 @@ function WaitlistModal({
   onClose: () => void;
   productTitle: string;
 }) {
+  const posthog = usePostHog();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -1437,6 +1438,15 @@ function WaitlistModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    posthog.capture("waitlist_submitted", {
+      product_title: productTitle,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      business_type: formData.businessType.trim(),
+    });
+
     setSubmitted(true);
   };
 
@@ -1752,7 +1762,7 @@ function FeedbackModal({
                 placeholder="Share your thoughts..."
                 required
                 rows={5}
-                className="w-full rounded-md border border-gray-200 px-3 py-3 text-sm outline-none focus:border-green-500"
+                className="w-full rounded-md border border-gray-200 px-3 py-3 text-base outline-none focus:border-green-500 md:text-sm"
               />
             </div>
 
@@ -2436,9 +2446,9 @@ export default function DealsUI() {
 
   if (selectedCategory) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen overflow-x-hidden bg-gray-50 p-4 md:p-6">
         <div className="mx-auto max-w-7xl">
-          <div className="sticky top-0 z-50 -mx-6 border-b bg-gray-50 px-6 pt-2 backdrop-blur">
+          <div className="sticky top-0 z-50 -mx-4 border-b bg-gray-50 px-4 pt-2 backdrop-blur md:-mx-6 md:px-6">
             <AppHeader
               search={search}
               setSearch={setSearch}
@@ -2526,9 +2536,9 @@ export default function DealsUI() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50 p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <div className="sticky top-0 z-50 -mx-6 border-b bg-gray-50 px-6 pt-2 backdrop-blur">
+        <div className="sticky top-0 z-50 -mx-4 border-b bg-gray-50 px-4 pt-2 backdrop-blur md:-mx-6 md:px-6">
           <AppHeader
             search={search}
             setSearch={setSearch}
@@ -2548,7 +2558,7 @@ export default function DealsUI() {
         <button
           type="button"
           onClick={() => setIsFeedbackOpen(true)}
-          className="fixed bottom-6 right-6 z-[75] inline-flex h-14 cursor-pointer items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-green-700"
+          className="fixed right-4 bottom-4 z-[75] inline-flex h-14 max-w-[calc(100vw-2rem)] cursor-pointer items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-green-700 md:right-6 md:bottom-6 md:max-w-none"
         >
           💬 Feedback
         </button>
