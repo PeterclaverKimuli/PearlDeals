@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { usePostHog } from "@posthog/react";
 import { DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import welcomeAvatar from "@/assets/Welcome intro.png";
 import { makeSvgDataUri } from "../data";
 import type { CategoryItem, EnrichedDeal, SelfCheck } from "../types";
 import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
@@ -29,6 +30,7 @@ export function HomePage({
   filteredDeals,
   setSelectedDeal,
   selfChecks,
+  onOpenNaki,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -50,8 +52,10 @@ export function HomePage({
   filteredDeals: EnrichedDeal[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
   selfChecks: SelfCheck[];
+  onOpenNaki: () => void;
 }) {
   const posthog = usePostHog();
+  const showFeedbackButton = false;
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 pb-4 md:px-6 md:pb-6">
@@ -72,13 +76,33 @@ export function HomePage({
           categoriesToShow={visibleCategories}
         />
 
-        <button
-          type="button"
-          onClick={() => setIsFeedbackOpen(true)}
-          className="fixed right-4 bottom-4 z-[75] inline-flex h-14 max-w-[calc(100vw-2rem)] cursor-pointer items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-green-700 md:right-6 md:bottom-6 md:max-w-none"
-        >
-          💬 Feedback
-        </button>
+        {showFeedbackButton ? (
+          <button
+            type="button"
+            onClick={() => setIsFeedbackOpen(true)}
+            className="fixed right-4 bottom-4 z-[75] inline-flex h-14 max-w-[calc(100vw-2rem)] cursor-pointer items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-green-700 md:right-6 md:bottom-6 md:max-w-none"
+          >
+            💬 Feedback
+          </button>
+        ) : (
+          <div className="group fixed right-4 bottom-4 z-[75] md:right-6 md:bottom-6">
+            <div className="pointer-events-none absolute right-0 bottom-full mb-3 w-56 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-md transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+              Let me help you with your shopping needs
+            </div>
+            <button
+              type="button"
+              onClick={onOpenNaki}
+              className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-2xl md:h-20 md:w-20"
+              aria-label="Open Naki shopping assistant"
+            >
+              <img
+                src={welcomeAvatar}
+                alt="Naki shopping assistant"
+                className="h-full w-full object-cover object-top"
+              />
+            </button>
+          </div>
+        )}
 
         <FeedbackModal
           key={isFeedbackOpen ? "feedback-open" : "feedback-closed"}

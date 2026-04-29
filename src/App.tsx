@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
+import { LandingPage } from "@/features/deals/components/LandingPage";
 import {
   FeedbackModal,
   LeaveSiteModal,
@@ -91,6 +92,9 @@ function runSelfChecks(): SelfCheck[] {
 const selfChecks = runSelfChecks();
 
 export default function DealsUI() {
+  const [routePath, setRoutePath] = useState(() =>
+    typeof window === "undefined" ? "/" : window.location.pathname,
+  );
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const topDealsRef = useRef<HTMLDivElement | null>(null);
   const popularProductsRef = useRef<HTMLDivElement | null>(null);
@@ -108,10 +112,23 @@ export default function DealsUI() {
   const [showCategoryArrows, setShowCategoryArrows] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handlePopState = () => {
+      setRoutePath(window.location.pathname);
+      setSelectedDeal(null);
+      setSelectedCategory(null);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [selectedCategory, selectedDeal]);
+  }, [routePath, selectedCategory, selectedDeal]);
 
   const dealsWithDiscounts = useMemo(
     () => mockDeals.map((deal) => enrichDeal(deal)),
@@ -143,6 +160,17 @@ export default function DealsUI() {
     [dealsWithDiscounts],
   );
 
+  const navigateTo = (path: string) => {
+    if (typeof window !== "undefined" && window.location.pathname !== path) {
+      window.history.pushState({}, "", path);
+    }
+
+    setRoutePath(path);
+    setSelectedDeal(null);
+    setSelectedCategory(null);
+    setIsSidebarOpen(false);
+  };
+
   const scrollToTopDeals = () => {
     topDealsRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -168,6 +196,15 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
+  if (routePath !== "/deals") {
+    return (
+      <LandingPage
+        categories={visibleCategories}
+        onBrowseDeals={() => navigateTo("/deals")}
+      />
+    );
+  }
+
   if (selectedDeal) {
     return (
       <DealDetails
@@ -190,6 +227,7 @@ export default function DealsUI() {
         visibleCategories={visibleCategories}
         filteredDeals={filteredDeals}
         setSelectedDeal={setSelectedDeal}
+        onOpenNaki={() => navigateTo("/")}
       />
     );
   }
@@ -216,6 +254,7 @@ export default function DealsUI() {
       filteredDeals={filteredDeals}
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
+      onOpenNaki={() => navigateTo("/")}
     />
   );
 }
