@@ -6,10 +6,11 @@ import welcomeAvatar from "@/assets/Welcome intro.png";
 import budgetAvatar from "@/assets/Budget prompt.png";
 import categoryAvatar from "@/assets/Category prompt.png";
 import conditionAvatar from "@/assets/Condition prompt.png";
+import readyAvatar from "@/assets/Ready Prompt.png";
 import type { CategoryItem } from "../types";
 
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
-type ConditionChoice = "New" | "Refurbished" | "Both";
+type ConditionChoice = "New" | "Refurbished" | "Used" | "Both";
 
 const steps: IntakeStep[] = [
   "welcome",
@@ -32,7 +33,7 @@ const stepCopy: Record<
   welcome: {
     eyebrow: "PearlDeals assistant",
     title: "Hi, I am Naki.",
-    body: "I will compare prices across trusted shops in Uganda and help you find products that fit within your budget...",
+    body: "Tell me your budget and what you need. I’ll help you find the best deals across trusted sites in Uganda.",
     avatar: welcomeAvatar,
     avatarAlt: "Naki waving to welcome shoppers",
   },
@@ -46,14 +47,14 @@ const stepCopy: Record<
   categories: {
     eyebrow: "Step 2",
     title: "What are you shopping for?",
-    body: "Choose one or more categories. More categories will be added with time as PearlDeals grows.",
+    body: "Pick everything you want to buy. You can choose up to three.",
     avatar: categoryAvatar,
     avatarAlt: "Naki pointing at product categories",
   },
   condition: {
     eyebrow: "Step 3",
     title: "What condition should we look for?",
-    body: "Tell Naki whether you prefer new products, refurbished deals, or both.",
+    body: "Tell me whether you prefer new, refurbished, used, or all options.",
     avatar: conditionAvatar,
     avatarAlt: "Naki presenting product condition choices",
   },
@@ -61,10 +62,23 @@ const stepCopy: Record<
     eyebrow: "Ready",
     title: "Your shopping brief is set.",
     body: "Recommendation matching is coming next. For now, jump into the current deals page and start browsing live comparisons.",
+    avatar: readyAvatar,
+    avatarAlt: "Naki ready to show shopping deals",
   },
 };
 
-const conditionOptions: ConditionChoice[] = ["New", "Refurbished", "Both"];
+const conditionOptions: ConditionChoice[] = [
+  "New",
+  "Refurbished",
+  "Used",
+  "Both",
+];
+const budgetQuickChips = [
+  { label: "100k", value: "100000" },
+  { label: "300k", value: "300000" },
+  { label: "500k", value: "500000" },
+  { label: "1M", value: "1000000" },
+];
 const introPrefix = "Hi, I am ";
 const introName = "Naki";
 const introSuffix = ", your shopping assistant.";
@@ -96,25 +110,25 @@ export function LandingPage({
   const briefNote = useMemo(() => {
     if (activeStep === "budget") {
       return formattedBudget
-        ? `Great, Naki will keep UGX ${formattedBudget} in mind while narrowing down deals.`
-        : "Start with your budget so Naki can focus on products that fit your spending plan.";
+        ? `Great, I will keep UGX ${formattedBudget} in mind while narrowing down deals.`
+        : "Start with your budget so I can focus on products that fit your spending plan.";
     }
 
     if (activeStep === "categories") {
       if (selectedCategories.length === 0) {
-        return "Pick the product areas you care about, and Naki will keep the search focused.";
+        return "Pick the product areas you care about, and I will keep the search focused.";
       }
 
       if (selectedCategories.length === 1) {
-        return `${selectedCategories[0]} it is. Naki will look for stronger matches in this category.`;
+        return `${selectedCategories[0]} it is. I will look for stronger matches in this category.`;
       }
 
-      return `${selectedCategories.length} categories selected. Nice, Naki can compare a wider set of options for you.`;
+      return `${selectedCategories.length} categories selected. Nice, we can compare a wider set of options for you.`;
     }
 
     if (activeStep === "condition") {
       return condition
-        ? `${condition} selected. Naki will respect that preference when recommendations are added.`
+        ? `${condition} selected. I will respect that preference when recommendations are added.`
         : "Choose the product condition that feels right for how you want to shop.";
     }
 
@@ -163,7 +177,7 @@ export function LandingPage({
 
   const validateCurrentStep = () => {
     if (activeStep === "budget" && Number(cleanBudget) <= 0) {
-      setValidationMessage("Enter your budget before Naki continues.");
+      setValidationMessage("Enter your budget before we continue.");
       return false;
     }
 
@@ -203,9 +217,9 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-5 text-gray-950 md:px-6 md:py-8">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col">
-        <header className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-3xl font-bold">
-            <span className="text-2xl">💸</span>
+        <header className="mb-6 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-1.5 text-2xl font-bold sm:gap-2 sm:text-3xl">
+            <span className="text-xl sm:text-2xl">💸</span>
             <span className="inline-flex items-baseline gap-0">
               <span className="text-gray-900">Pearl</span>
               <span className="text-green-600">Deals</span>
@@ -214,7 +228,7 @@ export function LandingPage({
           <Button
             type="button"
             variant="outline"
-            className="h-10 cursor-pointer rounded-full px-4 text-sm"
+            className="h-9 shrink-0 cursor-pointer rounded-full px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
             onClick={onBrowseDeals}
           >
             Back to deals
@@ -222,10 +236,10 @@ export function LandingPage({
         </header>
 
         <main
-          className={`grid flex-1 items-center gap-5 ${
+          className={`grid flex-1 gap-5 ${
             activeStep === "welcome"
-              ? "justify-items-center"
-              : "lg:grid-cols-[1.05fr_0.95fr]"
+              ? "items-start justify-items-center md:items-center"
+              : "items-center lg:grid-cols-[1.05fr_0.95fr]"
           }`}
         >
           <section
@@ -248,7 +262,10 @@ export function LandingPage({
             {activeStep === "welcome" ? (
               <div className="mb-6 flex flex-col items-center text-center">
                 <div className="flex w-full justify-center">
-                  <div className="w-[72%] min-w-56 max-w-sm md:w-[58%]">
+                  <div
+                    key={activeStep}
+                    className="naki-avatar-enter w-[72%] min-w-56 max-w-sm md:w-[58%]"
+                  >
                     <img
                       src={welcomeAvatar}
                       alt={currentCopy.avatarAlt}
@@ -277,15 +294,17 @@ export function LandingPage({
                   <div
                     className={`flex justify-center ${
                       activeStep === "categories"
-                        ? "sm:order-2 sm:justify-end"
-                        : "sm:justify-start"
+                        ? "order-2 sm:order-2 sm:justify-end"
+                        : activeStep === "ready"
+                          ? "order-2 sm:order-none sm:justify-start"
+                          : "sm:justify-start"
                     }`}
                   >
-                    <div className="h-28 w-28 overflow-hidden rounded-3xl border border-green-100 bg-white shadow-sm">
+                    <div key={activeStep} className="naki-avatar-enter h-28 w-28">
                       <img
                         src={currentCopy.avatar}
                         alt={currentCopy.avatarAlt}
-                        className="h-full w-full object-cover object-top"
+                        className="h-full w-full object-contain object-center"
                       />
                     </div>
                   </div>
@@ -293,7 +312,11 @@ export function LandingPage({
 
                 <div
                   className={`${currentCopy.avatar ? "" : "sm:col-span-2"} ${
-                    activeStep === "categories" ? "sm:order-1" : ""
+                    activeStep === "categories"
+                      ? "order-1 sm:order-1"
+                      : activeStep === "ready"
+                        ? "order-1 sm:order-none"
+                        : ""
                   }`}
                 >
                   <h1 className="text-3xl font-bold tracking-normal text-gray-950 md:text-5xl">
@@ -349,6 +372,9 @@ export function LandingPage({
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
+            <p className="mt-4 text-center text-xs text-gray-500">
+              Naki is not an AI assistant.
+            </p>
           </section>
 
           {activeStep !== "welcome" ? (
@@ -362,11 +388,10 @@ export function LandingPage({
                     Naki&apos;s brief
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Your answers will shape future recommendations.
+                    I’ll use this to find deals that fit your budget.
                   </p>
                 </div>
               </div>
-
               <div className="space-y-3 text-sm">
                 <BriefRow
                   label="Budget"
@@ -433,13 +458,32 @@ export function LandingPage({
               </div>
               {formattedBudget ? (
                 <p className="mt-2 text-sm font-medium text-green-700">
-                  Naki will work with UGX {formattedBudget}.
+                  I will work with UGX {formattedBudget}.
                 </p>
               ) : (
                 <p className="mt-2 text-sm text-gray-500">
                   Enter numbers only. You can adjust this later.
                 </p>
               )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {budgetQuickChips.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => {
+                      setValidationMessage("");
+                      setBudget(chip.value);
+                    }}
+                    className={`h-9 cursor-pointer rounded-full border px-4 text-sm font-semibold transition ${
+                      cleanBudget === chip.value
+                        ? "border-green-600 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-green-200 hover:bg-green-50"
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -477,13 +521,13 @@ export function LandingPage({
               })}
             </div>
             <p className="mt-4 text-sm text-gray-500">
-              More product categories will be added with time.
+              More categories will be added with time as PearlDeals grows.
             </p>
           </div>
         );
       case "condition":
         return (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {conditionOptions.map((option) => {
               const selected = condition === option;
 
@@ -516,11 +560,11 @@ export function LandingPage({
         );
       case "ready":
         return (
-          <div className="rounded-3xl bg-gray-950 p-5 text-white">
-            <p className="text-sm font-semibold text-green-300">
-              Naki has your starting point.
+          <div className="rounded-3xl border border-green-100 bg-green-50 p-5 shadow-sm">
+            <p className="text-sm font-semibold text-green-700">
+              I have your starting point.
             </p>
-            <p className="mt-3 text-base leading-7 text-gray-200">
+            <p className="mt-3 text-base leading-7 text-gray-700">
               Budget: {formattedBudget ? `UGX ${formattedBudget}` : "Not set"}.
               Categories:{" "}
               {selectedCategories.length > 0
@@ -554,7 +598,7 @@ export function LandingPage({
       <>
         {prefixText}
         {nameText ? (
-          <span className="font-[cursive] italic text-green-600">
+          <span className="font-extrabold text-green-600">
             {nameText}
           </span>
         ) : null}

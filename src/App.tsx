@@ -196,11 +196,11 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
-  if (routePath !== "/deals") {
+  if (routePath === "/naki") {
     return (
       <LandingPage
         categories={visibleCategories}
-        onBrowseDeals={() => navigateTo("/deals")}
+        onBrowseDeals={() => navigateTo("/")}
       />
     );
   }
@@ -227,7 +227,7 @@ export default function DealsUI() {
         visibleCategories={visibleCategories}
         filteredDeals={filteredDeals}
         setSelectedDeal={setSelectedDeal}
-        onOpenNaki={() => navigateTo("/")}
+        onOpenNaki={() => navigateTo("/naki")}
       />
     );
   }
@@ -254,7 +254,7 @@ export default function DealsUI() {
       filteredDeals={filteredDeals}
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
-      onOpenNaki={() => navigateTo("/")}
+      onOpenNaki={() => navigateTo("/naki")}
     />
   );
 }
