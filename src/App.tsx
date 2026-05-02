@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
@@ -124,9 +124,9 @@ export default function DealsUI() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
   }, [routePath, selectedCategory, selectedDeal]);
 
@@ -163,6 +163,7 @@ export default function DealsUI() {
   const navigateTo = (path: string) => {
     if (typeof window !== "undefined" && window.location.pathname !== path) {
       window.history.pushState({}, "", path);
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
 
     setRoutePath(path);

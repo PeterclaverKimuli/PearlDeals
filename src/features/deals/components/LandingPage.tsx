@@ -1,5 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, Search, Sparkles } from "lucide-react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  ArrowRight,
+  Briefcase,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  Grid2X2,
+  Pencil,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import welcomeAvatar from "@/assets/Welcome intro.png";
@@ -10,7 +26,7 @@ import readyAvatar from "@/assets/Ready Prompt.png";
 import type { CategoryItem } from "../types";
 
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
-type ConditionChoice = "New" | "Refurbished" | "Used" | "Both";
+type ConditionChoice = "New" | "Refurbished" | "Used" | "All";
 
 const steps: IntakeStep[] = [
   "welcome",
@@ -67,11 +83,23 @@ const stepCopy: Record<
   },
 };
 
-const conditionOptions: ConditionChoice[] = [
-  "New",
-  "Refurbished",
-  "Used",
-  "Both",
+const conditionOptions: { label: ConditionChoice; description: string }[] = [
+  {
+    label: "New",
+    description: "Brand-new, sealed, and usually warrantied.",
+  },
+  {
+    label: "Refurbished",
+    description: "Checked and restored for resale.",
+  },
+  {
+    label: "Used",
+    description: "Pre-owned and usually cheaper.",
+  },
+  {
+    label: "All",
+    description: "Compare every available option.",
+  },
 ];
 const budgetQuickChips = [
   { label: "100k", value: "100000" },
@@ -83,6 +111,7 @@ const introPrefix = "Hi, I am ";
 const introName = "Naki";
 const introSuffix = ", your shopping assistant.";
 const introText = `${introPrefix}${introName}${introSuffix}`;
+const maxSelectedCategories = 3;
 
 export function LandingPage({
   categories,
@@ -141,9 +170,9 @@ export function LandingPage({
 
   const canGoBack = stepIndex > 0;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
   }, [activeStep]);
 
@@ -207,11 +236,18 @@ export function LandingPage({
 
   const toggleCategory = (category: string) => {
     setValidationMessage("");
-    setSelectedCategories((current) =>
-      current.includes(category)
-        ? current.filter((item) => item !== category)
-        : [...current, category],
-    );
+    setSelectedCategories((current) => {
+      if (current.includes(category)) {
+        return current.filter((item) => item !== category);
+      }
+
+      if (current.length >= maxSelectedCategories) {
+        setValidationMessage("You can choose up to three categories.");
+        return current;
+      }
+
+      return [...current, category];
+    });
   };
 
   return (
@@ -493,15 +529,20 @@ export function LandingPage({
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {categories.map((category) => {
                 const selected = selectedCategories.includes(category.name);
+                const capped =
+                  !selected && selectedCategories.length >= maxSelectedCategories;
 
                 return (
                   <button
                     key={category.name}
                     type="button"
                     onClick={() => toggleCategory(category.name)}
+                    disabled={capped}
                     className={`flex min-h-24 cursor-pointer flex-col items-start justify-between rounded-3xl border p-4 text-left transition ${
                       selected
                         ? "border-green-500 bg-green-50 shadow-sm"
+                        : capped
+                          ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-400 opacity-60"
                         : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                     }`}
                   >
@@ -529,29 +570,27 @@ export function LandingPage({
         return (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {conditionOptions.map((option) => {
-              const selected = condition === option;
+              const selected = condition === option.label;
 
               return (
                 <button
-                  key={option}
+                  key={option.label}
                   type="button"
                   onClick={() => {
                     setValidationMessage("");
-                    setCondition(option);
+                    setCondition(option.label);
                   }}
-                  className={`min-h-28 cursor-pointer rounded-3xl border p-4 text-left transition ${
+                  className={`flex h-full min-h-28 cursor-pointer flex-col items-start rounded-3xl border p-4 text-left transition ${
                     selected
                       ? "border-green-500 bg-green-50 shadow-sm"
                       : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  <span className="block text-base font-semibold text-gray-950">
-                    {option}
+                  <span className="block min-h-6 text-base font-semibold leading-6 text-gray-950">
+                    {option.label}
                   </span>
                   <span className="mt-2 block text-sm leading-6 text-gray-600">
-                    {option === "Both"
-                      ? "Show new and refurbished options."
-                      : `Focus on ${option.toLowerCase()} products.`}
+                    {option.description}
                   </span>
                 </button>
               );
@@ -560,18 +599,74 @@ export function LandingPage({
         );
       case "ready":
         return (
-          <div className="rounded-3xl border border-green-100 bg-green-50 p-5 shadow-sm">
-            <p className="text-sm font-semibold text-green-700">
-              I have your starting point.
-            </p>
-            <p className="mt-3 text-base leading-7 text-gray-700">
-              Budget: {formattedBudget ? `UGX ${formattedBudget}` : "Not set"}.
-              Categories:{" "}
-              {selectedCategories.length > 0
-                ? selectedCategories.join(", ")
-                : "Not selected"}
-              . Condition: {condition || "Not selected"}.
-            </p>
+          <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 pb-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-800">
+                  <Search className="h-[1.125rem] w-[1.125rem]" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold leading-5 text-gray-950">
+                    Your search preferences
+                  </h2>
+                  <p className="text-xs leading-5 text-gray-700">
+                    Ready to find your best deal
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
+                Set
+              </span>
+            </div>
+
+            <div className="divide-y divide-gray-200">
+              <PreferenceRow
+                icon={<Briefcase className="h-5 w-5" />}
+                label="Budget"
+                onEdit={() => goToStep("budget")}
+              >
+                <span className="text-base font-semibold text-gray-950">
+                  {formattedBudget ? `UGX ${formattedBudget}` : "Not set"}
+                </span>
+              </PreferenceRow>
+              <PreferenceRow
+                icon={<Grid2X2 className="h-5 w-5" />}
+                label="Categories"
+                onEdit={() => goToStep("categories")}
+              >
+                {selectedCategories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCategories.map((category, index) => (
+                      <span
+                        key={category}
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          index % 2 === 0
+                            ? "bg-violet-100 text-violet-900"
+                            : "bg-sky-100 text-sky-900"
+                        }`}
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-base font-semibold text-gray-950">
+                    Not selected
+                  </span>
+                )}
+              </PreferenceRow>
+              <PreferenceRow
+                icon={<CheckCircle2 className="h-5 w-5" />}
+                label="Condition"
+                onEdit={() => goToStep("condition")}
+              >
+                <span className="text-base font-semibold text-gray-950">
+                  {condition === "All"
+                    ? "All conditions"
+                    : condition || "Not selected"}
+                </span>
+              </PreferenceRow>
+            </div>
           </div>
         );
     }
@@ -638,6 +733,43 @@ function BriefRow({
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+function PreferenceRow({
+  icon,
+  label,
+  children,
+  onEdit,
+}: {
+  icon: ReactNode;
+  label: string;
+  children: ReactNode;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="grid gap-3 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-gray-800">
+            {label}
+          </p>
+          <div className="mt-1">{children}</div>
+        </div>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-9 w-full cursor-pointer rounded-xl border-gray-300 px-3 text-xs font-semibold sm:w-20"
+        onClick={onEdit}
+      >
+        <Pencil className="h-4 w-4" />
+        Edit
+      </Button>
     </div>
   );
 }
