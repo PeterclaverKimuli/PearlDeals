@@ -27,6 +27,28 @@ export type EnrichedDeal = Deal & {
   discount: number;
 };
 
+export type ConditionChoice = "New" | "Refurbished" | "Used" | "All";
+
+export type ShoppingBrief = {
+  budget: number;
+  categories: string[];
+  conditions: ConditionChoice[];
+};
+
+export type RecommendationMatch = {
+  deal: EnrichedDeal;
+  reasons: string[];
+};
+
+export type RecommendationBasket = {
+  id: number;
+  items: RecommendationMatch[];
+  total: number;
+  balance: number;
+  missingCategories: string[];
+  complete: boolean;
+};
+
 export type CategoryItem = {
   name: string;
   icon: string;

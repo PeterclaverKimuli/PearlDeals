@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
-import { Check, X } from "lucide-react";
+import { Check, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import feedbackAvatar from "@/assets/Feedback prompt.png";
 
 const ratingLabels: Record<string, string> = {
   "1": "Poor",
@@ -376,6 +377,184 @@ export function FeedbackModal({
               </h3>
               <p className="mt-2 text-sm leading-6 text-gray-600">
                 We appreciate you helping us improve PearlDeals.
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <Button
+                onClick={onClose}
+                className="cursor-pointer bg-green-600 text-white hover:bg-green-700"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function RecommendationFeedbackModal({
+  open,
+  onClose,
+  hasBrief,
+  basketCount,
+}: {
+  open: boolean;
+  onClose: () => void;
+  hasBrief: boolean;
+  basketCount: number;
+}) {
+  const posthog = usePostHog();
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const canSubmit = rating > 0 && feedback.trim().length > 0;
+
+  useEffect(() => {
+    if (!open) return;
+
+    setRating(0);
+    setFeedback("");
+    setSubmitted(false);
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    posthog.capture("recommendation_feedback_submitted", {
+      rating,
+      feedback: feedback.trim(),
+      has_brief: hasBrief,
+      basket_count: basketCount,
+    });
+
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/50 p-3 sm:items-center sm:p-4">
+      <div className="my-3 max-h-[calc(100vh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-2xl sm:my-0 sm:max-h-[calc(100vh-2rem)]">
+        <div className="relative border-b px-4 py-4 pr-14 sm:flex sm:items-start sm:justify-between sm:px-6 sm:py-5 sm:pr-6">
+          <div className="sm:hidden">
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 max-[320px]:h-6 max-[320px]:w-6"
+              aria-label="Close recommendation feedback modal"
+            >
+              <X className="h-5 w-5 max-[320px]:h-3.5 max-[320px]:w-3.5" />
+            </button>
+          </div>
+          <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center sm:h-20 sm:w-20">
+              <img
+                src={feedbackAvatar}
+                alt="Naki asking for feedback"
+                className="h-full w-full object-contain object-center"
+              />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold leading-snug text-gray-900 sm:text-2xl">
+                How were the recommendations?
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-gray-500 sm:mt-2 sm:text-sm sm:leading-6">
+                Rate the results and tell us what would make them more useful.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-4 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 sm:flex"
+            aria-label="Close recommendation feedback modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {!submitted ? (
+          <form onSubmit={handleSubmit} className="space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Rating
+              </label>
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const isActive = rating >= star;
+
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className={`cursor-pointer rounded-full p-1 transition ${
+                        isActive
+                          ? "text-green-600"
+                          : "text-gray-300 hover:text-green-400"
+                      }`}
+                      aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                    >
+                      <Star
+                        className={`h-7 w-7 sm:h-8 sm:w-8 ${isActive ? "fill-current" : ""}`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-center text-sm text-gray-500">
+                {rating > 0 ? ratingLabels[String(rating)] : "No rating yet"}
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Your feedback
+              </label>
+              <textarea
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder="Tell us what worked, what missed, or what you wanted to see..."
+                required
+                rows={4}
+                className="w-full rounded-md border border-gray-200 px-3 py-3 text-base outline-none focus:border-green-500 md:text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-11 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!canSubmit}
+                className="h-11 cursor-pointer bg-green-600 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Submit feedback
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="px-4 py-6 sm:px-6 sm:py-8">
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white">
+                <Check className="h-5 w-5" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Thanks for helping us tune this
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Your feedback helps PearlDeals make Naki&apos;s recommendations
+                more useful.
               </p>
             </div>
 

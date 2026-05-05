@@ -1,0 +1,625 @@
+import { useState } from "react";
+import feedbackAvatar from "@/assets/Feedback prompt.png";
+import recommendationAvatar from "@/assets/Recommendation Prompt.png";
+import { Button } from "@/components/ui/button";
+import { ShoppingBasket } from "lucide-react";
+import { imageFallback } from "../data";
+import type {
+  CategoryItem,
+  EnrichedDeal,
+  RecommendationBasket,
+  RecommendationMatch,
+  ShoppingBrief,
+} from "../types";
+import {
+  formatUGX,
+  getRecommendationBaskets,
+  getRecommendationSuggestions,
+} from "../utils";
+import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
+import { RecommendationFeedbackModal } from "./Modals";
+
+export function RecommendationsPage({
+  brief,
+  deals,
+  search,
+  setSearch,
+  isSidebarOpen,
+  setIsSidebarOpen,
+  selectedCategory,
+  setSelectedCategory,
+  visibleCategories,
+  setSelectedDeal,
+  onEditBrief,
+  onBrowseDeals,
+}: {
+  brief: ShoppingBrief | null;
+  deals: EnrichedDeal[];
+  search: string;
+  setSearch: (value: string) => void;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (value: boolean) => void;
+  selectedCategory: string | null;
+  setSelectedCategory: (category: string | null) => void;
+  visibleCategories: CategoryItem[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+}) {
+  const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
+    useState(false);
+  const baskets = getRecommendationBaskets(deals, brief);
+  const visibleBaskets = baskets
+    .map((basket) => ({
+      basket,
+      visibleItems: filterMatchesBySearch(basket.items, search),
+    }))
+    .filter(({ visibleItems }) => visibleItems.length > 0);
+  const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
+  const suggestedDeals =
+    brief && baskets.length === 0
+      ? getRecommendationSuggestions(deals, brief)
+      : [];
+
+  return (
+    <div className="min-h-screen bg-gray-50 px-4 pb-4 md:px-6 md:pb-6">
+      <AppHeaderShell
+        search={search}
+        setSearch={setSearch}
+        showMenuButton
+        onMenuClick={() => setIsSidebarOpen(true)}
+        onHomeClick={onBrowseDeals}
+        maxWidthClass="max-w-7xl"
+      />
+
+      <div className="mx-auto max-w-7xl">
+        <MobileOffcanvas
+          open={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onSelectCategory={setSelectedCategory}
+          selectedCategory={selectedCategory}
+          categoriesToShow={visibleCategories}
+        />
+
+        <section className="mt-4 mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div className="flex min-w-0 gap-4">
+              <div className="hidden h-24 w-24 shrink-0 items-center justify-center sm:flex">
+                <img
+                  src={recommendationAvatar}
+                  alt="Naki presenting recommendations"
+                  className="h-full w-full object-contain object-center"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="mx-auto mb-3 h-24 w-24 sm:hidden">
+                  <img
+                    src={recommendationAvatar}
+                    alt="Naki presenting recommendations"
+                    className="h-full w-full object-contain object-center"
+                  />
+                </div>
+                <h1 className="text-3xl font-bold tracking-normal text-gray-950 md:text-4xl">
+                  Recommended for you
+                </h1>
+                {brief ? (
+                  <>
+                    <BriefChips brief={brief} />
+                    {visibleStoreCount > 0 ? (
+                      <div className="mt-3">
+                        <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-800">
+                          Results from {visibleStoreCount}{" "}
+                          {visibleStoreCount === 1 ? "store" : "stores"}
+                        </span>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-gray-600 md:text-base">
+                    Create a shopping brief with Naki to see tailored
+                    recommendations.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="cursor-pointer rounded-full px-4"
+                onClick={onEditBrief}
+              >
+                Edit brief
+              </Button>
+              <Button
+                type="button"
+                className="cursor-pointer rounded-full bg-green-600 px-4 text-white hover:bg-green-700"
+                onClick={onBrowseDeals}
+              >
+                Browse all deals
+              </Button>
+            </div>
+          </div>
+
+        </section>
+
+        {!brief ? (
+          <EmptyRecommendations
+            title="No brief yet"
+            body="Naki needs your budget, categories, and preferred condition before recommendations can be matched."
+            onEditBrief={onEditBrief}
+            onBrowseDeals={onBrowseDeals}
+          />
+        ) : baskets.length > 0 ? (
+          visibleBaskets.length > 0 ? (
+            <div className="space-y-5">
+              {visibleBaskets.map(({ basket, visibleItems }) => (
+                <RecommendationBasketView
+                  key={basket.id}
+                  basket={basket}
+                  visibleItems={visibleItems}
+                  setSelectedDeal={setSelectedDeal}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyRecommendations
+              title="No matches found"
+              body="No recommended products match your current search."
+              onEditBrief={onEditBrief}
+              onBrowseDeals={onBrowseDeals}
+            />
+          )
+        ) : (
+          <NoRecommendationMatches
+            brief={brief}
+            suggestedDeals={suggestedDeals}
+            setSelectedDeal={setSelectedDeal}
+            onEditBrief={onEditBrief}
+            onBrowseDeals={onBrowseDeals}
+          />
+        )}
+
+        {brief ? (
+          <>
+            <RecommendationFeedbackRequest
+              onOpen={() => setIsRecommendationFeedbackOpen(true)}
+            />
+            <RecommendationFeedbackModal
+              key={
+                isRecommendationFeedbackOpen
+                  ? "recommendation-feedback-open"
+                  : "recommendation-feedback-closed"
+              }
+              open={isRecommendationFeedbackOpen}
+              onClose={() => setIsRecommendationFeedbackOpen(false)}
+              hasBrief
+              basketCount={baskets.length}
+            />
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function RecommendationFeedbackRequest({ onOpen }: { onOpen: () => void }) {
+  return (
+    <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+      <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+        <div className="flex items-start gap-3 md:contents">
+          <div className="h-16 w-16 shrink-0 md:h-24 md:w-24">
+            <img
+              src={feedbackAvatar}
+              alt="Naki asking for feedback"
+              className="h-full w-full object-contain object-center"
+            />
+          </div>
+          <div className="min-w-0 text-left">
+            <p className="text-sm font-semibold text-green-700">
+              Help me improve
+            </p>
+            <h2 className="mt-1 text-xl font-bold leading-snug text-gray-950 md:text-2xl">
+              Were my recommendations useful?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Share a quick rating and note so we can make future baskets more
+              helpful.
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          className="h-11 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+          onClick={onOpen}
+        >
+          Share feedback
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function RecommendationBasketView({
+  basket,
+  visibleItems,
+  setSelectedDeal,
+}: {
+  basket: RecommendationBasket;
+  visibleItems: RecommendationMatch[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  return (
+    <section className="grid gap-4 rounded-3xl border border-gray-200 bg-gray-100/60 p-3 lg:grid-cols-[1fr_20rem]">
+      <div>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-gray-950">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700">
+                <ShoppingBasket className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>Basket option {basket.id}</span>
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              This combination fits within your total budget.
+            </p>
+          </div>
+          <span className="text-xs font-medium text-gray-500">
+            {basket.items.length} products
+          </span>
+        </div>
+
+        {visibleItems.length > 0 ? (
+          <div className="space-y-3">
+            {visibleItems.map((match) => (
+              <RecommendationRow
+                key={match.deal.id}
+                match={match}
+                onSelect={setSelectedDeal}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+            No recommended products match your current search.
+          </div>
+        )}
+      </div>
+
+      <aside className="self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="text-base font-bold text-gray-950">Budget summary</h3>
+        <div className="mt-4 space-y-3 text-sm">
+          <SummaryAmount label="Products total" value={basket.total} />
+          <SummaryAmount label="Balance" value={basket.balance} highlight />
+        </div>
+
+        {basket.complete ? (
+          <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+            This basket stays within budget and leaves you with a balance.
+          </p>
+        ) : (
+          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <p className="font-semibold">Some categories were not included.</p>
+            <p className="mt-1">
+              Missing: {basket.missingCategories.join(", ")}
+            </p>
+          </div>
+        )}
+      </aside>
+    </section>
+  );
+}
+
+function RecommendationRow({
+  match,
+  onSelect,
+}: {
+  match: RecommendationMatch;
+  onSelect: (deal: EnrichedDeal) => void;
+}) {
+  const { deal, reasons } = match;
+
+  return (
+    <article className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:grid-cols-[7rem_1fr_auto] sm:items-center">
+      <div className="flex h-28 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
+        <img
+          src={deal.image || imageFallback}
+          alt={deal.title}
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = imageFallback;
+          }}
+          className="h-full w-full bg-white p-3 object-contain"
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[0.7rem] font-semibold text-gray-700">
+            {deal.category}
+          </span>
+          {reasons.map((reason) => (
+            <span
+              key={reason}
+              className="rounded-full bg-green-100 px-2.5 py-1 text-[0.7rem] font-semibold text-green-800"
+            >
+              {reason}
+            </span>
+          ))}
+        </div>
+        <h3 className="mt-2 text-base font-bold leading-snug text-gray-950">
+          {deal.title}
+        </h3>
+        <p className="mt-1 text-xs text-gray-500">Best at {deal.bestDeal.site}</p>
+        {deal.bestDeal.status ? (
+          <p className="mt-0.5 text-xs text-gray-500">
+            Condition: {deal.bestDeal.status}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2 sm:min-w-32 sm:items-end">
+        <p className="text-lg font-bold text-green-700">
+          {formatUGX(deal.bestDeal.price)}
+        </p>
+        <Button
+          type="button"
+          className="w-full cursor-pointer rounded-full sm:w-auto"
+          onClick={() => onSelect(deal)}
+        >
+          View & Compare
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function SummaryAmount({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-gray-600">{label}</span>
+      <span
+        className={`font-bold ${highlight ? "text-green-700" : "text-gray-950"}`}
+      >
+        {formatUGX(value)}
+      </span>
+    </div>
+  );
+}
+
+function SummaryChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+      {label}
+    </span>
+  );
+}
+
+function EmptyRecommendations({
+  title,
+  body,
+  onEditBrief,
+  onBrowseDeals,
+}: {
+  title: string;
+  body: string;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+      <h2 className="text-xl font-bold text-gray-950">{title}</h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
+        {body}
+      </p>
+      <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="outline"
+          className="cursor-pointer rounded-full px-5"
+          onClick={onEditBrief}
+        >
+          Edit brief
+        </Button>
+        <Button
+          type="button"
+          className="cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+          onClick={onBrowseDeals}
+        >
+          Browse all deals
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function NoRecommendationMatches({
+  brief,
+  suggestedDeals,
+  setSelectedDeal,
+  onEditBrief,
+  onBrowseDeals,
+}: {
+  brief: ShoppingBrief;
+  suggestedDeals: EnrichedDeal[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <EmptyRecommendations
+        title="No matches found"
+        body="Try editing your brief with a higher budget, fewer categories, or broader conditions."
+        onEditBrief={onEditBrief}
+        onBrowseDeals={onBrowseDeals}
+      />
+
+      {suggestedDeals.length > 0 ? (
+        <section>
+          <div className="mb-3">
+            <h2 className="text-xl font-bold text-gray-950">
+              You could also look into
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              These nearby products are not exact matches, but they may still be
+              worth comparing.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {suggestedDeals.map((deal) => (
+              <SuggestionCard
+                key={deal.id}
+                brief={brief}
+                deal={deal}
+                onSelect={setSelectedDeal}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function SuggestionCard({
+  brief,
+  deal,
+  onSelect,
+}: {
+  brief: ShoppingBrief;
+  deal: EnrichedDeal;
+  onSelect: (deal: EnrichedDeal) => void;
+}) {
+  const condition = deal.bestDeal.status || "Unknown";
+  const priceMatches = deal.bestDeal.price <= brief.budget;
+  const categoryMatches = brief.categories.includes(deal.category);
+  const conditionMatches =
+    condition !== "Unknown" &&
+    (brief.conditions.includes("All") ||
+      brief.conditions.some((selectedCondition) => selectedCondition === condition));
+
+  return (
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className="flex h-44 items-center justify-center overflow-hidden bg-gray-100">
+        <img
+          src={deal.image || imageFallback}
+          alt={deal.title}
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = imageFallback;
+          }}
+          className="h-full w-full bg-white p-4 object-contain"
+        />
+      </div>
+
+      <div className="flex flex-1 flex-col p-3 text-sm">
+        <h3 className="text-base font-bold leading-snug text-gray-950">
+          {deal.title}
+        </h3>
+        <p className="mt-1 text-xs text-gray-500">
+          Best at {deal.bestDeal.site}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <AttributeChip
+            label="Price"
+            value={formatUGX(deal.bestDeal.price)}
+            matches={priceMatches}
+          />
+          <AttributeChip
+            label="Category"
+            value={deal.category}
+            matches={categoryMatches}
+          />
+          <AttributeChip
+            label="Condition"
+            value={condition}
+            matches={conditionMatches}
+          />
+        </div>
+
+        <div className="mt-auto pt-4">
+          <Button
+            type="button"
+            className="w-full cursor-pointer rounded-full"
+            onClick={() => onSelect(deal)}
+          >
+            View & Compare
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AttributeChip({
+  label,
+  value,
+  matches,
+}: {
+  label: string;
+  value: string;
+  matches: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex max-w-full flex-col rounded-xl border px-3 py-2 ${
+        matches
+          ? "border-green-200 bg-green-50 text-green-800"
+          : "border-gray-200 bg-gray-50 text-gray-700"
+      }`}
+    >
+      <span className="text-[0.65rem] font-semibold uppercase tracking-wide">
+        {label}
+      </span>
+      <span className="break-words text-xs font-bold leading-5">{value}</span>
+    </span>
+  );
+}
+
+function filterMatchesBySearch(matches: RecommendationMatch[], search: string) {
+  const term = search.trim().toLowerCase();
+  if (!term) return matches;
+
+  return matches.filter(({ deal }) => {
+    return (
+      deal.title.toLowerCase().includes(term) ||
+      deal.category.toLowerCase().includes(term) ||
+      deal.prices.some((price) => price.site.toLowerCase().includes(term))
+    );
+  });
+}
+
+function getVisibleStoreCount(
+  baskets: { visibleItems: RecommendationMatch[] }[],
+) {
+  return new Set(
+    baskets.flatMap(({ visibleItems }) =>
+      visibleItems.map((match) => match.deal.bestDeal.site),
+    ),
+  ).size;
+}
+
+function BriefChips({ brief }: { brief: ShoppingBrief }) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      <SummaryChip label={formatUGX(brief.budget)} />
+      {brief.categories.map((category) => (
+        <SummaryChip key={category} label={category} />
+      ))}
+      {brief.conditions.map((condition) => (
+        <SummaryChip
+          key={condition}
+          label={condition === "All" ? "All conditions" : condition}
+        />
+      ))}
+    </div>
+  );
+}

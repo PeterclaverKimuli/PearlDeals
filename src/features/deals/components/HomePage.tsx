@@ -31,6 +31,7 @@ export function HomePage({
   setSelectedDeal,
   selfChecks,
   onOpenNaki,
+  onBrowseDeals,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -53,6 +54,7 @@ export function HomePage({
   setSelectedDeal: (deal: EnrichedDeal) => void;
   selfChecks: SelfCheck[];
   onOpenNaki: () => void;
+  onBrowseDeals: () => void;
 }) {
   const posthog = usePostHog();
   const showFeedbackButton = false;
@@ -64,6 +66,7 @@ export function HomePage({
         setSearch={setSearch}
         showMenuButton
         onMenuClick={() => setIsSidebarOpen(true)}
+        onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-6xl"
       />
 

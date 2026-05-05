@@ -23,10 +23,9 @@ import budgetAvatar from "@/assets/Budget prompt.png";
 import categoryAvatar from "@/assets/Category prompt.png";
 import conditionAvatar from "@/assets/Condition prompt.png";
 import readyAvatar from "@/assets/Ready Prompt.png";
-import type { CategoryItem } from "../types";
+import type { CategoryItem, ConditionChoice, ShoppingBrief } from "../types";
 
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
-type ConditionChoice = "New" | "Refurbished" | "Used" | "All";
 
 const steps: IntakeStep[] = [
   "welcome",
@@ -77,7 +76,7 @@ const stepCopy: Record<
   ready: {
     eyebrow: "Ready",
     title: "Your shopping brief is set.",
-    body: "Recommendation matching is coming next. For now, jump into the current deals page and start browsing live comparisons.",
+    body: "I will use this brief to recommend the best matching deals from the current PearlDeals list.",
     avatar: readyAvatar,
     avatarAlt: "Naki ready to show shopping deals",
   },
@@ -112,18 +111,31 @@ const introName = "Naki";
 const introSuffix = ", your shopping assistant.";
 const introText = `${introPrefix}${introName}${introSuffix}`;
 const maxSelectedCategories = 3;
+const maxSelectedConditions = 3;
 
 export function LandingPage({
   categories,
   onBrowseDeals,
+  onCompleteBrief,
+  initialBrief,
+  initialStep = "welcome",
 }: {
   categories: CategoryItem[];
   onBrowseDeals: () => void;
+  onCompleteBrief: (brief: ShoppingBrief) => void;
+  initialBrief: ShoppingBrief | null;
+  initialStep?: IntakeStep;
 }) {
-  const [activeStep, setActiveStep] = useState<IntakeStep>("welcome");
-  const [budget, setBudget] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [condition, setCondition] = useState<ConditionChoice | null>(null);
+  const [activeStep, setActiveStep] = useState<IntakeStep>(initialStep);
+  const [budget, setBudget] = useState(
+    initialBrief?.budget ? String(initialBrief.budget) : "",
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    initialBrief?.categories ?? [],
+  );
+  const [selectedConditions, setSelectedConditions] = useState<ConditionChoice[]>(
+    initialBrief?.conditions ?? [],
+  );
   const [validationMessage, setValidationMessage] = useState("");
   const [typedIntroLength, setTypedIntroLength] = useState(0);
 
@@ -136,6 +148,13 @@ export function LandingPage({
 
     return new Intl.NumberFormat("en-UG").format(Number(cleanBudget));
   }, [cleanBudget]);
+  const conditionSummary = useMemo(() => {
+    if (selectedConditions.length === 0) return "";
+    if (selectedConditions.includes("All")) return "All conditions";
+
+    return selectedConditions.join(", ");
+  }, [selectedConditions]);
+
   const briefNote = useMemo(() => {
     if (activeStep === "budget") {
       return formattedBudget
@@ -156,17 +175,17 @@ export function LandingPage({
     }
 
     if (activeStep === "condition") {
-      return condition
-        ? `${condition} selected. I will respect that preference when recommendations are added.`
-        : "Choose the product condition that feels right for how you want to shop.";
+      return conditionSummary
+        ? `${conditionSummary} selected. I will respect that preference when recommendations are added.`
+        : "Choose the product conditions that feel right for how you want to shop.";
     }
 
     if (activeStep === "ready") {
-      return "Your shopping brief is ready. The next step is turning these answers into recommended deals.";
+      return "Your shopping brief is ready. I can now turn these answers into recommended deals.";
     }
 
     return "";
-  }, [activeStep, condition, formattedBudget, selectedCategories]);
+  }, [activeStep, conditionSummary, formattedBudget, selectedCategories]);
 
   const canGoBack = stepIndex > 0;
 
@@ -215,8 +234,8 @@ export function LandingPage({
       return false;
     }
 
-    if (activeStep === "condition" && !condition) {
-      setValidationMessage("Choose a product condition.");
+    if (activeStep === "condition" && selectedConditions.length === 0) {
+      setValidationMessage("Choose at least one product condition.");
       return false;
     }
 
@@ -227,7 +246,11 @@ export function LandingPage({
     if (!validateCurrentStep()) return;
 
     if (activeStep === "ready") {
-      onBrowseDeals();
+      onCompleteBrief({
+        budget: Number(cleanBudget),
+        categories: selectedCategories,
+        conditions: selectedConditions,
+      });
       return;
     }
 
@@ -250,17 +273,46 @@ export function LandingPage({
     });
   };
 
+  const toggleCondition = (condition: ConditionChoice) => {
+    setValidationMessage("");
+    setSelectedConditions((current) => {
+      if (condition === "All") {
+        return current.includes("All") ? [] : ["All"];
+      }
+
+      const withoutAll = current.filter((item) => item !== "All");
+
+      if (withoutAll.includes(condition)) {
+        return withoutAll.filter((item) => item !== condition);
+      }
+
+      if (withoutAll.length >= maxSelectedConditions) {
+        setValidationMessage("You can choose up to three conditions.");
+        return current;
+      }
+
+      return [...withoutAll, condition];
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-5 text-gray-950 md:px-6 md:py-8">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col">
         <header className="mb-6 flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex min-w-0 items-center gap-1.5 text-2xl font-bold sm:gap-2 sm:text-3xl">
-            <span className="text-xl sm:text-2xl">💸</span>
+          <button
+            type="button"
+            onClick={onBrowseDeals}
+            className="flex min-w-0 cursor-pointer items-center gap-1.5 text-2xl font-bold sm:gap-2 sm:text-3xl"
+            aria-label="Go to PearlDeals home"
+          >
+            <span className="text-xl sm:text-2xl" aria-hidden="true">
+              {"\u{1F4B8}"}
+            </span>
             <span className="inline-flex items-baseline gap-0">
               <span className="text-gray-900">Pearl</span>
               <span className="text-green-600">Deals</span>
             </span>
-          </div>
+          </button>
           <Button
             type="button"
             variant="outline"
@@ -401,7 +453,7 @@ export function LandingPage({
                 onClick={goNext}
               >
                 {activeStep === "ready"
-                  ? "Show me deals"
+                  ? "Show recommendations"
                   : activeStep === "welcome"
                     ? "Start shopping"
                     : "Continue"}
@@ -445,7 +497,7 @@ export function LandingPage({
                 />
                 <BriefRow
                   label="Condition"
-                  value={condition || "Not selected"}
+                  value={conditionSummary || "Not selected"}
                   active={activeStep === "condition"}
                 />
               </div>
@@ -570,16 +622,13 @@ export function LandingPage({
         return (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {conditionOptions.map((option) => {
-              const selected = condition === option.label;
+              const selected = selectedConditions.includes(option.label);
 
               return (
                 <button
                   key={option.label}
                   type="button"
-                  onClick={() => {
-                    setValidationMessage("");
-                    setCondition(option.label);
-                  }}
+                  onClick={() => toggleCondition(option.label)}
                   className={`flex h-full min-h-28 cursor-pointer flex-col items-start rounded-3xl border p-4 text-left transition ${
                     selected
                       ? "border-green-500 bg-green-50 shadow-sm"
@@ -614,9 +663,6 @@ export function LandingPage({
                   </p>
                 </div>
               </div>
-              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-800">
-                Set
-              </span>
             </div>
 
             <div className="divide-y divide-gray-200">
@@ -661,9 +707,7 @@ export function LandingPage({
                 onEdit={() => goToStep("condition")}
               >
                 <span className="text-base font-semibold text-gray-950">
-                  {condition === "All"
-                    ? "All conditions"
-                    : condition || "Not selected"}
+                  {conditionSummary || "Not selected"}
                 </span>
               </PreferenceRow>
             </div>
@@ -749,7 +793,7 @@ function PreferenceRow({
   onEdit: () => void;
 }) {
   return (
-    <div className="grid gap-3 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-3 py-3">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
           {icon}
@@ -764,7 +808,7 @@ function PreferenceRow({
       <Button
         type="button"
         variant="outline"
-        className="h-9 w-full cursor-pointer rounded-xl border-gray-300 px-3 text-xs font-semibold sm:w-20"
+        className="h-8 w-16 cursor-pointer rounded-xl border-gray-300 px-2 text-xs font-semibold sm:h-9 sm:w-20 sm:px-3"
         onClick={onEdit}
       >
         <Pencil className="h-4 w-4" />

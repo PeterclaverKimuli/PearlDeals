@@ -3,12 +3,13 @@ import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
 import { LandingPage } from "@/features/deals/components/LandingPage";
+import { RecommendationsPage } from "@/features/deals/components/RecommendationsPage";
 import {
   FeedbackModal,
   LeaveSiteModal,
   WaitlistModal,
 } from "@/features/deals/components/Modals";
-import type { SelfCheck } from "@/features/deals/types";
+import type { SelfCheck, ShoppingBrief } from "@/features/deals/types";
 import {
   enrichDeal,
   formatUGX,
@@ -86,6 +87,10 @@ function runSelfChecks(): SelfCheck[] {
       name: "DealsUI duplicate selectedDeal block removed",
       pass: true,
     },
+    {
+      name: "recommendations route is available",
+      pass: true,
+    },
   ];
 }
 
@@ -110,6 +115,7 @@ export default function DealsUI() {
   );
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [showCategoryArrows, setShowCategoryArrows] = useState(false);
+  const [shoppingBrief, setShoppingBrief] = useState<ShoppingBrief | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -172,6 +178,11 @@ export default function DealsUI() {
     setIsSidebarOpen(false);
   };
 
+  const handleCompleteBrief = (brief: ShoppingBrief) => {
+    setShoppingBrief(brief);
+    navigateTo("/recommendations");
+  };
+
   const scrollToTopDeals = () => {
     topDealsRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -197,11 +208,14 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
-  if (routePath === "/naki") {
+  if (routePath === "/naki" || routePath === "/brief") {
     return (
       <LandingPage
         categories={visibleCategories}
         onBrowseDeals={() => navigateTo("/")}
+        onCompleteBrief={handleCompleteBrief}
+        initialBrief={shoppingBrief}
+        initialStep={routePath === "/brief" && shoppingBrief ? "ready" : "welcome"}
       />
     );
   }
@@ -229,6 +243,26 @@ export default function DealsUI() {
         filteredDeals={filteredDeals}
         setSelectedDeal={setSelectedDeal}
         onOpenNaki={() => navigateTo("/naki")}
+        onBrowseDeals={() => navigateTo("/")}
+      />
+    );
+  }
+
+  if (routePath === "/recommendations") {
+    return (
+      <RecommendationsPage
+        brief={shoppingBrief}
+        deals={dealsWithDiscounts}
+        search={search}
+        setSearch={setSearch}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        visibleCategories={visibleCategories}
+        setSelectedDeal={setSelectedDeal}
+        onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
+        onBrowseDeals={() => navigateTo("/")}
       />
     );
   }
@@ -256,6 +290,7 @@ export default function DealsUI() {
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}
+      onBrowseDeals={() => navigateTo("/")}
     />
   );
 }

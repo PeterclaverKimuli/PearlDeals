@@ -16,6 +16,7 @@ export function CategoryPage({
   filteredDeals,
   setSelectedDeal,
   onOpenNaki,
+  onBrowseDeals,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -27,6 +28,7 @@ export function CategoryPage({
   filteredDeals: EnrichedDeal[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
   onOpenNaki: () => void;
+  onBrowseDeals: () => void;
 }) {
   const posthog = usePostHog();
 
@@ -37,6 +39,7 @@ export function CategoryPage({
         setSearch={setSearch}
         showMenuButton
         onMenuClick={() => setIsSidebarOpen(true)}
+        onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-7xl"
       />
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { usePostHog } from "@posthog/react";
-import { Search, X, Check } from "lucide-react";
+import { Check, Menu, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { imageFallback } from "../data";
 import type { CategoryItem } from "../types";
@@ -25,14 +25,17 @@ export function AppHeader({
   search,
   setSearch,
   onMenuClick,
+  onHomeClick,
   showMenuButton = false,
 }: {
   search: string;
   setSearch: (value: string) => void;
   onMenuClick?: () => void;
+  onHomeClick?: () => void;
   showMenuButton?: boolean;
 }) {
   const posthog = usePostHog();
+  const brandClasses = "flex items-center gap-2 text-3xl font-bold";
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -44,17 +47,24 @@ export function AppHeader({
             className="absolute left-0 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-2xl text-gray-700 md:hidden"
             aria-label="Open categories"
           >
-            ☰
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
 
-        <h1 className="flex items-center gap-2 text-3xl font-bold">
-          <span className="text-2xl">💸</span>
-          <span className="inline-flex items-baseline gap-0">
-            <span className="text-gray-900">Pearl</span>
-            <span className="text-green-600">Deals</span>
-          </span>
-        </h1>
+        {onHomeClick ? (
+          <button
+            type="button"
+            onClick={onHomeClick}
+            className={`${brandClasses} cursor-pointer`}
+            aria-label="Go to PearlDeals home"
+          >
+            <BrandMark />
+          </button>
+        ) : (
+          <h1 className={brandClasses}>
+            <BrandMark />
+          </h1>
+        )}
       </div>
 
       <div className="w-full md:w-96">
@@ -91,16 +101,32 @@ export function AppHeader({
   );
 }
 
+function BrandMark() {
+  return (
+    <>
+      <span className="text-2xl" aria-hidden="true">
+        {"\u{1F4B8}"}
+      </span>
+      <span className="inline-flex items-baseline gap-0">
+        <span className="text-gray-900">Pearl</span>
+        <span className="text-green-600">Deals</span>
+      </span>
+    </>
+  );
+}
+
 export function AppHeaderShell({
   search,
   setSearch,
   onMenuClick,
+  onHomeClick,
   showMenuButton = false,
   maxWidthClass,
 }: {
   search: string;
   setSearch: (value: string) => void;
   onMenuClick?: () => void;
+  onHomeClick?: () => void;
   showMenuButton?: boolean;
   maxWidthClass: string;
 }) {
@@ -113,6 +139,7 @@ export function AppHeaderShell({
             setSearch={setSearch}
             showMenuButton={showMenuButton}
             onMenuClick={onMenuClick}
+            onHomeClick={onHomeClick}
           />
         </div>
       </div>
@@ -221,3 +248,5 @@ export function MobileOffcanvas({
     </div>
   );
 }
+
+
