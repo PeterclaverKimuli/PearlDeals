@@ -279,7 +279,7 @@ export function DealCard({
   const discount = deal.discount;
 
   return (
-    <Card className="flex flex-col rounded-2xl shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+    <Card className="flex h-full gap-0 overflow-hidden rounded-2xl border border-gray-200 bg-white py-0 shadow-sm ring-0 transition duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl">
       <ProductImage src={deal.image} alt={deal.title} />
 
       <CardContent className="flex flex-grow flex-col p-3 text-sm">

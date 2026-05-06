@@ -9,6 +9,7 @@ import {
   LeaveSiteModal,
   WaitlistModal,
 } from "@/features/deals/components/Modals";
+import { behavioralCategories } from "@/features/deals/data";
 import type { SelfCheck, ShoppingBrief } from "@/features/deals/types";
 import {
   enrichDeal,
@@ -105,6 +106,10 @@ export default function DealsUI() {
   const popularProductsRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBehavioralCategory, setSelectedBehavioralCategory] = useState<
+    string | null
+  >(null);
+  const [isViewingAllProducts, setIsViewingAllProducts] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<ReturnType<
     typeof enrichDeal
@@ -124,6 +129,8 @@ export default function DealsUI() {
       setRoutePath(window.location.pathname);
       setSelectedDeal(null);
       setSelectedCategory(null);
+      setSelectedBehavioralCategory(null);
+      setIsViewingAllProducts(false);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -134,20 +141,42 @@ export default function DealsUI() {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
-  }, [routePath, selectedCategory, selectedDeal]);
+  }, [
+    routePath,
+    selectedCategory,
+    selectedBehavioralCategory,
+    isViewingAllProducts,
+    selectedDeal,
+  ]);
 
   const dealsWithDiscounts = useMemo(
     () => mockDeals.map((deal) => enrichDeal(deal)),
     [],
   );
   const visibleCategories = useMemo(() => getVisibleCategories(mockDeals), []);
+  const behavioralCategoryNames = useMemo(
+    () => new Set(behavioralCategories.map((category) => category.name)),
+    [],
+  );
+  const selectedBehavioralCategoryConfig = useMemo(
+    () =>
+      behavioralCategories.find(
+        (category) => category.name === selectedBehavioralCategory,
+      ) ?? null,
+    [selectedBehavioralCategory],
+  );
 
   const filteredDeals = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const behavioralProductIds = selectedBehavioralCategoryConfig?.productIds;
 
     return dealsWithDiscounts.filter((deal) => {
       const matchesCategory =
-        !selectedCategory || deal.category === selectedCategory;
+        behavioralProductIds
+          ? behavioralProductIds.includes(deal.id)
+          : isViewingAllProducts || !selectedCategory
+            ? true
+            : deal.category === selectedCategory;
       const matchesSearch =
         !term ||
         deal.title.toLowerCase().includes(term) ||
@@ -156,7 +185,24 @@ export default function DealsUI() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [dealsWithDiscounts, search, selectedCategory]);
+  }, [
+    dealsWithDiscounts,
+    search,
+    selectedCategory,
+    isViewingAllProducts,
+    selectedBehavioralCategoryConfig,
+  ]);
+
+  const behavioralDealSections = useMemo(
+    () =>
+      behavioralCategories.map((category) => ({
+        ...category,
+        deals: (category.productIds ?? [])
+          .map((id) => dealsWithDiscounts.find((deal) => deal.id === id))
+          .filter((deal): deal is (typeof dealsWithDiscounts)[number] => !!deal),
+      })),
+    [dealsWithDiscounts],
+  );
 
   const featuredDeals = useMemo(
     () =>
@@ -175,7 +221,35 @@ export default function DealsUI() {
     setRoutePath(path);
     setSelectedDeal(null);
     setSelectedCategory(null);
+    setSelectedBehavioralCategory(null);
+    setIsViewingAllProducts(false);
     setIsSidebarOpen(false);
+  };
+
+  const selectCategory = (category: string | null) => {
+    if (!category) {
+      setSelectedCategory(null);
+      setSelectedBehavioralCategory(null);
+      setIsViewingAllProducts(false);
+      return;
+    }
+
+    if (behavioralCategoryNames.has(category)) {
+      setSelectedBehavioralCategory(category);
+      setSelectedCategory(null);
+      setIsViewingAllProducts(false);
+    } else {
+      setSelectedCategory(category);
+      setSelectedBehavioralCategory(null);
+      setIsViewingAllProducts(false);
+    }
+  };
+
+  const viewAllProducts = () => {
+    setSelectedCategory(null);
+    setSelectedBehavioralCategory(null);
+    setIsViewingAllProducts(true);
+    setSelectedDeal(null);
   };
 
   const handleCompleteBrief = (brief: ShoppingBrief) => {
@@ -230,15 +304,19 @@ export default function DealsUI() {
     );
   }
 
-  if (selectedCategory) {
+  if (selectedCategory || selectedBehavioralCategory || isViewingAllProducts) {
     return (
       <CategoryPage
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+        selectedCategory={
+          isViewingAllProducts
+            ? "All Products"
+            : selectedCategory ?? selectedBehavioralCategory ?? ""
+        }
+        setSelectedCategory={selectCategory}
         visibleCategories={visibleCategories}
         filteredDeals={filteredDeals}
         setSelectedDeal={setSelectedDeal}
@@ -258,7 +336,7 @@ export default function DealsUI() {
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+        setSelectedCategory={selectCategory}
         visibleCategories={visibleCategories}
         setSelectedDeal={setSelectedDeal}
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
@@ -274,8 +352,9 @@ export default function DealsUI() {
       isSidebarOpen={isSidebarOpen}
       setIsSidebarOpen={setIsSidebarOpen}
       visibleCategories={visibleCategories}
+      navigationCategories={visibleCategories}
       selectedCategory={selectedCategory}
-      setSelectedCategory={setSelectedCategory}
+      setSelectedCategory={selectCategory}
       isFeedbackOpen={isFeedbackOpen}
       setIsFeedbackOpen={setIsFeedbackOpen}
       bannerSrc={bannerSrc}
@@ -286,11 +365,13 @@ export default function DealsUI() {
       topDealsRef={topDealsRef}
       popularProductsRef={popularProductsRef}
       featuredDeals={featuredDeals}
+      behavioralDealSections={behavioralDealSections}
       filteredDeals={filteredDeals}
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}
       onBrowseDeals={() => navigateTo("/")}
+      onViewAllProducts={viewAllProducts}
     />
   );
 }

@@ -15,6 +15,7 @@ export function HomePage({
   isSidebarOpen,
   setIsSidebarOpen,
   visibleCategories,
+  navigationCategories,
   selectedCategory,
   setSelectedCategory,
   isFeedbackOpen,
@@ -27,17 +28,20 @@ export function HomePage({
   topDealsRef,
   popularProductsRef,
   featuredDeals,
+  behavioralDealSections,
   filteredDeals,
   setSelectedDeal,
   selfChecks,
   onOpenNaki,
   onBrowseDeals,
+  onViewAllProducts,
 }: {
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (value: boolean) => void;
   visibleCategories: CategoryItem[];
+  navigationCategories: CategoryItem[];
   selectedCategory: string | null;
   setSelectedCategory: (category: string | null) => void;
   isFeedbackOpen: boolean;
@@ -50,11 +54,13 @@ export function HomePage({
   topDealsRef: RefObject<HTMLDivElement | null>;
   popularProductsRef: RefObject<HTMLDivElement | null>;
   featuredDeals: EnrichedDeal[];
+  behavioralDealSections: (CategoryItem & { deals: EnrichedDeal[] })[];
   filteredDeals: EnrichedDeal[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
   selfChecks: SelfCheck[];
   onOpenNaki: () => void;
   onBrowseDeals: () => void;
+  onViewAllProducts: () => void;
 }) {
   const posthog = usePostHog();
   const showFeedbackButton = false;
@@ -76,7 +82,7 @@ export function HomePage({
           onClose={() => setIsSidebarOpen(false)}
           onSelectCategory={setSelectedCategory}
           selectedCategory={selectedCategory}
-          categoriesToShow={visibleCategories}
+          categoriesToShow={navigationCategories}
         />
 
         {showFeedbackButton ? (
@@ -92,9 +98,18 @@ export function HomePage({
             <div className="pointer-events-none absolute right-0 bottom-full mb-3 w-56 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-md transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
               Let me help you with your shopping needs
             </div>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-0.5 -right-0.5 z-10 h-5 w-5 animate-pulse rounded-full border-2 border-white bg-green-600 shadow-md md:h-6 md:w-6"
+            />
             <button
               type="button"
-              onClick={onOpenNaki}
+              onClick={() => {
+                posthog.capture("naki_floating_button_clicked", {
+                  source: "homepage",
+                });
+                onOpenNaki();
+              }}
               className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-2xl md:h-20 md:w-20"
               aria-label="Open Naki shopping assistant"
             >
@@ -122,20 +137,18 @@ export function HomePage({
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black to-transparent opacity-70" />
           <div className="absolute inset-0 flex items-center">
-            <div className="max-w-lg px-6 md:px-10">
+            <div className="max-w-xl px-6 md:px-10">
               <h2 className="mb-3 text-2xl font-bold leading-tight text-white md:text-4xl">
-                Get the best deals
-                <br />
-                on your favorite products
+                Save Money on Things You Actually Buy.
               </h2>
               <p className="mb-4 text-sm text-white opacity-80 md:text-base">
-                Compare prices across top sites and save more every day.
+                We share verified deals you can trust - sorted by category so you can find what you need fast
               </p>
               <Button
                 className="cursor-pointer rounded-full bg-white px-5 py-2 text-sm text-black hover:bg-gray-200"
                 onClick={scrollToTopDeals}
               >
-                Let&apos;s Get it →
+                Start Saving Now →
               </Button>
             </div>
           </div>
@@ -223,11 +236,60 @@ export function HomePage({
           </>
         )}
 
+        <div className="mb-10 space-y-8">
+          {behavioralDealSections.map((section) => (
+            <section key={section.name}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2">
+                  <span className="mt-0.5 text-xl" aria-hidden="true">
+                    {section.icon}
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-semibold">
+                      {section.name}
+                    </h2>
+                    {section.description ? (
+                      <p className="mt-1 text-sm text-gray-500">
+                        {section.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm"
+                  onClick={() => {
+                    posthog.capture("view_all_clicked", {
+                      category: section.name,
+                      source: "homepage_behavioral_category",
+                    });
+                    setSelectedCategory(section.name);
+                  }}
+                >
+                  View All
+                </Button>
+              </div>
+
+              <div className="flex items-stretch gap-4 overflow-x-auto pt-2 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {section.deals.slice(0, 6).map((deal) => (
+                  <div
+                    key={`${section.name}-${deal.id}`}
+                    className="flex w-[78vw] shrink-0 min-[425px]:w-[18rem] md:w-[18rem] lg:w-[calc((100%_-_4rem)/5)] lg:min-w-[calc((100%_-_4rem)/5)]"
+                  >
+                    <DealCard deal={deal} onSelect={setSelectedDeal} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+
         <div
           ref={popularProductsRef}
           className="mb-4 flex items-center justify-between gap-3"
         >
-          <h2 className="text-xl font-semibold">Popular Products</h2>
+          <h2 className="text-xl font-semibold">All Products</h2>
           <div className="text-xs text-gray-500">
             {selfChecks.every((check) => check.pass)
               ? "Checks passed"
@@ -236,7 +298,7 @@ export function HomePage({
         </div>
 
         <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredDeals.map((deal) => (
+          {filteredDeals.slice(0, 6).map((deal) => (
             <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
           ))}
 
@@ -252,6 +314,25 @@ export function HomePage({
             </div>
           )}
         </div>
+
+        {!search.trim() && filteredDeals.length > 6 && (
+          <div className="mt-6 flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="block h-10 w-full cursor-pointer rounded-xl px-6 text-sm font-semibold sm:w-1/2 lg:w-1/4"
+              onClick={() => {
+                posthog.capture("view_all_clicked", {
+                  category: "All Products",
+                  source: "homepage_all_products",
+                });
+                onViewAllProducts();
+              }}
+            >
+              View All
+            </Button>
+          </div>
+        )}
 
         <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-4">
           <ValueProp

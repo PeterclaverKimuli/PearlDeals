@@ -1,4 +1,4 @@
-import type { RawDeal } from "./types";
+import type { CategoryItem, RawDeal } from "./types";
 
 export function makeSvgDataUri(label: string, bg: string, fg = "#111827") {
   const svg = `
@@ -33,6 +33,37 @@ export const categoryIcons: Record<string, string> = {
   Appliances: "ðŸ§Š",
   Kitchen: "ðŸ³",
 };
+
+export const behavioralCategories: CategoryItem[] = [
+  {
+    name: "Popular Deals",
+    description: "What people are buying right now",
+    icon: "\u{1F525}",
+    kind: "behavioral",
+    productIds: [11, 1, 2, 9, 13, 15, 17, 20, 24, 30],
+  },
+  {
+    name: "Budget Deals",
+    description: "Under UGX 500,000",
+    icon: "\u{1F4B0}",
+    kind: "behavioral",
+    productIds: [11, 10, 2, 15, 9, 17, 18, 19, 20, 30],
+  },
+  {
+    name: "Limited Time Deals",
+    description: "Offers that won't last long",
+    icon: "\u23F3",
+    kind: "behavioral",
+    productIds: [13, 14, 15, 4, 9, 24, 25, 26, 30, 33],
+  },
+  {
+    name: "Everyday Essentials",
+    description: "Things you use every day",
+    icon: "\u{1F6CD}\uFE0F",
+    kind: "behavioral",
+    productIds: [1, 2, 3, 8, 10, 11, 9, 13, 15, 16, 17, 18, 19, 30, 28],
+  },
+];
 
 export const rawDeals: RawDeal[] = [
   {
@@ -972,28 +1003,21 @@ export const rawDeals: RawDeal[] = [
     id: 30,
     title: "Hoffmans 6L Air Fryer",
     image:
-      "https://ug.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/09/5666952/1.jpg?1119",
+      "https://ug.jumia.is/unsafe/fit-in/500x500/filters:fill(white)/product/57/6475952/1.jpg?3269",
     category: "Kitchen",
     prices: [
       {
         site: "Jumia",
-        price: 145000,
-        original: 200000,
-        url: "https://www.jumia.ug/hoffmans-6l-air-fryer-black-212240812.html",
+        price: 225000,
+        original: 250000,
+        url: "https://www.jumia.ug/generic-hoffmans-hoffman-6l-airfryer-259574675.html",
         status: "New",
       },
       {
         site: "Kanta",
-        price: 165000,
+        price: 199000,
         original: 250000,
-        url: "https://kanta.ug/product/hoffmans-6l-air-fryer/",
-        status: "New",
-      },
-      {
-        site: "Kwesi",
-        price: 195000,
-        original: 285000,
-        url: "https://kwesistores.com/product/hoffmans-6l-air-fryer-black/",
+        url: "https://kanta.ug/product/hoffmans-6ltr-touch-screen-digital-air-fryer-hm-6018/",
         status: "New",
       },
     ],

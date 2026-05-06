@@ -56,9 +56,19 @@ export function CategoryPage({
           <div className="pointer-events-none absolute right-0 bottom-full mb-3 w-56 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-md transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
             Let me help you with your shopping needs
           </div>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-0.5 -right-0.5 z-10 h-5 w-5 animate-pulse rounded-full border-2 border-white bg-green-600 shadow-md md:h-6 md:w-6"
+          />
           <button
             type="button"
-            onClick={onOpenNaki}
+            onClick={() => {
+              posthog.capture("naki_floating_button_clicked", {
+                source: "category_page",
+                category: selectedCategory,
+              });
+              onOpenNaki();
+            }}
             className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-2xl md:h-20 md:w-20"
             aria-label="Open Naki shopping assistant"
           >

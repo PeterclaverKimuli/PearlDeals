@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { usePostHog } from "@posthog/react";
 import {
   ArrowRight,
   Briefcase,
@@ -126,6 +127,7 @@ export function LandingPage({
   initialBrief: ShoppingBrief | null;
   initialStep?: IntakeStep;
 }) {
+  const posthog = usePostHog();
   const [activeStep, setActiveStep] = useState<IntakeStep>(initialStep);
   const [budget, setBudget] = useState(
     initialBrief?.budget ? String(initialBrief.budget) : "",
@@ -212,6 +214,20 @@ export function LandingPage({
 
     return () => window.clearInterval(intervalId);
   }, [activeStep]);
+
+  useEffect(() => {
+    if (activeStep !== "ready") return;
+
+    posthog.capture("shopping_brief_prompt_viewed", {
+      step: "4_of_4",
+      budget: Number(cleanBudget),
+      categories: selectedCategories,
+      category_count: selectedCategories.length,
+      conditions: selectedConditions,
+      condition_count: selectedConditions.length,
+      all_conditions_selected: selectedConditions.includes("All"),
+    });
+  }, [activeStep, cleanBudget, posthog, selectedCategories, selectedConditions]);
 
   const goToStep = (nextStep: IntakeStep) => {
     setValidationMessage("");

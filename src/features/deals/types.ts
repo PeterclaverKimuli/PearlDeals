@@ -52,6 +52,9 @@ export type RecommendationBasket = {
 export type CategoryItem = {
   name: string;
   icon: string;
+  description?: string;
+  kind?: "product" | "behavioral";
+  productIds?: number[];
 };
 
 export type SelfCheck = {
