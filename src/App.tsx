@@ -14,6 +14,7 @@ import type { SelfCheck, ShoppingBrief } from "@/features/deals/types";
 import {
   enrichDeal,
   formatUGX,
+  getSavingsAmount,
   getShareUrl,
   getVisibleCategories,
   mockDeals,
@@ -207,7 +208,11 @@ export default function DealsUI() {
   const featuredDeals = useMemo(
     () =>
       [...dealsWithDiscounts]
-        .sort((a, b) => b.discount - a.discount)
+        .sort(
+          (a, b) =>
+            getSavingsAmount(b) - getSavingsAmount(a) ||
+            a.bestDeal.price - b.bestDeal.price,
+        )
         .slice(0, 2),
     [dealsWithDiscounts],
   );

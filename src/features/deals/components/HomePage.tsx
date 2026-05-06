@@ -1,12 +1,13 @@
 import type { RefObject } from "react";
 import { usePostHog } from "@posthog/react";
 import { DollarSign } from "lucide-react";
+import feedbackAvatar from "@/assets/Feedback prompt.png";
 import { Button } from "@/components/ui/button";
-import welcomeAvatar from "@/assets/Welcome intro.png";
 import { makeSvgDataUri } from "../data";
 import type { CategoryItem, EnrichedDeal, SelfCheck } from "../types";
 import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
 import { DealCard, FeaturedDealBanner } from "./DealViews";
+import { FloatingNakiButton } from "./FloatingNakiButton";
 import { FeedbackModal } from "./Modals";
 
 export function HomePage({
@@ -94,32 +95,7 @@ export function HomePage({
             💬 Feedback
           </button>
         ) : (
-          <div className="group fixed right-4 bottom-4 z-[75] md:right-6 md:bottom-6">
-            <div className="pointer-events-none absolute right-0 bottom-full mb-3 w-56 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-md transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-              Let me help you with your shopping needs
-            </div>
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-0.5 -right-0.5 z-10 h-5 w-5 animate-pulse rounded-full border-2 border-white bg-green-600 shadow-md md:h-6 md:w-6"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                posthog.capture("naki_floating_button_clicked", {
-                  source: "homepage",
-                });
-                onOpenNaki();
-              }}
-              className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition duration-200 hover:-translate-y-0.5 hover:scale-110 hover:shadow-2xl md:h-20 md:w-20"
-              aria-label="Open Naki shopping assistant"
-            >
-              <img
-                src={welcomeAvatar}
-                alt="Naki shopping assistant"
-                className="h-full w-full object-cover object-top"
-              />
-            </button>
-          </div>
+          <FloatingNakiButton source="homepage" onOpenNaki={onOpenNaki} />
         )}
 
         <FeedbackModal
@@ -238,50 +214,55 @@ export function HomePage({
 
         <div className="mb-10 space-y-8">
           {behavioralDealSections.map((section) => (
-            <section key={section.name}>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2">
-                  <span className="mt-0.5 text-xl" aria-hidden="true">
-                    {section.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="truncate text-xl font-semibold">
-                      {section.name}
-                    </h2>
-                    {section.description ? (
-                      <p className="mt-1 text-sm text-gray-500">
-                        {section.description}
-                      </p>
-                    ) : null}
+            <div key={section.name} className="space-y-8">
+              <section>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <span className="mt-0.5 text-xl" aria-hidden="true">
+                      {section.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="truncate text-xl font-semibold">
+                        {section.name}
+                      </h2>
+                      {section.description ? (
+                        <p className="mt-1 text-sm text-gray-500">
+                          {section.description}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm"
-                  onClick={() => {
-                    posthog.capture("view_all_clicked", {
-                      category: section.name,
-                      source: "homepage_behavioral_category",
-                    });
-                    setSelectedCategory(section.name);
-                  }}
-                >
-                  View All
-                </Button>
-              </div>
-
-              <div className="flex items-stretch gap-4 overflow-x-auto pt-2 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {section.deals.slice(0, 6).map((deal) => (
-                  <div
-                    key={`${section.name}-${deal.id}`}
-                    className="flex w-[78vw] shrink-0 min-[425px]:w-[18rem] md:w-[18rem] lg:w-[calc((100%_-_4rem)/5)] lg:min-w-[calc((100%_-_4rem)/5)]"
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm"
+                    onClick={() => {
+                      posthog.capture("view_all_clicked", {
+                        category: section.name,
+                        source: "homepage_behavioral_category",
+                      });
+                      setSelectedCategory(section.name);
+                    }}
                   >
-                    <DealCard deal={deal} onSelect={setSelectedDeal} />
-                  </div>
-                ))}
-              </div>
-            </section>
+                    View All
+                  </Button>
+                </div>
+
+                <div className="flex items-stretch gap-4 overflow-x-auto pt-2 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {section.deals.slice(0, 6).map((deal) => (
+                    <div
+                      key={`${section.name}-${deal.id}`}
+                      className="flex w-[78vw] shrink-0 min-[425px]:w-[18rem] md:w-[18rem] lg:w-[calc((100%_-_4rem)/5)] lg:min-w-[calc((100%_-_4rem)/5)]"
+                    >
+                      <DealCard deal={deal} onSelect={setSelectedDeal} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+              {section.name === "Popular Deals" ? (
+                <NakiBudgetHelpRequest onOpenNaki={onOpenNaki} />
+              ) : null}
+            </div>
           ))}
         </div>
 
@@ -297,8 +278,8 @@ export function HomePage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredDeals.slice(0, 6).map((deal) => (
+        <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-4">
+          {filteredDeals.slice(0, 8).map((deal) => (
             <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
           ))}
 
@@ -315,7 +296,7 @@ export function HomePage({
           )}
         </div>
 
-        {!search.trim() && filteredDeals.length > 6 && (
+        {!search.trim() && filteredDeals.length > 8 && (
           <div className="mt-6 flex justify-center">
             <Button
               type="button"
@@ -358,5 +339,49 @@ export function HomePage({
         </div>
       </div>
     </div>
+  );
+}
+
+function NakiBudgetHelpRequest({ onOpenNaki }: { onOpenNaki: () => void }) {
+  const posthog = usePostHog();
+
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+      <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+        <div className="flex items-start gap-3 md:contents">
+          <div className="h-16 w-16 shrink-0 md:h-24 md:w-24">
+            <img
+              src={feedbackAvatar}
+              alt="Naki asking about shopping budgets"
+              className="h-full w-full object-contain object-center"
+            />
+          </div>
+          <div className="min-w-0 text-left">
+            <p className="text-sm font-semibold text-green-700">
+              Need help shopping?
+            </p>
+            <h2 className="mt-1 text-xl font-bold leading-snug text-gray-950 md:text-2xl">
+              Looking for items within your budget?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Tell me what you need and how much you want to spend, and I will
+              help you compare options.
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          className="h-11 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+          onClick={() => {
+            posthog.capture("naki_budget_help_clicked", {
+              source: "homepage_after_popular_deals",
+            });
+            onOpenNaki();
+          }}
+        >
+          Ask Naki
+        </Button>
+      </div>
+    </section>
   );
 }

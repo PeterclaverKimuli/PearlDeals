@@ -98,11 +98,16 @@ export function getVisibleCategories(deals: Deal[]): CategoryItem[] {
 }
 
 export function formatUGX(value: number) {
-  return new Intl.NumberFormat("en-UG", {
-    style: "currency",
-    currency: "UGX",
+  return `UGX ${new Intl.NumberFormat("en-UG", {
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)}`;
+}
+
+export function getSavingsAmount(deal: Pick<Deal, "prices">) {
+  if (!deal.prices.length) return 0;
+
+  const prices = deal.prices.map((price) => price.price);
+  return Math.max(0, Math.max(...prices) - Math.min(...prices));
 }
 
 export function enrichDeal(deal: Deal): EnrichedDeal {

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { imageFallback } from "../data";
 import type { EnrichedDeal } from "../types";
-import { formatUGX, shareDeal } from "../utils";
+import { formatUGX, getSavingsAmount, shareDeal } from "../utils";
 import { ActionPopover, ProductImage, ShareToast } from "./AppChrome";
 import { LeaveSiteModal, WaitlistModal } from "./Modals";
 
@@ -62,6 +62,7 @@ export function DealDetails({
     if (!pendingSite || typeof window === "undefined") return;
     window.location.href = pendingSite.url;
   };
+  const savingsAmount = getSavingsAmount(deal);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -99,14 +100,9 @@ export function DealDetails({
                 <span className="text-3xl font-bold text-green-700">
                   {formatUGX(deal.bestDeal.price)}
                 </span>
-                {deal.bestDeal.original > deal.bestDeal.price && (
-                  <span className="mt-1 ml-0 block text-xs text-gray-400 line-through md:mt-0 md:ml-3 md:inline md:text-sm">
-                    {formatUGX(deal.bestDeal.original)}
-                  </span>
-                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="rounded-md bg-green-100 px-2 py-1 text-sm font-semibold text-green-700">
-                    Best price{deal.discount > 0 ? ` -${deal.discount}%` : ""}
+                    Save {formatUGX(savingsAmount)}
                   </span>
                   <span className="text-sm text-gray-500">
                     at {deal.bestDeal.site}
@@ -132,11 +128,6 @@ export function DealDetails({
                       >
                         <div>
                           <p className="font-medium">{p.site}</p>
-                          {p.original > p.price && (
-                            <p className="text-sm text-gray-500">
-                              Original: {formatUGX(p.original)}
-                            </p>
-                          )}
                           {p.status ? (
                             <p className="text-xs text-gray-400">
                               Condition: {p.status}
@@ -153,7 +144,7 @@ export function DealDetails({
                             </p>
                             {isBest ? (
                               <p className="text-xs font-medium text-green-700">
-                                Best price
+                                Lowest price
                               </p>
                             ) : null}
                           </div>
@@ -252,7 +243,7 @@ export function DealDetails({
                   <li>
                     Lowest listed price across {deal.prices.length} sites.
                   </li>
-                  <li>Savings of {deal.discount}% off the reference price.</li>
+                  <li>Save {formatUGX(savingsAmount)} across listed prices.</li>
                   <li>
                     Easy side-by-side comparison before you leave the app.
                   </li>
@@ -276,7 +267,7 @@ export function DealCard({
   const posthog = usePostHog();
   const bestPrice = deal.bestDeal.price;
   const bestDeal = deal.bestDeal;
-  const discount = deal.discount;
+  const savingsAmount = getSavingsAmount(deal);
 
   return (
     <Card className="flex h-full gap-0 overflow-hidden rounded-2xl border border-gray-200 bg-white py-0 shadow-sm ring-0 transition duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl">
@@ -291,17 +282,12 @@ export function DealCard({
 
         <div className="mb-3">
           <span className="rounded-md bg-green-100 px-2 py-1 text-sm font-semibold text-green-700">
-            Best price{discount > 0 ? ` -${discount}%` : ""}
+            Save {formatUGX(savingsAmount)}
           </span>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="text-base font-bold text-green-700 md:text-lg">
               {formatUGX(bestDeal.price)}
             </span>
-            {bestDeal.original > bestDeal.price && (
-              <span className="text-xs text-gray-400 line-through md:text-sm">
-                {formatUGX(bestDeal.original)}
-              </span>
-            )}
           </div>
           <p className="text-xs text-gray-500">{bestDeal.site}</p>
         </div>
@@ -315,7 +301,7 @@ export function DealCard({
               <span className="flex items-center gap-1 text-gray-600">
                 <span>{p.site}</span>
                 {p.price === bestPrice && (
-                  <span className="text-green-600" aria-label="Best price site">
+                  <span className="text-green-600" aria-label="Lowest price site">
                     ★
                   </span>
                 )}
@@ -356,6 +342,7 @@ export function FeaturedDealBanner({
   onSelect: (deal: EnrichedDeal) => void;
 }) {
   const posthog = usePostHog();
+  const savingsAmount = getSavingsAmount(deal);
 
   return (
     <Card className="h-full overflow-hidden rounded-2xl shadow-lg">
@@ -365,9 +352,9 @@ export function FeaturedDealBanner({
             <h3 className="mb-2 text-lg font-bold leading-tight md:text-xl">
               {deal.title}
             </h3>
-            {deal.discount > 0 && (
+            {savingsAmount > 0 && (
               <p className="mb-2 text-sm text-gray-500 md:mb-3">
-                Get upto {deal.discount}% Off
+                Save {formatUGX(savingsAmount)}
               </p>
             )}
           </div>
