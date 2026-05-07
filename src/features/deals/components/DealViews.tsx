@@ -7,7 +7,11 @@ import { imageFallback } from "../data";
 import type { EnrichedDeal } from "../types";
 import { formatUGX, getSavingsAmount, shareDeal } from "../utils";
 import { ActionPopover, ProductImage, ShareToast } from "./AppChrome";
-import { LeaveSiteModal, WaitlistModal } from "./Modals";
+import {
+  LeaveSiteModal,
+  PriceDropAlertModal,
+  WaitlistModal,
+} from "./Modals";
 
 export function DealDetails({
   deal,
@@ -20,6 +24,7 @@ export function DealDetails({
   const [liked, setLiked] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+  const [isPriceDropAlertOpen, setIsPriceDropAlertOpen] = useState(false);
   const [pendingSite, setPendingSite] = useState<{
     url: string;
     site: string;
@@ -62,6 +67,16 @@ export function DealDetails({
     if (!pendingSite || typeof window === "undefined") return;
     window.location.href = pendingSite.url;
   };
+  const handleOpenPriceDropAlert = () => {
+    posthog.capture("price_drop_alert_opened", {
+      product_title: deal.title,
+      product_id: deal.id,
+      category: deal.category,
+      current_best_price: deal.bestDeal.price,
+      best_site: deal.bestDeal.site,
+    });
+    setIsPriceDropAlertOpen(true);
+  };
   const savingsAmount = getSavingsAmount(deal);
 
   return (
@@ -85,7 +100,7 @@ export function DealDetails({
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = imageFallback;
                 }}
-                className="h-full w-full bg-white p-4 object-contain transition duration-300 hover:scale-105"
+                className="h-full w-full bg-white p-4 object-contain object-top transition duration-300 hover:scale-105"
               />
             </div>
 
@@ -173,6 +188,27 @@ export function DealDetails({
                 </div>
               </div>
 
+              <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Want to know when the price drops?
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      Leave your email and we will let you know when this
+                      product gets cheaper.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-11 shrink-0 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+                    onClick={handleOpenPriceDropAlert}
+                  >
+                    Notify me
+                  </Button>
+                </div>
+              </div>
+
               <div className="mt-1 mb-6 flex items-center justify-end gap-2">
                 <div className="group relative">
                   <button
@@ -227,6 +263,20 @@ export function DealDetails({
                 open={isWaitlistOpen}
                 onClose={() => setIsWaitlistOpen(false)}
                 productTitle={deal.title}
+              />
+              <PriceDropAlertModal
+                key={
+                  isPriceDropAlertOpen
+                    ? `${deal.id}-price-drop-open`
+                    : `${deal.id}-price-drop-closed`
+                }
+                open={isPriceDropAlertOpen}
+                onClose={() => setIsPriceDropAlertOpen(false)}
+                productTitle={deal.title}
+                productId={deal.id}
+                category={deal.category}
+                currentBestPrice={deal.bestDeal.price}
+                bestSite={deal.bestDeal.site}
               />
               <LeaveSiteModal
                 open={!!pendingSite}
