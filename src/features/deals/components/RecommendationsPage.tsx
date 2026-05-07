@@ -1,6 +1,6 @@
 import { useState } from "react";
 import feedbackAvatar from "@/assets/Feedback prompt.png";
-import recommendationAvatar from "@/assets/Recommendation Prompt.png";
+import recommendationAvatar from "@/assets/Ready Prompt - transparent.png";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -61,6 +61,7 @@ export function RecommendationsPage({
     }))
     .filter(({ visibleItems }) => visibleItems.length > 0);
   const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
+  const hasVisibleRecommendations = visibleBaskets.length > 0;
   const suggestedDeals =
     brief && baskets.length === 0
       ? getRecommendationSuggestions(deals, brief)
@@ -87,28 +88,21 @@ export function RecommendationsPage({
         />
 
         <section className="mt-4 mb-6 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_30%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:p-6">
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-            <div className="flex min-w-0 gap-4">
-              <div className="hidden h-24 w-24 shrink-0 items-center justify-center sm:flex">
-                <img
-                  src={recommendationAvatar}
-                  alt="Naki presenting recommendations"
-                  className="h-full w-full object-contain object-center"
-                />
-              </div>
+          <div className="grid grid-cols-[4rem_1fr] items-center gap-3 min-[375px]:grid-cols-[5rem_1fr] min-[375px]:gap-4 md:grid-cols-[7.5rem_1fr] md:gap-5 lg:grid-cols-[8rem_1fr_auto]">
+            <div className="flex shrink-0 items-center justify-center">
+              <img
+                src={recommendationAvatar}
+                alt="Naki presenting recommendations"
+                className="h-16 w-16 object-contain object-center drop-shadow-xl min-[375px]:h-20 min-[375px]:w-20 md:h-32 md:w-32"
+              />
+            </div>
+            <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
               <div className="min-w-0">
-                <div className="mx-auto mb-3 h-24 w-24 sm:hidden">
-                  <img
-                    src={recommendationAvatar}
-                    alt="Naki presenting recommendations"
-                    className="h-full w-full object-contain object-center"
-                  />
-                </div>
-                <p className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-200">
-                  <Sparkles className="h-4 w-4" />
+                <p className="mb-1.5 inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-200 min-[375px]:mb-2 min-[375px]:gap-2 min-[375px]:text-xs">
+                  <Sparkles className="h-3.5 w-3.5 min-[375px]:h-4 min-[375px]:w-4" />
                   Naki picks
                 </p>
-                <h1 className="text-3xl font-black tracking-normal text-white md:text-4xl">
+                <h1 className="text-[1.35rem] font-black leading-tight tracking-normal text-white min-[376px]:text-3xl md:text-4xl">
                   Recommended for you
                 </h1>
                 {brief ? (
@@ -116,8 +110,8 @@ export function RecommendationsPage({
                     <BriefChips brief={brief} />
                     {visibleStoreCount > 0 ? (
                       <div className="mt-3">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-emerald-50">
-                          <Store className="h-3.5 w-3.5" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-50 min-[375px]:px-3 min-[375px]:text-xs">
+                          <Store className="h-3 w-3 min-[375px]:h-3.5 min-[375px]:w-3.5" />
                           Results from {visibleStoreCount}{" "}
                           {visibleStoreCount === 1 ? "store" : "stores"}
                         </span>
@@ -125,30 +119,32 @@ export function RecommendationsPage({
                     ) : null}
                   </>
                 ) : (
-                    <p className="mt-2 text-sm leading-6 text-emerald-50/80 md:text-base">
+                  <p className="mt-2 text-sm leading-6 text-emerald-50/80 md:text-base">
                     Create a shopping brief with Naki to see tailored
                     recommendations.
                   </p>
                 )}
               </div>
-            </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
-                onClick={onEditBrief}
-              >
-                Edit brief
-              </Button>
-              <Button
-                type="button"
-                className="cursor-pointer rounded-full bg-amber-300 px-4 font-bold text-gray-950 hover:bg-amber-200"
-                onClick={onBrowseDeals}
-              >
-                Browse all deals
-              </Button>
-            </div>
+              {hasVisibleRecommendations ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
+                    onClick={onEditBrief}
+                  >
+                    Edit brief
+                  </Button>
+                  <Button
+                    type="button"
+                    className="cursor-pointer rounded-full bg-amber-300 px-4 font-bold text-gray-950 hover:bg-amber-200"
+                    onClick={onBrowseDeals}
+                  >
+                    Browse all deals
+                  </Button>
+                </div>
+              ) : null}
+          </div>
           </div>
 
         </section>
@@ -178,6 +174,7 @@ export function RecommendationsPage({
               body="No recommended products match your current search."
               onEditBrief={onEditBrief}
               onBrowseDeals={onBrowseDeals}
+              showActions={false}
             />
           )
         ) : (
@@ -406,7 +403,7 @@ function SummaryAmount({
 
 function SummaryChip({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-800 min-[375px]:px-3 min-[375px]:text-xs">
       {label}
     </span>
   );
@@ -417,11 +414,13 @@ function EmptyRecommendations({
   body,
   onEditBrief,
   onBrowseDeals,
+  showActions = true,
 }: {
   title: string;
   body: string;
   onEditBrief: () => void;
   onBrowseDeals: () => void;
+  showActions?: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm">
@@ -429,23 +428,25 @@ function EmptyRecommendations({
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
         {body}
       </p>
-      <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-        <Button
-          type="button"
-          variant="outline"
-          className="cursor-pointer rounded-full px-5"
-          onClick={onEditBrief}
-        >
-          Edit brief
-        </Button>
-        <Button
-          type="button"
-          className="cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
-          onClick={onBrowseDeals}
-        >
-          Browse all deals
-        </Button>
-      </div>
+      {showActions ? (
+        <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer rounded-full px-5"
+            onClick={onEditBrief}
+          >
+            Edit brief
+          </Button>
+          <Button
+            type="button"
+            className="cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
+            onClick={onBrowseDeals}
+          >
+            Browse all deals
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -470,6 +471,7 @@ function NoRecommendationMatches({
         body="Try editing your brief with a higher budget, fewer categories, or broader conditions."
         onEditBrief={onEditBrief}
         onBrowseDeals={onBrowseDeals}
+        showActions={false}
       />
 
       {suggestedDeals.length > 0 ? (
@@ -621,7 +623,7 @@ function getVisibleStoreCount(
 
 function BriefChips({ brief }: { brief: ShoppingBrief }) {
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
+    <div className="mt-3 flex flex-wrap gap-1.5 min-[375px]:mt-4 min-[375px]:gap-2">
       <SummaryChip label={formatUGX(brief.budget)} />
       {brief.categories.map((category) => (
         <SummaryChip key={category} label={category} />
