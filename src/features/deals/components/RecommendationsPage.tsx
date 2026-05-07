@@ -2,7 +2,12 @@ import { useState } from "react";
 import feedbackAvatar from "@/assets/Feedback prompt.png";
 import recommendationAvatar from "@/assets/Recommendation Prompt.png";
 import { Button } from "@/components/ui/button";
-import { ShoppingBasket } from "lucide-react";
+import {
+  ArrowRight,
+  ShoppingBasket,
+  Sparkles,
+  Store,
+} from "lucide-react";
 import { imageFallback } from "../data";
 import type {
   CategoryItem,
@@ -62,7 +67,7 @@ export function RecommendationsPage({
       : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 pb-4 md:px-6 md:pb-6">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
       <AppHeaderShell
         search={search}
         setSearch={setSearch}
@@ -81,7 +86,7 @@ export function RecommendationsPage({
           categoriesToShow={visibleCategories}
         />
 
-        <section className="mt-4 mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+        <section className="mt-4 mb-6 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_30%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:p-6">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div className="flex min-w-0 gap-4">
               <div className="hidden h-24 w-24 shrink-0 items-center justify-center sm:flex">
@@ -99,7 +104,11 @@ export function RecommendationsPage({
                     className="h-full w-full object-contain object-center"
                   />
                 </div>
-                <h1 className="text-3xl font-bold tracking-normal text-gray-950 md:text-4xl">
+                <p className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-200">
+                  <Sparkles className="h-4 w-4" />
+                  Naki picks
+                </p>
+                <h1 className="text-3xl font-black tracking-normal text-white md:text-4xl">
                   Recommended for you
                 </h1>
                 {brief ? (
@@ -107,7 +116,8 @@ export function RecommendationsPage({
                     <BriefChips brief={brief} />
                     {visibleStoreCount > 0 ? (
                       <div className="mt-3">
-                        <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-800">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-emerald-50">
+                          <Store className="h-3.5 w-3.5" />
                           Results from {visibleStoreCount}{" "}
                           {visibleStoreCount === 1 ? "store" : "stores"}
                         </span>
@@ -115,7 +125,7 @@ export function RecommendationsPage({
                     ) : null}
                   </>
                 ) : (
-                  <p className="mt-2 text-sm leading-6 text-gray-600 md:text-base">
+                    <p className="mt-2 text-sm leading-6 text-emerald-50/80 md:text-base">
                     Create a shopping brief with Naki to see tailored
                     recommendations.
                   </p>
@@ -126,14 +136,14 @@ export function RecommendationsPage({
               <Button
                 type="button"
                 variant="outline"
-                className="cursor-pointer rounded-full px-4"
+                className="cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
                 onClick={onEditBrief}
               >
                 Edit brief
               </Button>
               <Button
                 type="button"
-                className="cursor-pointer rounded-full bg-green-600 px-4 text-white hover:bg-green-700"
+                className="cursor-pointer rounded-full bg-amber-300 px-4 font-bold text-gray-950 hover:bg-amber-200"
                 onClick={onBrowseDeals}
               >
                 Browse all deals
@@ -205,7 +215,7 @@ export function RecommendationsPage({
 
 function RecommendationFeedbackRequest({ onOpen }: { onOpen: () => void }) {
   return (
-    <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+    <section className="mt-6 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm shadow-emerald-950/5 md:p-6">
       <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
         <div className="flex items-start gap-3 md:contents">
           <div className="h-16 w-16 shrink-0 md:h-24 md:w-24">
@@ -219,7 +229,7 @@ function RecommendationFeedbackRequest({ onOpen }: { onOpen: () => void }) {
             <p className="text-sm font-semibold text-green-700">
               Help me improve
             </p>
-            <h2 className="mt-1 text-xl font-bold leading-snug text-gray-950 md:text-2xl">
+            <h2 className="mt-1 text-xl font-black leading-snug text-gray-950 md:text-2xl">
               Were my recommendations useful?
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">
@@ -250,12 +260,12 @@ function RecommendationBasketView({
   setSelectedDeal: (deal: EnrichedDeal) => void;
 }) {
   return (
-    <section className="grid gap-4 rounded-3xl border border-gray-200 bg-gray-100/60 p-3 lg:grid-cols-[1fr_20rem]">
+    <section className="grid gap-4 rounded-3xl border border-emerald-900/10 bg-white/70 p-3 shadow-sm shadow-emerald-950/5 lg:grid-cols-[1fr_20rem]">
       <div>
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 text-xl font-semibold text-gray-950">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700">
+            <h2 className="flex items-center gap-2 text-xl font-black text-gray-950">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <ShoppingBasket className="h-5 w-5" aria-hidden="true" />
               </span>
               <span>Basket option {basket.id}</span>
@@ -286,8 +296,8 @@ function RecommendationBasketView({
         )}
       </div>
 
-      <aside className="self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="text-base font-bold text-gray-950">Budget summary</h3>
+      <aside className="self-start rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <h3 className="text-base font-black text-gray-950">Budget summary</h3>
         <div className="mt-4 space-y-3 text-sm">
           <SummaryAmount label="Products total" value={basket.total} />
           <SummaryAmount label="Balance" value={basket.balance} highlight />
@@ -320,8 +330,8 @@ function RecommendationRow({
   const { deal, reasons } = match;
 
   return (
-    <article className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:grid-cols-[7rem_1fr_auto] sm:items-center">
-      <div className="flex h-28 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
+    <article className="grid gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg sm:grid-cols-[7rem_1fr_auto] sm:items-center">
+      <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
         <img
           src={deal.image || imageFallback}
           alt={deal.title}
@@ -329,7 +339,7 @@ function RecommendationRow({
             event.currentTarget.onerror = null;
             event.currentTarget.src = imageFallback;
           }}
-          className="h-full w-full bg-white p-3 object-contain"
+          className="h-full w-full p-3 object-contain"
         />
       </div>
       <div className="min-w-0">
@@ -346,7 +356,7 @@ function RecommendationRow({
             </span>
           ))}
         </div>
-        <h3 className="mt-2 text-base font-bold leading-snug text-gray-950">
+        <h3 className="mt-2 text-base font-black leading-snug text-gray-950">
           {deal.title}
         </h3>
         <p className="mt-1 text-xs text-gray-500">Best at {deal.bestDeal.site}</p>
@@ -362,10 +372,11 @@ function RecommendationRow({
         </p>
         <Button
           type="button"
-          className="w-full cursor-pointer rounded-full sm:w-auto"
+          className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700 sm:w-auto"
           onClick={() => onSelect(deal)}
         >
           View & Compare
+          <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
     </article>
@@ -395,7 +406,7 @@ function SummaryAmount({
 
 function SummaryChip({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
       {label}
     </span>
   );
@@ -413,8 +424,8 @@ function EmptyRecommendations({
   onBrowseDeals: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-      <h2 className="text-xl font-bold text-gray-950">{title}</h2>
+    <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm">
+      <h2 className="text-xl font-black text-gray-950">{title}</h2>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
         {body}
       </p>
@@ -429,7 +440,7 @@ function EmptyRecommendations({
         </Button>
         <Button
           type="button"
-          className="cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+          className="cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
           onClick={onBrowseDeals}
         >
           Browse all deals
@@ -506,8 +517,8 @@ function SuggestionCard({
       brief.conditions.some((selectedCondition) => selectedCondition === condition));
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-      <div className="flex h-44 items-center justify-center overflow-hidden bg-gray-100">
+    <article className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl">
+      <div className="flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50">
         <img
           src={deal.image || imageFallback}
           alt={deal.title}
@@ -515,12 +526,12 @@ function SuggestionCard({
             event.currentTarget.onerror = null;
             event.currentTarget.src = imageFallback;
           }}
-          className="h-full w-full bg-white p-4 object-contain"
+          className="h-full w-full p-4 object-contain"
         />
       </div>
 
       <div className="flex flex-1 flex-col p-3 text-sm">
-        <h3 className="text-base font-bold leading-snug text-gray-950">
+        <h3 className="text-base font-black leading-snug text-gray-950">
           {deal.title}
         </h3>
         <p className="mt-1 text-xs text-gray-500">
@@ -548,10 +559,11 @@ function SuggestionCard({
         <div className="mt-auto pt-4">
           <Button
             type="button"
-            className="w-full cursor-pointer rounded-full"
+            className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700"
             onClick={() => onSelect(deal)}
           >
             View & Compare
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -426,6 +426,7 @@ export default function DealsUI() {
       popularProductsRef={popularProductsRef}
       featuredDeals={featuredDeals}
       behavioralDealSections={behavioralDealSections}
+      allDeals={dealsWithDiscounts}
       filteredDeals={homepageFilteredDeals}
       allProductsTotalCount={filteredDeals.length}
       setSelectedDeal={setSelectedDeal}

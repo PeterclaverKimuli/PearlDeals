@@ -7,7 +7,7 @@ import type { CategoryItem } from "../types";
 
 export function ProductImage({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gray-100">
+    <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
       <img
         src={src || imageFallback}
         alt={alt}
@@ -15,7 +15,7 @@ export function ProductImage({ src, alt }: { src: string; alt: string }) {
           event.currentTarget.onerror = null;
           event.currentTarget.src = imageFallback;
         }}
-        className="h-full w-full bg-white p-4 object-contain transition duration-300 hover:scale-105"
+        className="h-full w-full p-4 object-contain transition duration-300 hover:scale-105"
       />
     </div>
   );
@@ -132,7 +132,7 @@ export function AppHeaderShell({
 }) {
   return (
     <>
-      <div className="fixed top-0 right-0 left-0 z-50 border-b bg-gray-50 px-4 pt-2 pb-6 backdrop-blur md:px-6">
+      <div className="fixed top-0 right-0 left-0 z-50 border-b border-emerald-950/10 bg-white/90 px-4 pt-2 pb-6 shadow-sm backdrop-blur md:px-6">
         <div className={`mx-auto ${maxWidthClass}`}>
           <AppHeader
             search={search}
@@ -218,8 +218,9 @@ export function MobileOffcanvas({
             onClick={onClose}
             className="cursor-pointer text-xl"
             type="button"
+            aria-label="Close categories"
           >
-            ×
+            <X className="h-5 w-5" />
           </button>
         </div>
 

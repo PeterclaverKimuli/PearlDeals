@@ -49,7 +49,7 @@ const stepCopy: Record<
   welcome: {
     eyebrow: "PearlDeals assistant",
     title: "Hi, I am Naki.",
-    body: "Tell me your budget and what you need. I’ll help you find the best deals across trusted sites in Uganda.",
+    body: "Tell me your budget and what you need. I will help you find the best deals across trusted sites in Uganda.",
     avatar: welcomeAvatar,
     avatarAlt: "Naki waving to welcome shoppers",
   },
@@ -312,7 +312,7 @@ export function LandingPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-5 text-gray-950 md:px-6 md:py-8">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 py-5 text-gray-950 md:px-6 md:py-8">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col">
         <header className="mb-6 flex items-center justify-between gap-2 sm:gap-4">
           <button
@@ -347,7 +347,7 @@ export function LandingPage({
           }`}
         >
           <section
-            className={`rounded-[2rem] border border-gray-200 bg-white p-4 shadow-sm md:p-6 ${
+            className={`rounded-[2rem] border border-emerald-900/10 bg-white/85 p-4 shadow-xl shadow-emerald-950/5 backdrop-blur md:p-6 ${
               activeStep === "welcome" ? "w-full max-w-3xl" : ""
             }`}
           >
@@ -378,7 +378,7 @@ export function LandingPage({
                   </div>
                 </div>
                 <div className="mt-1 max-w-2xl">
-                  <h1 className="text-2xl font-bold tracking-normal text-gray-950 md:text-4xl">
+                  <h1 className="text-2xl font-black tracking-normal text-gray-950 md:text-4xl">
                     {renderTypedIntro()}
                   </h1>
                   <p className="mt-3 text-base leading-7 text-gray-600 md:text-lg">
@@ -423,7 +423,7 @@ export function LandingPage({
                         : ""
                   }`}
                 >
-                  <h1 className="text-3xl font-bold tracking-normal text-gray-950 md:text-5xl">
+                  <h1 className="text-3xl font-black tracking-normal text-gray-950 md:text-5xl">
                     {currentCopy.title}
                   </h1>
                   <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
@@ -465,7 +465,7 @@ export function LandingPage({
 
               <Button
                 type="button"
-                className="h-11 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+                className="h-11 cursor-pointer rounded-full bg-gray-950 px-5 font-bold text-white hover:bg-emerald-700"
                 onClick={goNext}
               >
                 {activeStep === "ready"
@@ -482,17 +482,17 @@ export function LandingPage({
           </section>
 
           {activeStep !== "welcome" ? (
-            <aside className="rounded-[2rem] border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+            <aside className="rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.16),transparent_34%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100 text-green-700">
                   <Search className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-gray-950">
+                  <h2 className="font-black text-white">
                     Naki&apos;s brief
                   </h2>
-                  <p className="text-sm text-gray-500">
-                    I’ll use this to find deals that fit your budget.
+                  <p className="text-sm text-emerald-50/70">
+                    I will use this to find deals that fit your budget.
                   </p>
                 </div>
               </div>
@@ -580,8 +580,8 @@ export function LandingPage({
                     }}
                     className={`h-9 cursor-pointer rounded-full border px-4 text-sm font-semibold transition ${
                       cleanBudget === chip.value
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-green-200 hover:bg-green-50"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-emerald-200 hover:bg-emerald-50"
                     }`}
                   >
                     {chip.label}
@@ -608,10 +608,10 @@ export function LandingPage({
                     disabled={capped}
                     className={`flex min-h-24 cursor-pointer flex-col items-start justify-between rounded-3xl border p-4 text-left transition ${
                       selected
-                        ? "border-green-500 bg-green-50 shadow-sm"
+                        ? "border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-950/5"
                         : capped
                           ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-400 opacity-60"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50"
                     }`}
                   >
                     <span className="text-2xl">{category.icon}</span>
@@ -620,7 +620,7 @@ export function LandingPage({
                         {category.name}
                       </span>
                       {selected ? (
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
                           <Check className="h-3.5 w-3.5" />
                         </span>
                       ) : null}
@@ -647,8 +647,8 @@ export function LandingPage({
                   onClick={() => toggleCondition(option.label)}
                   className={`flex h-full min-h-28 cursor-pointer flex-col items-start rounded-3xl border p-4 text-left transition ${
                     selected
-                      ? "border-green-500 bg-green-50 shadow-sm"
-                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                      ? "border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-950/5"
+                      : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50"
                   }`}
                 >
                   <span className="block min-h-6 text-base font-semibold leading-6 text-gray-950">
@@ -777,18 +777,18 @@ function BriefRow({
     <div
       className={`flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 transition ${
         active
-          ? "border-green-500 bg-green-50 shadow-sm"
-          : "border-gray-100 bg-gray-50"
+          ? "border-amber-300 bg-amber-50 shadow-sm"
+          : "border-white/10 bg-white/10"
       }`}
     >
       <span
-        className={`font-medium ${active ? "text-green-700" : "text-gray-500"}`}
+        className={`font-medium ${active ? "text-amber-700" : "text-emerald-50/70"}`}
       >
         {label}
       </span>
       <span
         className={`max-w-[11rem] text-right font-semibold ${
-          active ? "text-green-800" : "text-gray-900"
+          active ? "text-amber-900" : "text-white"
         }`}
       >
         {value}
