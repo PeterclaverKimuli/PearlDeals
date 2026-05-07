@@ -31,6 +31,7 @@ export function HomePage({
   featuredDeals,
   behavioralDealSections,
   filteredDeals,
+  allProductsTotalCount,
   setSelectedDeal,
   selfChecks,
   onOpenNaki,
@@ -57,6 +58,7 @@ export function HomePage({
   featuredDeals: EnrichedDeal[];
   behavioralDealSections: (CategoryItem & { deals: EnrichedDeal[] })[];
   filteredDeals: EnrichedDeal[];
+  allProductsTotalCount: number;
   setSelectedDeal: (deal: EnrichedDeal) => void;
   selfChecks: SelfCheck[];
   onOpenNaki: () => void;
@@ -296,7 +298,7 @@ export function HomePage({
           )}
         </div>
 
-        {!search.trim() && filteredDeals.length > 8 && (
+        {!search.trim() && allProductsTotalCount > 8 && (
           <div className="mt-6 flex justify-center">
             <Button
               type="button"

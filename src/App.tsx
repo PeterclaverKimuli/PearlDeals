@@ -10,7 +10,11 @@ import {
   WaitlistModal,
 } from "@/features/deals/components/Modals";
 import { behavioralCategories } from "@/features/deals/data";
-import type { SelfCheck, ShoppingBrief } from "@/features/deals/types";
+import type {
+  EnrichedDeal,
+  SelfCheck,
+  ShoppingBrief,
+} from "@/features/deals/types";
 import {
   enrichDeal,
   formatUGX,
@@ -97,6 +101,51 @@ function runSelfChecks(): SelfCheck[] {
 }
 
 const selfChecks = runSelfChecks();
+const phoneCategoryName = "Phones";
+
+function isPhoneDeal(deal: EnrichedDeal) {
+  return deal.category === phoneCategoryName;
+}
+
+function getHomepagePreviewDeals(
+  deals: EnrichedDeal[],
+  visibleLimit: number,
+  phoneLimit: number,
+) {
+  const selected: EnrichedDeal[] = [];
+  let phoneCount = 0;
+
+  for (const deal of deals) {
+    if (selected.length >= visibleLimit) break;
+
+    if (isPhoneDeal(deal)) {
+      if (phoneCount >= phoneLimit) continue;
+      phoneCount += 1;
+    }
+
+    selected.push(deal);
+  }
+
+  if (selected.length >= visibleLimit) return selected;
+
+  const selectedIds = new Set(selected.map((deal) => deal.id));
+  return [
+    ...selected,
+    ...deals.filter((deal) => !selectedIds.has(deal.id)),
+  ].slice(0, visibleLimit);
+}
+
+function getHomepageTopDeals(deals: EnrichedDeal[]) {
+  const sortedDeals = [...deals].sort(
+    (a, b) =>
+      getSavingsAmount(b) - getSavingsAmount(a) ||
+      a.bestDeal.price - b.bestDeal.price,
+  );
+  const nonPhoneDeals = sortedDeals.filter((deal) => !isPhoneDeal(deal));
+  const phoneDeals = sortedDeals.filter(isPhoneDeal);
+
+  return [...nonPhoneDeals.slice(0, 2), ...phoneDeals].slice(0, 2);
+}
 
 export default function DealsUI() {
   const [routePath, setRoutePath] = useState(() =>
@@ -198,23 +247,29 @@ export default function DealsUI() {
     () =>
       behavioralCategories.map((category) => ({
         ...category,
-        deals: (category.productIds ?? [])
-          .map((id) => dealsWithDiscounts.find((deal) => deal.id === id))
-          .filter((deal): deal is (typeof dealsWithDiscounts)[number] => !!deal),
+        deals: getHomepagePreviewDeals(
+          (category.productIds ?? [])
+            .map((id) => dealsWithDiscounts.find((deal) => deal.id === id))
+            .filter(
+              (deal): deal is (typeof dealsWithDiscounts)[number] => !!deal,
+            ),
+          6,
+          1,
+        ),
       })),
     [dealsWithDiscounts],
   );
 
   const featuredDeals = useMemo(
-    () =>
-      [...dealsWithDiscounts]
-        .sort(
-          (a, b) =>
-            getSavingsAmount(b) - getSavingsAmount(a) ||
-            a.bestDeal.price - b.bestDeal.price,
-        )
-        .slice(0, 2),
+    () => getHomepageTopDeals(dealsWithDiscounts),
     [dealsWithDiscounts],
+  );
+  const homepageFilteredDeals = useMemo(
+    () =>
+      search.trim()
+        ? filteredDeals
+        : getHomepagePreviewDeals(filteredDeals, 8, 2),
+    [filteredDeals, search],
   );
 
   const navigateTo = (path: string) => {
@@ -371,7 +426,8 @@ export default function DealsUI() {
       popularProductsRef={popularProductsRef}
       featuredDeals={featuredDeals}
       behavioralDealSections={behavioralDealSections}
-      filteredDeals={filteredDeals}
+      filteredDeals={homepageFilteredDeals}
+      allProductsTotalCount={filteredDeals.length}
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}
