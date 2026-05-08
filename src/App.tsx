@@ -4,6 +4,7 @@ import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
 import { LandingPage } from "@/features/deals/components/LandingPage";
 import { RecommendationsPage } from "@/features/deals/components/RecommendationsPage";
+import { SearchResultsPage } from "@/features/deals/components/SearchResultsPage";
 import {
   FeedbackModal,
   LeaveSiteModal,
@@ -15,6 +16,7 @@ import type {
   SelfCheck,
   ShoppingBrief,
 } from "@/features/deals/types";
+import { matchesDealSearch } from "@/features/deals/search";
 import {
   enrichDeal,
   formatUGX,
@@ -103,6 +105,12 @@ function runSelfChecks(): SelfCheck[] {
 const selfChecks = runSelfChecks();
 const phoneCategoryName = "Phones";
 
+function getSearchQueryFromLocation() {
+  if (typeof window === "undefined") return "";
+
+  return new URLSearchParams(window.location.search).get("q") ?? "";
+}
+
 function isPhoneDeal(deal: EnrichedDeal) {
   return deal.category === phoneCategoryName;
 }
@@ -164,7 +172,7 @@ export default function DealsUI() {
   const [selectedDeal, setSelectedDeal] = useState<ReturnType<
     typeof enrichDeal
   > | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => getSearchQueryFromLocation());
   const [bannerSrc, setBannerSrc] = useState(
     "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop",
   );
@@ -176,7 +184,12 @@ export default function DealsUI() {
     if (typeof window === "undefined") return;
 
     const handlePopState = () => {
-      setRoutePath(window.location.pathname);
+      const nextPath = window.location.pathname;
+
+      setRoutePath(nextPath);
+      if (nextPath === "/search") {
+        setSearch(getSearchQueryFromLocation());
+      }
       setSelectedDeal(null);
       setSelectedCategory(null);
       setSelectedBehavioralCategory(null);
@@ -217,7 +230,6 @@ export default function DealsUI() {
   );
 
   const filteredDeals = useMemo(() => {
-    const term = search.trim().toLowerCase();
     const behavioralProductIds = selectedBehavioralCategoryConfig?.productIds;
 
     return dealsWithDiscounts.filter((deal) => {
@@ -227,13 +239,7 @@ export default function DealsUI() {
           : isViewingAllProducts || !selectedCategory
             ? true
             : deal.category === selectedCategory;
-      const matchesSearch =
-        !term ||
-        deal.title.toLowerCase().includes(term) ||
-        deal.category.toLowerCase().includes(term) ||
-        deal.prices.some((price) => price.site.toLowerCase().includes(term));
-
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesDealSearch(deal, search);
     });
   }, [
     dealsWithDiscounts,
@@ -271,6 +277,11 @@ export default function DealsUI() {
         : getHomepagePreviewDeals(filteredDeals, 8, 2),
     [filteredDeals, search],
   );
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return [];
+
+    return dealsWithDiscounts.filter((deal) => matchesDealSearch(deal, search));
+  }, [dealsWithDiscounts, search]);
 
   const navigateTo = (path: string) => {
     if (typeof window !== "undefined" && window.location.pathname !== path) {
@@ -279,6 +290,25 @@ export default function DealsUI() {
     }
 
     setRoutePath(path);
+    setSelectedDeal(null);
+    setSelectedCategory(null);
+    setSelectedBehavioralCategory(null);
+    setIsViewingAllProducts(false);
+    setIsSidebarOpen(false);
+  };
+
+  const navigateToSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    const path = `/search?q=${encodeURIComponent(trimmedQuery)}`;
+    setSearch(trimmedQuery);
+    if (typeof window !== "undefined" && window.location.pathname + window.location.search !== path) {
+      window.history.pushState({}, "", path);
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+
+    setRoutePath("/search");
     setSelectedDeal(null);
     setSelectedCategory(null);
     setSelectedBehavioralCategory(null);
@@ -364,6 +394,25 @@ export default function DealsUI() {
     );
   }
 
+  if (routePath === "/search") {
+    return (
+      <SearchResultsPage
+        search={search}
+        setSearch={setSearch}
+        results={searchResults}
+        resultCount={searchResults.length}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        visibleCategories={visibleCategories}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={selectCategory}
+        setSelectedDeal={setSelectedDeal}
+        onBrowseDeals={() => navigateTo("/")}
+        onSearchSubmit={navigateToSearch}
+      />
+    );
+  }
+
   if (selectedCategory || selectedBehavioralCategory || isViewingAllProducts) {
     return (
       <CategoryPage
@@ -382,6 +431,7 @@ export default function DealsUI() {
         setSelectedDeal={setSelectedDeal}
         onOpenNaki={() => navigateTo("/naki")}
         onBrowseDeals={() => navigateTo("/")}
+        onSearchSubmit={navigateToSearch}
       />
     );
   }
@@ -401,6 +451,7 @@ export default function DealsUI() {
         setSelectedDeal={setSelectedDeal}
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
         onBrowseDeals={() => navigateTo("/")}
+        onSearchSubmit={navigateToSearch}
       />
     );
   }
@@ -434,6 +485,7 @@ export default function DealsUI() {
       onOpenNaki={() => navigateTo("/naki")}
       onBrowseDeals={() => navigateTo("/")}
       onViewAllProducts={viewAllProducts}
+      onSearchSubmit={navigateToSearch}
     />
   );
 }
