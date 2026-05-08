@@ -21,6 +21,7 @@ import {
   getRecommendationBaskets,
   getRecommendationSuggestions,
 } from "../utils";
+import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { RecommendationFeedbackModal } from "./Modals";
 
@@ -37,6 +38,7 @@ export function RecommendationsPage({
   setSelectedDeal,
   onEditBrief,
   onBrowseDeals,
+  onSearchSubmit,
 }: {
   brief: ShoppingBrief | null;
   deals: EnrichedDeal[];
@@ -50,6 +52,7 @@ export function RecommendationsPage({
   setSelectedDeal: (deal: EnrichedDeal) => void;
   onEditBrief: () => void;
   onBrowseDeals: () => void;
+  onSearchSubmit: (query: string) => void;
 }) {
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
     useState(false);
@@ -60,6 +63,10 @@ export function RecommendationsPage({
       visibleItems: filterMatchesBySearch(basket.items, search),
     }))
     .filter(({ visibleItems }) => visibleItems.length > 0);
+  const visibleMatchCount = visibleBaskets.reduce(
+    (total, { visibleItems }) => total + visibleItems.length,
+    0,
+  );
   const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
   const hasVisibleRecommendations = visibleBaskets.length > 0;
   const suggestedDeals =
@@ -76,6 +83,8 @@ export function RecommendationsPage({
         onMenuClick={() => setIsSidebarOpen(true)}
         onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-7xl"
+        resultCount={visibleMatchCount}
+        onSearchSubmit={onSearchSubmit}
       />
 
       <div className="mx-auto max-w-7xl">
@@ -599,15 +608,8 @@ function AttributeChip({
 }
 
 function filterMatchesBySearch(matches: RecommendationMatch[], search: string) {
-  const term = search.trim().toLowerCase();
-  if (!term) return matches;
-
   return matches.filter(({ deal }) => {
-    return (
-      deal.title.toLowerCase().includes(term) ||
-      deal.category.toLowerCase().includes(term) ||
-      deal.prices.some((price) => price.site.toLowerCase().includes(term))
-    );
+    return matchesDealSearch(deal, search);
   });
 }
 

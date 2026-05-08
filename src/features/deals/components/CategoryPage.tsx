@@ -18,6 +18,7 @@ export function CategoryPage({
   setSelectedDeal,
   onOpenNaki,
   onBrowseDeals,
+  onSearchSubmit,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -30,6 +31,7 @@ export function CategoryPage({
   setSelectedDeal: (deal: EnrichedDeal) => void;
   onOpenNaki: () => void;
   onBrowseDeals: () => void;
+  onSearchSubmit: (query: string) => void;
 }) {
   const posthog = usePostHog();
 
@@ -42,6 +44,8 @@ export function CategoryPage({
         onMenuClick={() => setIsSidebarOpen(true)}
         onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-7xl"
+        resultCount={filteredDeals.length}
+        onSearchSubmit={onSearchSubmit}
       />
 
       <div className="mx-auto max-w-7xl">
@@ -56,6 +60,9 @@ export function CategoryPage({
         <FloatingNakiButton
           source="category_page"
           category={selectedCategory}
+          title="Need better deals?"
+          description={`Find the best ${selectedCategory} within your budget.`}
+          badge="Budget match"
           onOpenNaki={onOpenNaki}
         />
 

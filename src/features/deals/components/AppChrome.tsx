@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { imageFallback } from "../data";
 import type { CategoryItem } from "../types";
 
+const defaultQuickSearches = ["Phones", "Computers", "TVs", "Under 500k"];
+
 export function ProductImage({ src, alt }: { src: string; alt: string }) {
   return (
     <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
@@ -27,18 +29,46 @@ export function AppHeader({
   onMenuClick,
   onHomeClick,
   showMenuButton = false,
+  resultCount,
+  quickSearches = defaultQuickSearches,
+  onSearchSubmit,
 }: {
   search: string;
   setSearch: (value: string) => void;
   onMenuClick?: () => void;
   onHomeClick?: () => void;
   showMenuButton?: boolean;
+  resultCount?: number;
+  quickSearches?: string[];
+  onSearchSubmit?: (query: string) => void;
 }) {
   const posthog = usePostHog();
   const brandClasses = "flex items-center gap-2 text-3xl font-bold";
+  const trimmedSearch = search.trim();
+
+  const updateSearch = (value: string, source: "input" | "quick_chip") => {
+    setSearch(value);
+
+    if (source === "input" && value.length > 2) {
+      posthog.capture("search_used", {
+        query: value,
+        source,
+      });
+    }
+  };
+  const submitSearch = (query: string, source: "submit" | "quick_chip") => {
+    const nextQuery = query.trim();
+    if (!nextQuery) return;
+
+    posthog.capture("search_used", {
+      query: nextQuery,
+      source,
+    });
+    onSearchSubmit?.(nextQuery);
+  };
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <div className="relative flex w-full items-center justify-center md:justify-start">
         {showMenuButton && (
           <button
@@ -67,34 +97,68 @@ export function AppHeader({
         )}
       </div>
 
-      <div className="w-full md:w-96">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              const value = e.target.value;
-              setSearch(value);
-
-              if (value.length > 2) {
-                posthog.capture("search_used", {
-                  query: value,
-                });
-              }
-            }}
-            placeholder="Search deals..."
-            className="h-11 pl-10 pr-10"
-          />
-          {search && (
+      <div className="w-full md:w-[30rem]">
+        <form
+          className="rounded-[1.35rem] bg-gradient-to-r from-amber-300 via-lime-200 to-emerald-500 p-0.5 shadow-lg shadow-emerald-950/10 transition focus-within:shadow-xl focus-within:shadow-amber-950/15"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitSearch(search, "submit");
+          }}
+        >
+          <div className="rounded-[1.2rem] bg-white p-1.5 ring-1 ring-emerald-950/5">
+            <div className="relative flex items-center gap-2">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+                <Search className="h-4 w-4" />
+              </span>
+              <Input
+                value={search}
+                onChange={(e) => updateSearch(e.target.value, "input")}
+                placeholder="Search phones, laptops, stores..."
+                className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-0 pr-2 text-sm font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0"
+              />
+              {trimmedSearch && typeof resultCount === "number" ? (
+                <span className="hidden shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900 min-[420px]:inline-flex">
+                  {resultCount} matches
+                </span>
+              ) : null}
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition duration-200 hover:bg-gray-200 hover:text-gray-950 focus-visible:ring-3 focus-visible:ring-emerald-600/30"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            {trimmedSearch && typeof resultCount === "number" ? (
+              <div className="mt-1 px-2 min-[420px]:hidden">
+                <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">
+                  {resultCount} matches
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </form>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {quickSearches.map((quickSearch) => (
             <button
+              key={quickSearch}
               type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 transition duration-200 hover:scale-110 hover:text-gray-600"
-              aria-label="Clear search"
+              onClick={() => {
+                updateSearch(quickSearch, "quick_chip");
+                submitSearch(quickSearch, "quick_chip");
+              }}
+              className={`h-7 cursor-pointer rounded-full border px-3 text-xs font-bold transition ${
+                search === quickSearch
+                  ? "border-emerald-600 bg-emerald-600 text-white"
+                  : "border-emerald-200 bg-white/80 text-emerald-800 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-900"
+              }`}
             >
-              <X className="h-4 w-4" />
+              {quickSearch}
             </button>
-          )}
+          ))}
         </div>
       </div>
     </div>
@@ -122,6 +186,9 @@ export function AppHeaderShell({
   onHomeClick,
   showMenuButton = false,
   maxWidthClass,
+  resultCount,
+  quickSearches,
+  onSearchSubmit,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -129,6 +196,9 @@ export function AppHeaderShell({
   onHomeClick?: () => void;
   showMenuButton?: boolean;
   maxWidthClass: string;
+  resultCount?: number;
+  quickSearches?: string[];
+  onSearchSubmit?: (query: string) => void;
 }) {
   return (
     <>
@@ -140,10 +210,13 @@ export function AppHeaderShell({
             showMenuButton={showMenuButton}
             onMenuClick={onMenuClick}
             onHomeClick={onHomeClick}
+            resultCount={resultCount}
+            quickSearches={quickSearches}
+            onSearchSubmit={onSearchSubmit}
           />
         </div>
       </div>
-      <div aria-hidden="true" className="h-32 md:h-24" />
+      <div aria-hidden="true" className="h-44 md:h-28" />
     </>
   );
 }

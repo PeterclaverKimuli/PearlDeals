@@ -50,6 +50,7 @@ export function HomePage({
   onOpenNaki,
   onBrowseDeals,
   onViewAllProducts,
+  onSearchSubmit,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -78,6 +79,7 @@ export function HomePage({
   onOpenNaki: () => void;
   onBrowseDeals: () => void;
   onViewAllProducts: () => void;
+  onSearchSubmit: (query: string) => void;
 }) {
   const posthog = usePostHog();
   const showFeedbackButton = false;
@@ -118,6 +120,8 @@ export function HomePage({
         onMenuClick={() => setIsSidebarOpen(true)}
         onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-6xl"
+        resultCount={allProductsTotalCount}
+        onSearchSubmit={onSearchSubmit}
       />
 
       <div className="mx-auto max-w-6xl">
@@ -138,7 +142,13 @@ export function HomePage({
             Feedback
           </button>
         ) : (
-          <FloatingNakiButton source="homepage" onOpenNaki={onOpenNaki} />
+          <FloatingNakiButton
+            source="homepage"
+            title="Need better deals?"
+            description="Tell Naki your budget and get matched deals."
+            badge="Free help"
+            onOpenNaki={onOpenNaki}
+          />
         )}
 
         <FeedbackModal
