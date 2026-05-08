@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
-import { Check, Star, X } from "lucide-react";
+import { Check, MessageCircle, Search, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import feedbackAvatar from "@/assets/Feedback prompt.png";
+import welcomeAvatar from "@/assets/Welcome intro.png";
 
 const ratingLabels: Record<string, string> = {
   "1": "Poor",
@@ -384,6 +385,153 @@ export function LeaveSiteModal({
         </div>
       </div>
     </div>
+  );
+}
+
+export function NakiScrollPromptModal({
+  open,
+  onClose,
+  onOpenNaki,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onOpenNaki: () => void;
+}) {
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    if (!open) return;
+
+    posthog.capture("naki_scroll_prompt_viewed", {
+      source: "homepage_after_hero",
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      posthog.capture("naki_scroll_prompt_dismissed", {
+        source: "homepage_after_hero",
+        dismiss_method: "escape",
+      });
+      onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open, posthog]);
+
+  if (!open) return null;
+
+  const handleDismiss = (dismissMethod: string) => {
+    posthog.capture("naki_scroll_prompt_dismissed", {
+      source: "homepage_after_hero",
+      dismiss_method: dismissMethod,
+    });
+    onClose();
+  };
+
+  const handleOpenNaki = () => {
+    posthog.capture("naki_scroll_prompt_opened", {
+      source: "homepage_after_hero",
+    });
+    onOpenNaki();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-gray-950/60 p-4 backdrop-blur-sm"
+      onClick={() => handleDismiss("overlay")}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="naki-scroll-prompt-title"
+        className="naki-modal-enter relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-emerald-900/10 bg-white shadow-2xl shadow-emerald-950/25"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_18%_20%,rgba(250,204,21,0.28),transparent_34%),linear-gradient(120deg,#ecfdf5,#fff7ed)]" />
+        <button
+          type="button"
+          onClick={() => handleDismiss("close_button")}
+          className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-emerald-900/10 bg-white/80 text-gray-500 shadow-sm transition hover:bg-white hover:text-gray-950 focus-visible:ring-3 focus-visible:ring-emerald-600/30"
+          aria-label="Close Naki prompt"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="relative px-5 pt-6 pb-5 sm:px-6 sm:pt-7 sm:pb-6">
+          <div className="grid gap-4 sm:grid-cols-[6rem_1fr] sm:items-center">
+            <div className="mx-auto flex h-24 w-24 items-end justify-center overflow-hidden rounded-3xl border border-white bg-white shadow-xl shadow-emerald-950/10 sm:mx-0">
+              <img
+                src={welcomeAvatar}
+                alt="Naki shopping assistant"
+                className="h-full w-full object-cover object-top"
+              />
+            </div>
+
+            <div className="min-w-0 text-center sm:text-left">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-amber-900">
+                <SparkleDot />
+                I can help
+              </p>
+              <h2
+                id="naki-scroll-prompt-title"
+                className="mt-3 text-2xl font-black leading-tight text-gray-950 sm:text-3xl"
+              >
+                Looking for a specific deal?
+              </h2>
+            </div>
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
+            Tell me what you need, your budget, and what matters most. I can
+            help you compare options faster and find deals that fit.
+          </p>
+
+          <div className="mt-5 grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 sm:grid-cols-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
+                <Search className="h-4 w-4" />
+              </span>
+              Specific items
+            </div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
+                <MessageCircle className="h-4 w-4" />
+              </span>
+              Budget-friendly picks
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDismiss("maybe_later")}
+              className="h-11 cursor-pointer rounded-full px-5"
+            >
+              Maybe later
+            </Button>
+            <Button
+              type="button"
+              onClick={handleOpenNaki}
+              className="h-11 cursor-pointer rounded-full bg-green-600 px-6 font-bold text-white hover:bg-green-700"
+            >
+              Ask Naki
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SparkleDot() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.18)]"
+    />
   );
 }
 

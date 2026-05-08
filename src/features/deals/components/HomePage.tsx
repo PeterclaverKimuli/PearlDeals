@@ -1,4 +1,10 @@
-import type { RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { usePostHog } from "@posthog/react";
 import {
   ArrowRight,
@@ -20,7 +26,9 @@ import { formatUGX, getSavingsAmount } from "../utils";
 import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
 import { DealCard, FeaturedDealBanner } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
-import { FeedbackModal } from "./Modals";
+import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
+
+const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v1";
 
 export function HomePage({
   search,
@@ -82,6 +90,14 @@ export function HomePage({
   onSearchSubmit: (query: string) => void;
 }) {
   const posthog = usePostHog();
+  const heroRef = useRef<HTMLElement | null>(null);
+  const lastScrollYRef = useRef(0);
+  const [isNakiScrollModalOpen, setIsNakiScrollModalOpen] = useState(false);
+  const [hasShownNakiScrollModal, setHasShownNakiScrollModal] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    return window.sessionStorage.getItem(nakiScrollModalStorageKey) === "true";
+  });
   const showFeedbackButton = false;
   const storeCount = new Set(
     allDeals.flatMap((deal) => deal.prices.map((price) => price.site)),
@@ -110,6 +126,64 @@ export function HomePage({
       icon: <TrendingDown className="h-4 w-4" />,
     },
   ];
+
+  const markNakiScrollModalShown = useCallback(() => {
+    setHasShownNakiScrollModal(true);
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(nakiScrollModalStorageKey, "true");
+    }
+  }, []);
+
+  const closeNakiScrollModal = useCallback(() => {
+    markNakiScrollModalShown();
+    setIsNakiScrollModalOpen(false);
+  }, [markNakiScrollModalShown]);
+
+  const openNakiFromScrollModal = useCallback(() => {
+    closeNakiScrollModal();
+    onOpenNaki();
+  }, [closeNakiScrollModal, onOpenNaki]);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      hasShownNakiScrollModal ||
+      isNakiScrollModalOpen
+    ) {
+      return;
+    }
+
+    const heroElement = heroRef.current;
+    if (!heroElement) return;
+
+    lastScrollYRef.current = window.scrollY;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+
+        const currentScrollY = window.scrollY;
+        const isScrollingDown = currentScrollY > lastScrollYRef.current;
+        lastScrollYRef.current = currentScrollY;
+
+        if (
+          isScrollingDown &&
+          !entry.isIntersecting &&
+          entry.boundingClientRect.bottom <= 0
+        ) {
+          markNakiScrollModalShown();
+          setIsNakiScrollModalOpen(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(heroElement);
+
+    return () => observer.disconnect();
+  }, [hasShownNakiScrollModal, isNakiScrollModalOpen, markNakiScrollModalShown]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_30%,#f9fafb_58%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -157,7 +231,16 @@ export function HomePage({
           onClose={() => setIsFeedbackOpen(false)}
         />
 
-        <section className="relative mt-4 mb-8 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-gray-950 shadow-2xl shadow-emerald-950/20">
+        <NakiScrollPromptModal
+          open={isNakiScrollModalOpen}
+          onClose={closeNakiScrollModal}
+          onOpenNaki={openNakiFromScrollModal}
+        />
+
+        <section
+          ref={heroRef}
+          className="relative mt-4 mb-8 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-gray-950 shadow-2xl shadow-emerald-950/20"
+        >
           <img
             src={bannerSrc}
             alt="Deals banner"
