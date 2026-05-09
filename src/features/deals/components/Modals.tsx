@@ -435,7 +435,7 @@ export function NakiScrollPromptModal({
 
         return current + 1;
       });
-    }, 55);
+    }, 95);
 
     return () => window.clearInterval(intervalId);
   }, [open]);
