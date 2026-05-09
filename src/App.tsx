@@ -373,14 +373,20 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
-  if (routePath === "/" || routePath === "/naki" || routePath === "/brief") {
+  if (routePath === "/naki" || routePath === "/naki/budget" || routePath === "/brief") {
     return (
       <LandingPage
         categories={visibleCategories}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onCompleteBrief={handleCompleteBrief}
         initialBrief={shoppingBrief}
-        initialStep={routePath === "/brief" && shoppingBrief ? "ready" : "welcome"}
+        initialStep={
+          routePath === "/brief" && shoppingBrief
+            ? "ready"
+            : routePath === "/naki/budget"
+              ? "budget"
+              : "welcome"
+        }
       />
     );
   }
@@ -484,6 +490,7 @@ export default function DealsUI() {
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}
+      onStartShopping={() => navigateTo("/naki/budget")}
       onBrowseDeals={() => navigateTo(dealsPath)}
       onViewAllProducts={viewAllProducts}
       onSearchSubmit={navigateToSearch}

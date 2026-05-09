@@ -49,7 +49,7 @@ const stepCopy: Record<
 > = {
   welcome: {
     eyebrow: "PearlDeals assistant",
-    title: "Hi, I am Naki.",
+    title: "Let’s find deals that fit you.",
     body: "Tell me your budget and what you need. I will help you find the best deals across trusted sites in Uganda.",
     avatar: welcomeAvatar,
     avatarAlt: "Naki waving to welcome shoppers",
@@ -108,9 +108,9 @@ const budgetQuickChips = [
   { label: "500k", value: "500000" },
   { label: "1M", value: "1000000" },
 ];
-const introPrefix = "Hi, I am ";
-const introName = "Naki";
-const introSuffix = ", your shopping assistant.";
+const introPrefix = "Let’s find ";
+const introName = "deals";
+const introSuffix = " that fit you.";
 const introText = `${introPrefix}${introName}${introSuffix}`;
 const maxSelectedCategories = 3;
 const maxSelectedConditions = 3;
@@ -465,7 +465,7 @@ export function LandingPage({
                 ) : (
                   <ChevronLeft className="h-4 w-4" />
                 )}
-                {activeStep === "welcome" ? "View all deals first" : "Back"}
+                {activeStep === "welcome" ? "Back to all deals" : "Back"}
               </Button>
 
               <Button

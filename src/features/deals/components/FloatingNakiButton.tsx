@@ -91,8 +91,8 @@ export function FloatingNakiButton({
       <button
         type="button"
         onClick={handleClick}
-        className="group relative flex h-16 w-[min(18rem,calc(100vw-2rem))] cursor-pointer items-center gap-3 rounded-full border border-emerald-900/10 bg-gray-950 py-2 pr-4 pl-2 text-left text-white shadow-2xl shadow-emerald-950/30 ring-2 ring-white transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 hover:shadow-emerald-950/40 focus-visible:ring-4 focus-visible:ring-amber-300 md:w-[19rem]"
-        aria-label={`${title} Talk to Naki shopping assistant`}
+        className="group relative flex h-16 w-[min(13.5rem,calc(100vw-2rem))] cursor-pointer items-center gap-3 rounded-full border border-emerald-900/10 bg-gray-950 py-2 pr-4 pl-2 text-left text-white shadow-2xl shadow-emerald-950/30 ring-2 ring-white transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 hover:shadow-emerald-950/40 focus-visible:ring-4 focus-visible:ring-amber-300 md:w-[14.25rem]"
+        aria-label="Ready to shop? Ask Naki"
       >
         <span className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm">
           <img
@@ -103,10 +103,10 @@ export function FloatingNakiButton({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-black leading-5">
-            {title}
+            Ready to shop?
           </span>
           <span className="mt-0.5 inline-flex rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white transition group-hover:bg-green-500">
-            Talk to Naki
+            Ask Naki
           </span>
         </span>
         <span

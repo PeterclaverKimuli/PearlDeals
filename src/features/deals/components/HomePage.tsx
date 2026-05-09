@@ -28,8 +28,8 @@ import { DealCard, FeaturedDealBanner } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
-const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v1";
-const showNakiScrollPrompt = false;
+const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v2";
+const showNakiScrollPrompt = true;
 
 export function HomePage({
   search,
@@ -57,6 +57,7 @@ export function HomePage({
   setSelectedDeal,
   selfChecks,
   onOpenNaki,
+  onStartShopping,
   onBrowseDeals,
   onViewAllProducts,
   onSearchSubmit,
@@ -86,6 +87,7 @@ export function HomePage({
   setSelectedDeal: (deal: EnrichedDeal) => void;
   selfChecks: SelfCheck[];
   onOpenNaki: () => void;
+  onStartShopping: () => void;
   onBrowseDeals: () => void;
   onViewAllProducts: () => void;
   onSearchSubmit: (query: string) => void;
@@ -141,10 +143,10 @@ export function HomePage({
     setIsNakiScrollModalOpen(false);
   }, [markNakiScrollModalShown]);
 
-  const openNakiFromScrollModal = useCallback(() => {
+  const startShoppingFromScrollModal = useCallback(() => {
     closeNakiScrollModal();
-    onOpenNaki();
-  }, [closeNakiScrollModal, onOpenNaki]);
+    onStartShopping();
+  }, [closeNakiScrollModal, onStartShopping]);
 
   useEffect(() => {
     if (
@@ -237,7 +239,7 @@ export function HomePage({
           <NakiScrollPromptModal
             open={isNakiScrollModalOpen}
             onClose={closeNakiScrollModal}
-            onOpenNaki={openNakiFromScrollModal}
+            onStartShopping={startShoppingFromScrollModal}
           />
         ) : null}
 
