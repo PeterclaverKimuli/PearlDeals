@@ -20,6 +20,7 @@ import {
   formatUGX,
   getRecommendationBaskets,
   getRecommendationSuggestions,
+  getSavingsAmount,
 } from "../utils";
 import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
@@ -96,7 +97,7 @@ export function RecommendationsPage({
           categoriesToShow={visibleCategories}
         />
 
-        <section className="mt-4 mb-6 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_30%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:p-6">
+        <section className="mt-10 mb-6 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_30%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 min-[375px]:mt-4 md:mt-14 md:p-6 lg:mt-12 min-[1440px]:!mt-4">
           <div className="grid grid-cols-[4rem_1fr] items-center gap-3 min-[375px]:grid-cols-[5rem_1fr] min-[375px]:gap-4 md:grid-cols-[7.5rem_1fr] md:gap-5 lg:grid-cols-[8rem_1fr_auto]">
             <div className="flex shrink-0 items-center justify-center">
               <img
@@ -334,9 +335,13 @@ function RecommendationRow({
   onSelect: (deal: EnrichedDeal) => void;
 }) {
   const { deal, reasons } = match;
+  const savingsAmount = getSavingsAmount(deal);
+  const comparisonPrices = deal.prices
+    .filter((price) => price !== deal.bestDeal)
+    .sort((a, b) => a.price - b.price);
 
   return (
-    <article className="grid gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg sm:grid-cols-[7rem_1fr_auto] sm:items-center">
+    <article className="grid gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center">
       <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
         <img
           src={deal.image || imageFallback}
@@ -372,10 +377,35 @@ function RecommendationRow({
           </p>
         ) : null}
       </div>
-      <div className="flex flex-col gap-2 sm:min-w-32 sm:items-end">
-        <p className="text-lg font-bold text-green-700">
-          {formatUGX(deal.bestDeal.price)}
-        </p>
+      <div className="flex flex-col gap-2 sm:min-w-48 sm:items-end">
+        <div className="sm:text-right">
+          {savingsAmount > 0 ? (
+            <p className="mb-2 inline-flex rounded-full bg-red-500 px-3 py-1.5 text-xs font-black text-white shadow-md shadow-red-500/25">
+              Save {formatUGX(savingsAmount)}
+            </p>
+          ) : null}
+          <p className="text-lg font-bold text-green-700">
+            {formatUGX(deal.bestDeal.price)}
+          </p>
+        </div>
+        {comparisonPrices.length > 0 ? (
+          <div className="w-full rounded-2xl bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:max-w-56">
+            <p className="mb-1 font-bold text-gray-500">Other stores</p>
+            <div className="space-y-1">
+              {comparisonPrices.map((price, index) => (
+                <div
+                  key={`${deal.id}-${price.site}-${index}`}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="truncate">{price.site}</span>
+                  <span className="shrink-0 font-semibold text-gray-900">
+                    {formatUGX(price.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <Button
           type="button"
           className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700 sm:w-auto"
