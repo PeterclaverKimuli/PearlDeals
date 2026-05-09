@@ -103,6 +103,7 @@ function runSelfChecks(): SelfCheck[] {
 }
 
 const selfChecks = runSelfChecks();
+const dealsPath = "/deals";
 const phoneCategoryName = "Phones";
 
 function getSearchQueryFromLocation() {
@@ -372,11 +373,11 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
-  if (routePath === "/naki" || routePath === "/brief") {
+  if (routePath === "/" || routePath === "/naki" || routePath === "/brief") {
     return (
       <LandingPage
         categories={visibleCategories}
-        onBrowseDeals={() => navigateTo("/")}
+        onBrowseDeals={() => navigateTo(dealsPath)}
         onCompleteBrief={handleCompleteBrief}
         initialBrief={shoppingBrief}
         initialStep={routePath === "/brief" && shoppingBrief ? "ready" : "welcome"}
@@ -407,7 +408,7 @@ export default function DealsUI() {
         selectedCategory={selectedCategory}
         setSelectedCategory={selectCategory}
         setSelectedDeal={setSelectedDeal}
-        onBrowseDeals={() => navigateTo("/")}
+        onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
       />
     );
@@ -430,7 +431,7 @@ export default function DealsUI() {
         filteredDeals={filteredDeals}
         setSelectedDeal={setSelectedDeal}
         onOpenNaki={() => navigateTo("/naki")}
-        onBrowseDeals={() => navigateTo("/")}
+        onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
       />
     );
@@ -450,7 +451,7 @@ export default function DealsUI() {
         visibleCategories={visibleCategories}
         setSelectedDeal={setSelectedDeal}
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
-        onBrowseDeals={() => navigateTo("/")}
+        onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
       />
     );
@@ -483,7 +484,7 @@ export default function DealsUI() {
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}
-      onBrowseDeals={() => navigateTo("/")}
+      onBrowseDeals={() => navigateTo(dealsPath)}
       onViewAllProducts={viewAllProducts}
       onSearchSubmit={navigateToSearch}
     />

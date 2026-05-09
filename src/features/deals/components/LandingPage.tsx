@@ -16,6 +16,7 @@ import {
   Pencil,
   Search,
   Sparkles,
+  Tags,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -456,11 +457,15 @@ export function LandingPage({
                 type="button"
                 variant="outline"
                 className="h-11 cursor-pointer rounded-full px-5"
-                onClick={goBack}
-                disabled={!canGoBack}
+                onClick={activeStep === "welcome" ? onBrowseDeals : goBack}
+                disabled={activeStep !== "welcome" && !canGoBack}
               >
-                <ChevronLeft className="h-4 w-4" />
-                Back
+                {activeStep === "welcome" ? (
+                  <Tags className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+                {activeStep === "welcome" ? "View all deals first" : "Back"}
               </Button>
 
               <Button

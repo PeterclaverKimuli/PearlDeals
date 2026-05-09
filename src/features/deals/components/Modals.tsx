@@ -449,7 +449,7 @@ export function NakiScrollPromptModal({
         className="naki-modal-enter relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-emerald-900/10 bg-white shadow-2xl shadow-emerald-950/25"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_18%_20%,rgba(250,204,21,0.28),transparent_34%),linear-gradient(120deg,#ecfdf5,#fff7ed)]" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_18%_20%,rgba(250,204,21,0.28),transparent_34%),linear-gradient(120deg,#ecfdf5,#fff7ed)] sm:h-36" />
         <button
           type="button"
           onClick={() => handleDismiss("close_button")}
@@ -460,7 +460,7 @@ export function NakiScrollPromptModal({
         </button>
 
         <div className="relative px-5 pt-6 pb-5 sm:px-6 sm:pt-7 sm:pb-6">
-          <div className="grid gap-4 sm:grid-cols-[6rem_1fr] sm:items-center">
+          <div className="grid gap-4 sm:grid-cols-[6rem_minmax(0,1fr)] sm:items-center sm:pr-12">
             <div className="mx-auto flex h-24 w-24 items-end justify-center overflow-hidden rounded-3xl border border-white bg-white shadow-xl shadow-emerald-950/10 sm:mx-0">
               <img
                 src={welcomeAvatar}
@@ -483,7 +483,7 @@ export function NakiScrollPromptModal({
             </div>
           </div>
 
-          <p className="mt-5 text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
+          <p className="mt-5 text-sm leading-6 text-gray-600 sm:mt-8 sm:text-base sm:leading-7">
             Tell me what you need, your budget, and what matters most. I can
             help you compare options faster and find deals that fit.
           </p>

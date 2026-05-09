@@ -480,7 +480,6 @@ function NoRecommendationMatches({
         body="Try editing your brief with a higher budget, fewer categories, or broader conditions."
         onEditBrief={onEditBrief}
         onBrowseDeals={onBrowseDeals}
-        showActions={false}
       />
 
       {suggestedDeals.length > 0 ? (

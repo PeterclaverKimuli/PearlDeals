@@ -29,6 +29,7 @@ import { FloatingNakiButton } from "./FloatingNakiButton";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
 const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v1";
+const showNakiScrollPrompt = false;
 
 export function HomePage({
   search,
@@ -147,6 +148,7 @@ export function HomePage({
 
   useEffect(() => {
     if (
+      !showNakiScrollPrompt ||
       typeof window === "undefined" ||
       hasShownNakiScrollModal ||
       isNakiScrollModalOpen
@@ -231,11 +233,13 @@ export function HomePage({
           onClose={() => setIsFeedbackOpen(false)}
         />
 
-        <NakiScrollPromptModal
-          open={isNakiScrollModalOpen}
-          onClose={closeNakiScrollModal}
-          onOpenNaki={openNakiFromScrollModal}
-        />
+        {showNakiScrollPrompt ? (
+          <NakiScrollPromptModal
+            open={isNakiScrollModalOpen}
+            onClose={closeNakiScrollModal}
+            onOpenNaki={openNakiFromScrollModal}
+          />
+        ) : null}
 
         <section
           ref={heroRef}
