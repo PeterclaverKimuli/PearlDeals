@@ -29,7 +29,7 @@ import { FloatingNakiButton } from "./FloatingNakiButton";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
 const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v2";
-const showNakiScrollPrompt = true;
+const showNakiScrollPrompt = false;
 
 export function HomePage({
   search,

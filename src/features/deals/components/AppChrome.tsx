@@ -17,7 +17,7 @@ export function ProductImage({ src, alt }: { src: string; alt: string }) {
           event.currentTarget.onerror = null;
           event.currentTarget.src = imageFallback;
         }}
-        className="h-full w-full p-4 object-contain transition duration-300 hover:scale-105"
+        className="h-full w-full px-4 pt-10 pb-4 object-contain transition duration-300 hover:scale-105"
       />
     </div>
   );
@@ -114,7 +114,7 @@ export function AppHeader({
                 value={search}
                 onChange={(e) => updateSearch(e.target.value, "input")}
                 placeholder="Search phones, laptops, stores..."
-                className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-0 pr-2 text-sm font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0"
+                className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-0 pr-2 text-base font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0 md:text-sm"
               />
               {trimmedSearch && typeof resultCount === "number" ? (
                 <span className="hidden shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900 min-[420px]:inline-flex">

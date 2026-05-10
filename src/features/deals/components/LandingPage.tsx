@@ -50,7 +50,7 @@ const stepCopy: Record<
   welcome: {
     eyebrow: "PearlDeals assistant",
     title: "Let’s find deals that fit you.",
-    body: "Tell me your budget and what you need. I will help you find the best deals across trusted sites in Uganda.",
+    body: "Tell me your budget and what you need — I’ll find the best deals from trusted Ugandan shops.",
     avatar: welcomeAvatar,
     avatarAlt: "Naki waving to welcome shoppers",
   },
@@ -382,6 +382,9 @@ export function LandingPage({
                   <h1 className="text-2xl font-black tracking-normal text-gray-950 md:text-4xl">
                     {renderTypedIntro()}
                   </h1>
+                  <p className="mt-2 text-xs italic leading-5 text-gray-500 md:text-sm">
+                    Powered by Naki, your shopping assistant
+                  </p>
                   <p className="mt-3 text-base leading-7 text-gray-600 md:text-lg">
                     {currentCopy.body}
                   </p>
@@ -465,7 +468,7 @@ export function LandingPage({
                 ) : (
                   <ChevronLeft className="h-4 w-4" />
                 )}
-                {activeStep === "welcome" ? "Back to all deals" : "Back"}
+                {activeStep === "welcome" ? "View all deals first" : "Back"}
               </Button>
 
               <Button

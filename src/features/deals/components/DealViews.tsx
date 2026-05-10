@@ -334,7 +334,7 @@ export function DealCard({
 
   return (
     <Card className="relative flex h-full gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white py-0 shadow-sm ring-0 transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/10">
-      <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-lg">
+      <div className="absolute left-3 top-2 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-lg">
         Save {formatUGX(savingsAmount)}
       </div>
       <ProductImage src={deal.image} alt={deal.title} />

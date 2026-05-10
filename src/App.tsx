@@ -373,7 +373,12 @@ export default function DealsUI() {
     }
   }, [visibleCategories.length]);
 
-  if (routePath === "/naki" || routePath === "/naki/budget" || routePath === "/brief") {
+  if (
+    routePath === "/" ||
+    routePath === "/naki" ||
+    routePath === "/naki/budget" ||
+    routePath === "/brief"
+  ) {
     return (
       <LandingPage
         categories={visibleCategories}
