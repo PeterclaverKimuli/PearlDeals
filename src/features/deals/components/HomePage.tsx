@@ -45,7 +45,6 @@ export function HomePage({
   bannerSrc,
   setBannerSrc,
   scrollToTopDeals,
-  showCategoryArrows,
   categoryRef,
   topDealsRef,
   popularProductsRef,
@@ -75,7 +74,6 @@ export function HomePage({
   bannerSrc: string;
   setBannerSrc: (value: string) => void;
   scrollToTopDeals: () => void;
-  showCategoryArrows: boolean;
   categoryRef: RefObject<HTMLDivElement | null>;
   topDealsRef: RefObject<HTMLDivElement | null>;
   popularProductsRef: RefObject<HTMLDivElement | null>;
@@ -96,6 +94,7 @@ export function HomePage({
   const heroRef = useRef<HTMLElement | null>(null);
   const lastScrollYRef = useRef(0);
   const [isNakiScrollModalOpen, setIsNakiScrollModalOpen] = useState(false);
+  const [showCategoryArrows, setShowCategoryArrows] = useState(false);
   const [hasShownNakiScrollModal, setHasShownNakiScrollModal] = useState(() => {
     if (typeof window === "undefined") return false;
 
@@ -188,6 +187,38 @@ export function HomePage({
 
     return () => observer.disconnect();
   }, [hasShownNakiScrollModal, isNakiScrollModalOpen, markNakiScrollModalShown]);
+
+  useEffect(() => {
+    const container = categoryRef.current;
+    if (!container) {
+      setShowCategoryArrows(false);
+      return;
+    }
+
+    const updateArrowVisibility = () => {
+      setShowCategoryArrows(container.scrollWidth > container.clientWidth + 4);
+    };
+
+    updateArrowVisibility();
+    const frameId = window.requestAnimationFrame(updateArrowVisibility);
+    const timeoutId = window.setTimeout(updateArrowVisibility, 250);
+
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateArrowVisibility)
+        : null;
+
+    observer?.observe(container);
+    Array.from(container.children).forEach((child) => observer?.observe(child));
+    window.addEventListener("resize", updateArrowVisibility);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateArrowVisibility);
+    };
+  }, [categoryRef, visibleCategories.length]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_30%,#f9fafb_58%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">

@@ -18,27 +18,29 @@ import type {
 } from "@/features/deals/types";
 import { matchesDealSearch } from "@/features/deals/search";
 import {
-  enrichDeal,
   formatUGX,
   getSavingsAmount,
   getShareUrl,
   getVisibleCategories,
-  mockDeals,
 } from "@/features/deals/utils";
 
-function runSelfChecks(): SelfCheck[] {
-  const firstDeal = mockDeals[0];
-  const enriched = firstDeal ? enrichDeal(firstDeal) : null;
-  const visibleCategories = getVisibleCategories(mockDeals);
+type DealsResponse = {
+  deals: EnrichedDeal[];
+  count: number;
+};
+
+function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
+  const firstDeal = deals[0];
+  const visibleCategories = getVisibleCategories(deals);
 
   return [
     {
-      name: "normalized dataset exists",
-      pass: Array.isArray(mockDeals) && mockDeals.length > 0,
+      name: "api dataset exists",
+      pass: Array.isArray(deals) && deals.length > 0,
     },
     {
       name: "every deal has prices",
-      pass: mockDeals.every(
+      pass: deals.every(
         (deal) => Array.isArray(deal.prices) && deal.prices.length > 0,
       ),
     },
@@ -47,7 +49,7 @@ function runSelfChecks(): SelfCheck[] {
       pass:
         visibleCategories.length > 0 &&
         visibleCategories.every((cat) =>
-          mockDeals.some((deal) => deal.category === cat.name),
+          deals.some((deal) => deal.category === cat.name),
         ),
     },
     {
@@ -63,14 +65,13 @@ function runSelfChecks(): SelfCheck[] {
     {
       name: "enrichDeal returns best price safely",
       pass:
-        !!enriched &&
         !!firstDeal &&
-        enriched.bestDeal.price ===
+        firstDeal.bestDeal.price ===
           Math.min(...firstDeal.prices.map((p) => p.price)),
     },
     {
       name: "discount is never negative",
-      pass: mockDeals.every((deal) => enrichDeal(deal).discount >= 0),
+      pass: deals.every((deal) => deal.discount >= 0),
     },
     {
       name: "currency formatter returns a string",
@@ -82,7 +83,7 @@ function runSelfChecks(): SelfCheck[] {
     },
     {
       name: "site buttons can use uploaded urls",
-      pass: mockDeals.some((deal) => deal.prices.some((price) => !!price.url)),
+      pass: deals.some((deal) => deal.prices.some((price) => !!price.url)),
     },
     {
       name: "modal components exist",
@@ -102,7 +103,6 @@ function runSelfChecks(): SelfCheck[] {
   ];
 }
 
-const selfChecks = runSelfChecks();
 const dealsPath = "/deals";
 const phoneCategoryName = "Phones";
 
@@ -170,16 +170,14 @@ export default function DealsUI() {
   >(null);
   const [isViewingAllProducts, setIsViewingAllProducts] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedDeal, setSelectedDeal] = useState<ReturnType<
-    typeof enrichDeal
-  > | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<EnrichedDeal | null>(null);
   const [search, setSearch] = useState(() => getSearchQueryFromLocation());
   const [bannerSrc, setBannerSrc] = useState(
     "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop",
   );
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [showCategoryArrows, setShowCategoryArrows] = useState(false);
   const [shoppingBrief, setShoppingBrief] = useState<ShoppingBrief | null>(null);
+  const [dealsWithDiscounts, setDealsWithDiscounts] = useState<EnrichedDeal[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -201,6 +199,32 @@ export default function DealsUI() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadDeals() {
+      const response = await fetch("/api/deals");
+      if (!response.ok) {
+        throw new Error(`Deals API returned ${response.status}`);
+      }
+
+      const payload = (await response.json()) as DealsResponse;
+      if (isCurrent) {
+        setDealsWithDiscounts(payload.deals);
+      }
+    }
+
+    loadDeals().catch(() => {
+      if (isCurrent) {
+        setDealsWithDiscounts([]);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -213,11 +237,14 @@ export default function DealsUI() {
     selectedDeal,
   ]);
 
-  const dealsWithDiscounts = useMemo(
-    () => mockDeals.map((deal) => enrichDeal(deal)),
-    [],
+  const selfChecks = useMemo(
+    () => runSelfChecks(dealsWithDiscounts),
+    [dealsWithDiscounts],
   );
-  const visibleCategories = useMemo(() => getVisibleCategories(mockDeals), []);
+  const visibleCategories = useMemo(
+    () => getVisibleCategories(dealsWithDiscounts),
+    [dealsWithDiscounts],
+  );
   const behavioralCategoryNames = useMemo(
     () => new Set(behavioralCategories.map((category) => category.name)),
     [],
@@ -355,24 +382,6 @@ export default function DealsUI() {
     });
   };
 
-  useEffect(() => {
-    const updateArrowVisibility = () => {
-      const container = categoryRef.current;
-      if (!container) {
-        setShowCategoryArrows(false);
-        return;
-      }
-
-      setShowCategoryArrows(container.scrollWidth > container.clientWidth + 4);
-    };
-
-    updateArrowVisibility();
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", updateArrowVisibility);
-      return () => window.removeEventListener("resize", updateArrowVisibility);
-    }
-  }, [visibleCategories.length]);
-
   if (
     routePath === "/" ||
     routePath === "/naki" ||
@@ -483,7 +492,6 @@ export default function DealsUI() {
       bannerSrc={bannerSrc}
       setBannerSrc={setBannerSrc}
       scrollToTopDeals={scrollToTopDeals}
-      showCategoryArrows={showCategoryArrows}
       categoryRef={categoryRef}
       topDealsRef={topDealsRef}
       popularProductsRef={popularProductsRef}

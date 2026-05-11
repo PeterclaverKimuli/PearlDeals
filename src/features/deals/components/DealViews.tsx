@@ -4,10 +4,14 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  BellRing,
+  Flame,
   Heart,
   PlusCircle,
+  Scale,
   Share2,
   Store,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -148,22 +152,28 @@ export function DealDetails({
                     return (
                       <div
                         key={`${deal.id}-${idx}`}
-                        className={`flex flex-col gap-3 rounded-2xl border p-3 md:flex-row md:items-center md:justify-between ${
+                        className={`grid grid-cols-1 gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,1fr)_max-content] md:items-center md:gap-4 xl:grid-cols-[190px_minmax(130px,1fr)_max-content] ${
                           isBest
                             ? "border-emerald-200 bg-emerald-50"
                             : "border-gray-200 bg-white"
                         }`}
                       >
-                        <div>
+                        <div className="md:min-w-0 xl:w-[190px]">
                           <p className="font-medium">{p.site}</p>
                           {p.status ? (
                             <p className="text-xs text-gray-400">
                               Condition: {p.status}
                             </p>
                           ) : null}
+                          {isBest ? (
+                            <p className="mt-2 hidden items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-700 md:inline-flex md:whitespace-nowrap">
+                              <Flame className="h-3 w-3" aria-hidden="true" />
+                              Lowest price today
+                            </p>
+                          ) : null}
                         </div>
 
-                        <div className="flex w-full flex-col items-stretch gap-2 md:w-auto md:flex-row md:items-center md:justify-end">
+                        <div className="flex w-full flex-col items-stretch gap-2 md:w-auto md:items-end xl:contents">
                           <div className="text-left md:text-right">
                             <p
                               className={`text-xs font-semibold md:text-sm ${isBest ? "text-green-700" : ""}`}
@@ -171,8 +181,9 @@ export function DealDetails({
                               {formatUGX(p.price)}
                             </p>
                             {isBest ? (
-                              <p className="text-xs font-medium text-green-700">
-                                Lowest price
+                              <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700 md:hidden">
+                                <Flame className="h-3 w-3" aria-hidden="true" />
+                                Lowest price today
                               </p>
                             ) : null}
                           </div>
@@ -181,9 +192,16 @@ export function DealDetails({
                             <button
                               type="button"
                               onClick={() => handleSiteClick(p.url, p.site)}
-                              className="mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-full bg-gray-950 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 md:mt-0 md:w-auto"
+                              className={`mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-white md:mt-0 md:w-auto md:whitespace-nowrap md:px-4 ${
+                                isBest
+                                  ? "bg-emerald-700 shadow-lg shadow-emerald-900/20 hover:bg-emerald-800"
+                                  : "bg-gray-950 hover:bg-emerald-700"
+                              }`}
                             >
-                              Go to Site
+                              {isBest ? (
+                                <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+                              ) : null}
+                              {isBest ? "Grab lowest price" : "Go to Site"}
                             </button>
                           ) : (
                             <button
@@ -203,20 +221,26 @@ export function DealDetails({
 
               <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="text-lg font-black text-gray-900">
-                      Want to know when the price drops?
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-gray-600">
-                      Leave your email and we will let you know when this
-                      product gets cheaper.
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                      <BellRing className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-gray-900">
+                        Want to know when the price drops?
+                      </h2>
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        Leave your email and we will let you know when this
+                        product gets cheaper.
+                      </p>
+                    </div>
                   </div>
                   <Button
                     type="button"
                     className="h-11 shrink-0 cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
                     onClick={handleOpenPriceDropAlert}
                   >
+                    <BellRing className="h-4 w-4" aria-hidden="true" />
                     Notify me
                   </Button>
                 </div>
@@ -299,16 +323,32 @@ export function DealDetails({
               />
 
               <div className="rounded-3xl border border-emerald-900/10 bg-emerald-50 p-4">
-                <h2 className="mb-2 text-lg font-black">
-                  Why this deal stands out
-                </h2>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                    <BadgeCheck className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <h2 className="text-lg font-black">
+                    Why this deal stands out
+                  </h2>
+                </div>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-start gap-3">
+                    <Store className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <span>
                     Lowest listed price across {deal.prices.length} sites.
+                    </span>
                   </li>
-                  <li>Save {formatUGX(savingsAmount)} across listed prices.</li>
-                  <li>
+                  <li className="flex items-start gap-3">
+                    <Tag className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <span>
+                      Save {formatUGX(savingsAmount)} across listed prices.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Scale className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <span>
                     Easy side-by-side comparison before you leave the app.
+                    </span>
                   </li>
                 </ul>
               </div>
