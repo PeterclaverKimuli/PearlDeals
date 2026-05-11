@@ -1,5 +1,4 @@
-import { behavioralCategories, rawDeals } from "../src/features/deals/data";
-import { getCatalogDeals } from "./db";
+import { behavioralCategories, rawDeals } from "../src/features/deals/data.js";
 import {
   enrichDeal,
   getRecommendationBaskets,
@@ -7,8 +6,8 @@ import {
   getVisibleCategories,
   matchesDealSearch,
   normalizeDeals,
-} from "../shared/deals/logic";
-import type { EnrichedDeal, ShoppingBrief } from "../shared/deals/types";
+} from "../shared/deals/logic.js";
+import type { EnrichedDeal, ShoppingBrief } from "../shared/deals/types.js";
 
 const fallbackDeals = normalizeDeals(rawDeals).map((deal) => enrichDeal(deal));
 const phoneCategoryName = "Phones";
@@ -66,6 +65,7 @@ function getHomepageTopDeals(deals: EnrichedDeal[]) {
 
 export async function loadDeals(logger?: { warn: (payload: unknown, message?: string) => void }) {
   try {
+    const { getCatalogDeals } = await import("./db.js");
     const catalogDeals = await getCatalogDeals();
     if (catalogDeals.length > 0) {
       return catalogDeals.map((deal) => enrichDeal(deal));
@@ -95,6 +95,11 @@ export function getHomepagePayload({
       (category) => category.name === selectedBehavioralCategory,
     ) ?? null;
   const behavioralProductIds = selectedBehavioralCategoryConfig?.productIds;
+  const isPlainHomepage =
+    !query.trim() &&
+    !selectedCategory &&
+    !selectedBehavioralCategory &&
+    !isViewingAllProducts;
   const filteredDeals = deals.filter((deal) => {
     const matchesCategory =
       behavioralProductIds
@@ -122,11 +127,9 @@ export function getHomepagePayload({
     visibleCategories: getVisibleCategories(deals),
     featuredDeals: getHomepageTopDeals(deals),
     behavioralDealSections,
-    filteredDeals: isViewingAllProducts
-      ? filteredDeals
-      : query.trim()
-        ? filteredDeals
-        : getHomepagePreviewDeals(filteredDeals, 8, 2),
+    filteredDeals: isPlainHomepage
+      ? getHomepagePreviewDeals(filteredDeals, 8, 2)
+      : filteredDeals,
     allProductsTotalCount: filteredDeals.length,
   };
 }

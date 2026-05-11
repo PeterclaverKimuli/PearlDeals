@@ -1,4 +1,4 @@
-import { getCategoriesPayload, loadApiDeals, sendJson } from "./_utils";
+import { getCategoriesPayload, loadApiDeals, sendJson } from "./_utils.js";
 
 export default async function handler(
   _req: unknown,

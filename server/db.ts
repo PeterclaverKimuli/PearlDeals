@@ -1,7 +1,7 @@
-import "./env";
+import "./env.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import type { Deal } from "../shared/deals/types";
+import type { Deal } from "../shared/deals/types.js";
 
 let prisma: PrismaClient | null = null;
 

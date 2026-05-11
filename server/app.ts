@@ -7,7 +7,7 @@ import {
   getRecommendationsPayload,
   getSearchPayload,
   loadDeals,
-} from "./catalog";
+} from "./catalog.js";
 
 const shoppingBriefSchema = z.object({
   budget: z.number().nonnegative(),

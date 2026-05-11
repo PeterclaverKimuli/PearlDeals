@@ -1,4 +1,4 @@
-import { getSearchPayload, loadApiDeals, sendJson } from "./_utils";
+import { getSearchPayload, loadApiDeals, sendJson } from "./_utils.js";
 
 type SearchRequest = {
   query: {

@@ -3,7 +3,7 @@ import {
   loadApiDeals,
   sendJson,
   shoppingBriefSchema,
-} from "./_utils";
+} from "./_utils.js";
 
 type RecommendationsRequest = {
   method?: string;

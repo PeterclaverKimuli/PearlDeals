@@ -1,4 +1,4 @@
-import { loadApiDeals, sendJson } from "../_utils";
+import { loadApiDeals, sendJson } from "../_utils.js";
 
 type DealRequest = {
   query: {

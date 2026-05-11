@@ -1,4 +1,4 @@
-import { getHomepagePayload, loadApiDeals, sendJson } from "./_utils";
+import { getHomepagePayload, loadApiDeals, sendJson } from "./_utils.js";
 
 type HomeRequest = {
   query: {
