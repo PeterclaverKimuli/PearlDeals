@@ -17,5 +17,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "shared", "src/features/deals/data.ts", "src/features/deals/types.ts"]
+  "include": [
+    "api",
+    "server",
+    "shared",
+    "src/features/deals/data.ts",
+    "src/features/deals/types.ts"
+  ]
 }
