@@ -118,7 +118,9 @@ function getHomepagePayload({
     visibleCategories: getVisibleCategories(deals),
     featuredDeals: getHomepageTopDeals(deals),
     behavioralDealSections,
-    filteredDeals: query.trim()
+    filteredDeals: isViewingAllProducts
+      ? filteredDeals
+      : query.trim()
       ? filteredDeals
       : getHomepagePreviewDeals(filteredDeals, 8, 2),
     allProductsTotalCount: filteredDeals.length,

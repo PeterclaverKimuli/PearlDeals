@@ -26,6 +26,7 @@ import { formatUGX, getSavingsAmount } from "../utils";
 import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
 import { DealCard, FeaturedDealBanner } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
+import { paginateItems, Pagination } from "./Pagination";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
 const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v2";
@@ -60,6 +61,9 @@ export function HomePage({
   onBrowseDeals,
   onViewAllProducts,
   onSearchSubmit,
+  isViewingAllProducts,
+  page,
+  onPageChange,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -89,6 +93,9 @@ export function HomePage({
   onBrowseDeals: () => void;
   onViewAllProducts: () => void;
   onSearchSubmit: (query: string) => void;
+  isViewingAllProducts: boolean;
+  page: number;
+  onPageChange: (page: number) => void;
 }) {
   const posthog = usePostHog();
   const heroRef = useRef<HTMLElement | null>(null);
@@ -106,6 +113,17 @@ export function HomePage({
   ).size;
   const biggestSaving = Math.max(0, ...allDeals.map(getSavingsAmount));
   const bestHeroDeal = featuredDeals[0] ?? allDeals[0];
+  const {
+    pageItems: visibleProductDeals,
+    pageCount: productsPageCount,
+    safePage: productsPage,
+  } = isViewingAllProducts
+    ? paginateItems(filteredDeals, page)
+    : {
+        pageItems: filteredDeals,
+        pageCount: 1,
+        safePage: 1,
+      };
   const heroStats = [
     {
       label: "Products tracked",
@@ -559,7 +577,7 @@ export function HomePage({
         </div>
 
         <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-4">
-          {filteredDeals.slice(0, 8).map((deal) => (
+          {visibleProductDeals.map((deal) => (
             <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
           ))}
 
@@ -574,6 +592,13 @@ export function HomePage({
               </Button>
             </div>
           )}
+          {isViewingAllProducts ? (
+            <Pagination
+              page={productsPage}
+              pageCount={productsPageCount}
+              onPageChange={onPageChange}
+            />
+          ) : null}
         </div>
 
         {!search.trim() && allProductsTotalCount > 8 && (

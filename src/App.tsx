@@ -148,6 +148,7 @@ export default function DealsUI() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [shoppingBrief, setShoppingBrief] = useState<ShoppingBrief | null>(null);
   const [dealsWithDiscounts, setDealsWithDiscounts] = useState<EnrichedDeal[]>([]);
+  const [productPage, setProductPage] = useState(1);
   const [visibleCategories, setVisibleCategories] = useState<CategoryItem[]>([]);
   const [featuredDeals, setFeaturedDeals] = useState<EnrichedDeal[]>([]);
   const [behavioralDealSections, setBehavioralDealSections] = useState<
@@ -329,6 +330,10 @@ export default function DealsUI() {
     selectedDeal,
   ]);
 
+  useEffect(() => {
+    setProductPage(1);
+  }, [search, selectedCategory, selectedBehavioralCategory, isViewingAllProducts]);
+
   const selfChecks = useMemo(
     () => runSelfChecks(dealsWithDiscounts),
     [dealsWithDiscounts],
@@ -482,6 +487,8 @@ export default function DealsUI() {
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
         isLoading={isHomeLoading}
+        page={productPage}
+        onPageChange={setProductPage}
       />
     );
   }
@@ -538,6 +545,9 @@ export default function DealsUI() {
       onBrowseDeals={() => navigateTo(dealsPath)}
       onViewAllProducts={viewAllProducts}
       onSearchSubmit={navigateToSearch}
+      isViewingAllProducts={isViewingAllProducts}
+      page={productPage}
+      onPageChange={setProductPage}
     />
   );
 }

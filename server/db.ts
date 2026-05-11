@@ -39,7 +39,7 @@ function productToDeal(product: ProductWithOffers): Deal {
   };
 }
 
-export async function getCatalogDeals() {
+export async function getCatalogDeals(): Promise<Deal[]> {
   const products = await prisma.product.findMany({
     orderBy: { id: "asc" },
     include: {

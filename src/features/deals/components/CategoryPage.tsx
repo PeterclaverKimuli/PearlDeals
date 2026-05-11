@@ -5,6 +5,7 @@ import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
 import { LoadingState } from "./LoadingState";
+import { paginateItems, Pagination } from "./Pagination";
 import type { CategoryItem, EnrichedDeal } from "../types";
 
 export function CategoryPage({
@@ -21,6 +22,8 @@ export function CategoryPage({
   onBrowseDeals,
   onSearchSubmit,
   isLoading,
+  page,
+  onPageChange,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -35,8 +38,11 @@ export function CategoryPage({
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
   isLoading: boolean;
+  page: number;
+  onPageChange: (page: number) => void;
 }) {
   const posthog = usePostHog();
+  const { pageItems, pageCount, safePage } = paginateItems(filteredDeals, page);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -145,7 +151,7 @@ export function CategoryPage({
               />
             ) : (
               <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredDeals.map((deal) => (
+                {pageItems.map((deal) => (
                   <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
                 ))}
 
@@ -160,6 +166,11 @@ export function CategoryPage({
                     </Button>
                   </div>
                 )}
+                <Pagination
+                  page={safePage}
+                  pageCount={pageCount}
+                  onPageChange={onPageChange}
+                />
               </div>
             )}
           </div>
