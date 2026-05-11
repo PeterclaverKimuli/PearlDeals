@@ -546,6 +546,7 @@ export default function DealsUI() {
       onViewAllProducts={viewAllProducts}
       onSearchSubmit={navigateToSearch}
       isLoading={isHomeLoading}
+      activeViewKey={`${routePath}:${selectedCategory ?? ""}:${selectedBehavioralCategory ?? ""}:${isViewingAllProducts}`}
       isViewingAllProducts={isViewingAllProducts}
       page={productPage}
       onPageChange={setProductPage}

@@ -63,6 +63,7 @@ export function HomePage({
   onViewAllProducts,
   onSearchSubmit,
   isLoading,
+  activeViewKey,
   isViewingAllProducts,
   page,
   onPageChange,
@@ -96,6 +97,7 @@ export function HomePage({
   onViewAllProducts: () => void;
   onSearchSubmit: (query: string) => void;
   isLoading: boolean;
+  activeViewKey: string;
   isViewingAllProducts: boolean;
   page: number;
   onPageChange: (page: number) => void;
@@ -222,7 +224,11 @@ export function HomePage({
 
     updateArrowVisibility();
     const frameId = window.requestAnimationFrame(updateArrowVisibility);
+    const secondFrameId = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(updateArrowVisibility);
+    });
     const timeoutId = window.setTimeout(updateArrowVisibility, 250);
+    const lateTimeoutId = window.setTimeout(updateArrowVisibility, 750);
 
     const observer =
       typeof ResizeObserver !== "undefined"
@@ -235,11 +241,13 @@ export function HomePage({
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(secondFrameId);
       window.clearTimeout(timeoutId);
+      window.clearTimeout(lateTimeoutId);
       observer?.disconnect();
       window.removeEventListener("resize", updateArrowVisibility);
     };
-  }, [categoryRef, visibleCategories.length]);
+  }, [activeViewKey, categoryRef, isLoading, visibleCategories.length]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_30%,#f9fafb_58%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">

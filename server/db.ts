@@ -3,11 +3,23 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import type { Deal } from "../shared/deals/types";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
+let prisma: PrismaClient | null = null;
 
-export const prisma = new PrismaClient({ adapter });
+function getPrisma() {
+  if (prisma) return prisma;
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not configured");
+  }
+
+  const adapter = new PrismaPg({
+    connectionString,
+  });
+
+  prisma = new PrismaClient({ adapter });
+  return prisma;
+}
 
 type ProductWithOffers = {
   id: number;
@@ -40,7 +52,7 @@ function productToDeal(product: ProductWithOffers): Deal {
 }
 
 export async function getCatalogDeals(): Promise<Deal[]> {
-  const products = await prisma.product.findMany({
+  const products = await getPrisma().product.findMany({
     orderBy: { id: "asc" },
     include: {
       offers: {
