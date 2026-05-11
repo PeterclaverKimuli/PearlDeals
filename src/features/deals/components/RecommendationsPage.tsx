@@ -18,17 +18,17 @@ import type {
 } from "../types";
 import {
   formatUGX,
-  getRecommendationBaskets,
-  getRecommendationSuggestions,
   getSavingsAmount,
 } from "../utils";
 import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
+import { LoadingState } from "./LoadingState";
 import { RecommendationFeedbackModal } from "./Modals";
 
 export function RecommendationsPage({
   brief,
-  deals,
+  baskets,
+  suggestedDeals,
   search,
   setSearch,
   isSidebarOpen,
@@ -40,9 +40,11 @@ export function RecommendationsPage({
   onEditBrief,
   onBrowseDeals,
   onSearchSubmit,
+  isLoading,
 }: {
   brief: ShoppingBrief | null;
-  deals: EnrichedDeal[];
+  baskets: RecommendationBasket[];
+  suggestedDeals: EnrichedDeal[];
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
@@ -54,10 +56,10 @@ export function RecommendationsPage({
   onEditBrief: () => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
+  isLoading: boolean;
 }) {
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
     useState(false);
-  const baskets = getRecommendationBaskets(deals, brief);
   const visibleBaskets = baskets
     .map((basket) => ({
       basket,
@@ -70,10 +72,6 @@ export function RecommendationsPage({
   );
   const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
   const hasVisibleRecommendations = visibleBaskets.length > 0;
-  const suggestedDeals =
-    brief && baskets.length === 0
-      ? getRecommendationSuggestions(deals, brief)
-      : [];
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -159,7 +157,12 @@ export function RecommendationsPage({
 
         </section>
 
-        {!brief ? (
+        {isLoading ? (
+          <LoadingState
+            title="Building recommendations"
+            body="Naki is matching your brief with the best available deals."
+          />
+        ) : !brief ? (
           <EmptyRecommendations
             title="No brief yet"
             body="Naki needs your budget, categories, and preferred condition before recommendations can be matched."

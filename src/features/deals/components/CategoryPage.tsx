@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
+import { LoadingState } from "./LoadingState";
 import type { CategoryItem, EnrichedDeal } from "../types";
 
 export function CategoryPage({
@@ -19,6 +20,7 @@ export function CategoryPage({
   onOpenNaki,
   onBrowseDeals,
   onSearchSubmit,
+  isLoading,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -32,6 +34,7 @@ export function CategoryPage({
   onOpenNaki: () => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
+  isLoading: boolean;
 }) {
   const posthog = usePostHog();
 
@@ -135,23 +138,30 @@ export function CategoryPage({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredDeals.map((deal) => (
-                <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
-              ))}
+            {isLoading ? (
+              <LoadingState
+                title="Loading category"
+                body="Preparing the best comparisons for this category."
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredDeals.map((deal) => (
+                  <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+                ))}
 
-              {search.trim() && (
-                <div className="col-span-full mt-6 flex justify-center">
-                  <Button
-                    onClick={() => setSearch("")}
-                    variant="outline"
-                    className="cursor-pointer rounded-full px-6 py-2 text-sm"
-                  >
-                    Clear search results
-                  </Button>
-                </div>
-              )}
-            </div>
+                {search.trim() && (
+                  <div className="col-span-full mt-6 flex justify-center">
+                    <Button
+                      onClick={() => setSearch("")}
+                      variant="outline"
+                      className="cursor-pointer rounded-full px-6 py-2 text-sm"
+                    >
+                      Clear search results
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

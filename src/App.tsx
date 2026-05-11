@@ -12,21 +12,36 @@ import {
 } from "@/features/deals/components/Modals";
 import { behavioralCategories } from "@/features/deals/data";
 import type {
+  CategoryItem,
   EnrichedDeal,
+  RecommendationBasket,
   SelfCheck,
   ShoppingBrief,
 } from "@/features/deals/types";
-import { matchesDealSearch } from "@/features/deals/search";
 import {
   formatUGX,
-  getSavingsAmount,
   getShareUrl,
   getVisibleCategories,
 } from "@/features/deals/utils";
 
-type DealsResponse = {
+type HomeResponse = {
   deals: EnrichedDeal[];
   count: number;
+  visibleCategories: CategoryItem[];
+  featuredDeals: EnrichedDeal[];
+  behavioralDealSections: (CategoryItem & { deals: EnrichedDeal[] })[];
+  filteredDeals: EnrichedDeal[];
+  allProductsTotalCount: number;
+};
+
+type SearchResponse = {
+  results: EnrichedDeal[];
+  count: number;
+};
+
+type RecommendationsResponse = {
+  baskets: RecommendationBasket[];
+  suggestions: EnrichedDeal[];
 };
 
 function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
@@ -104,56 +119,11 @@ function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
 }
 
 const dealsPath = "/deals";
-const phoneCategoryName = "Phones";
 
 function getSearchQueryFromLocation() {
   if (typeof window === "undefined") return "";
 
   return new URLSearchParams(window.location.search).get("q") ?? "";
-}
-
-function isPhoneDeal(deal: EnrichedDeal) {
-  return deal.category === phoneCategoryName;
-}
-
-function getHomepagePreviewDeals(
-  deals: EnrichedDeal[],
-  visibleLimit: number,
-  phoneLimit: number,
-) {
-  const selected: EnrichedDeal[] = [];
-  let phoneCount = 0;
-
-  for (const deal of deals) {
-    if (selected.length >= visibleLimit) break;
-
-    if (isPhoneDeal(deal)) {
-      if (phoneCount >= phoneLimit) continue;
-      phoneCount += 1;
-    }
-
-    selected.push(deal);
-  }
-
-  if (selected.length >= visibleLimit) return selected;
-
-  const selectedIds = new Set(selected.map((deal) => deal.id));
-  return [
-    ...selected,
-    ...deals.filter((deal) => !selectedIds.has(deal.id)),
-  ].slice(0, visibleLimit);
-}
-
-function getHomepageTopDeals(deals: EnrichedDeal[]) {
-  const sortedDeals = [...deals].sort(
-    (a, b) =>
-      getSavingsAmount(b) - getSavingsAmount(a) ||
-      a.bestDeal.price - b.bestDeal.price,
-  );
-  const nonPhoneDeals = sortedDeals.filter((deal) => !isPhoneDeal(deal));
-  const phoneDeals = sortedDeals.filter(isPhoneDeal);
-
-  return [...nonPhoneDeals.slice(0, 2), ...phoneDeals].slice(0, 2);
 }
 
 export default function DealsUI() {
@@ -178,6 +148,24 @@ export default function DealsUI() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [shoppingBrief, setShoppingBrief] = useState<ShoppingBrief | null>(null);
   const [dealsWithDiscounts, setDealsWithDiscounts] = useState<EnrichedDeal[]>([]);
+  const [visibleCategories, setVisibleCategories] = useState<CategoryItem[]>([]);
+  const [featuredDeals, setFeaturedDeals] = useState<EnrichedDeal[]>([]);
+  const [behavioralDealSections, setBehavioralDealSections] = useState<
+    (CategoryItem & { deals: EnrichedDeal[] })[]
+  >([]);
+  const [filteredDeals, setFilteredDeals] = useState<EnrichedDeal[]>([]);
+  const [allProductsTotalCount, setAllProductsTotalCount] = useState(0);
+  const [searchResults, setSearchResults] = useState<EnrichedDeal[]>([]);
+  const [recommendationBaskets, setRecommendationBaskets] = useState<
+    RecommendationBasket[]
+  >([]);
+  const [recommendationSuggestions, setRecommendationSuggestions] = useState<
+    EnrichedDeal[]
+  >([]);
+  const [isHomeLoading, setIsHomeLoading] = useState(true);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [isRecommendationsLoading, setIsRecommendationsLoading] =
+    useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -202,28 +190,132 @@ export default function DealsUI() {
   useEffect(() => {
     let isCurrent = true;
 
-    async function loadDeals() {
-      const response = await fetch("/api/deals");
+    async function loadHomePayload() {
+      setIsHomeLoading(true);
+      const params = new URLSearchParams();
+      if (search.trim()) params.set("q", search.trim());
+      if (selectedCategory) params.set("category", selectedCategory);
+      if (selectedBehavioralCategory) {
+        params.set("behavioralCategory", selectedBehavioralCategory);
+      }
+      if (isViewingAllProducts) params.set("viewAll", "true");
+
+      const query = params.toString();
+      const response = await fetch(`/api/home${query ? `?${query}` : ""}`);
       if (!response.ok) {
-        throw new Error(`Deals API returned ${response.status}`);
+        throw new Error(`Home API returned ${response.status}`);
       }
 
-      const payload = (await response.json()) as DealsResponse;
+      const payload = (await response.json()) as HomeResponse;
       if (isCurrent) {
         setDealsWithDiscounts(payload.deals);
+        setVisibleCategories(payload.visibleCategories);
+        setFeaturedDeals(payload.featuredDeals);
+        setBehavioralDealSections(payload.behavioralDealSections);
+        setFilteredDeals(payload.filteredDeals);
+        setAllProductsTotalCount(payload.allProductsTotalCount);
+        setIsHomeLoading(false);
       }
     }
 
-    loadDeals().catch(() => {
+    loadHomePayload().catch(() => {
       if (isCurrent) {
         setDealsWithDiscounts([]);
+        setVisibleCategories([]);
+        setFeaturedDeals([]);
+        setBehavioralDealSections([]);
+        setFilteredDeals([]);
+        setAllProductsTotalCount(0);
+        setIsHomeLoading(false);
       }
     });
 
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [search, selectedCategory, selectedBehavioralCategory, isViewingAllProducts]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadSearchResults() {
+      const trimmedSearch = search.trim();
+      if (!trimmedSearch) {
+        setSearchResults([]);
+        setIsSearchLoading(false);
+        return;
+      }
+
+      setIsSearchLoading(true);
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(trimmedSearch)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Search API returned ${response.status}`);
+      }
+
+      const payload = (await response.json()) as SearchResponse;
+      if (isCurrent) {
+        setSearchResults(payload.results);
+        setIsSearchLoading(false);
+      }
+    }
+
+    loadSearchResults().catch(() => {
+      if (isCurrent) {
+        setSearchResults([]);
+        setIsSearchLoading(false);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [search]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadRecommendations() {
+      if (!shoppingBrief) {
+        setRecommendationBaskets([]);
+        setRecommendationSuggestions([]);
+        setIsRecommendationsLoading(false);
+        return;
+      }
+
+      setIsRecommendationsLoading(true);
+      const response = await fetch("/api/recommendations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(shoppingBrief),
+      });
+      if (!response.ok) {
+        throw new Error(`Recommendations API returned ${response.status}`);
+      }
+
+      const payload = (await response.json()) as RecommendationsResponse;
+      if (isCurrent) {
+        setRecommendationBaskets(payload.baskets);
+        setRecommendationSuggestions(payload.suggestions);
+        setIsRecommendationsLoading(false);
+      }
+    }
+
+    loadRecommendations().catch(() => {
+      if (isCurrent) {
+        setRecommendationBaskets([]);
+        setRecommendationSuggestions([]);
+        setIsRecommendationsLoading(false);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [shoppingBrief]);
 
   useLayoutEffect(() => {
     if (typeof window !== "undefined") {
@@ -241,75 +333,10 @@ export default function DealsUI() {
     () => runSelfChecks(dealsWithDiscounts),
     [dealsWithDiscounts],
   );
-  const visibleCategories = useMemo(
-    () => getVisibleCategories(dealsWithDiscounts),
-    [dealsWithDiscounts],
-  );
   const behavioralCategoryNames = useMemo(
     () => new Set(behavioralCategories.map((category) => category.name)),
     [],
   );
-  const selectedBehavioralCategoryConfig = useMemo(
-    () =>
-      behavioralCategories.find(
-        (category) => category.name === selectedBehavioralCategory,
-      ) ?? null,
-    [selectedBehavioralCategory],
-  );
-
-  const filteredDeals = useMemo(() => {
-    const behavioralProductIds = selectedBehavioralCategoryConfig?.productIds;
-
-    return dealsWithDiscounts.filter((deal) => {
-      const matchesCategory =
-        behavioralProductIds
-          ? behavioralProductIds.includes(deal.id)
-          : isViewingAllProducts || !selectedCategory
-            ? true
-            : deal.category === selectedCategory;
-      return matchesCategory && matchesDealSearch(deal, search);
-    });
-  }, [
-    dealsWithDiscounts,
-    search,
-    selectedCategory,
-    isViewingAllProducts,
-    selectedBehavioralCategoryConfig,
-  ]);
-
-  const behavioralDealSections = useMemo(
-    () =>
-      behavioralCategories.map((category) => ({
-        ...category,
-        deals: getHomepagePreviewDeals(
-          (category.productIds ?? [])
-            .map((id) => dealsWithDiscounts.find((deal) => deal.id === id))
-            .filter(
-              (deal): deal is (typeof dealsWithDiscounts)[number] => !!deal,
-            ),
-          6,
-          1,
-        ),
-      })),
-    [dealsWithDiscounts],
-  );
-
-  const featuredDeals = useMemo(
-    () => getHomepageTopDeals(dealsWithDiscounts),
-    [dealsWithDiscounts],
-  );
-  const homepageFilteredDeals = useMemo(
-    () =>
-      search.trim()
-        ? filteredDeals
-        : getHomepagePreviewDeals(filteredDeals, 8, 2),
-    [filteredDeals, search],
-  );
-  const searchResults = useMemo(() => {
-    if (!search.trim()) return [];
-
-    return dealsWithDiscounts.filter((deal) => matchesDealSearch(deal, search));
-  }, [dealsWithDiscounts, search]);
 
   const navigateTo = (path: string) => {
     if (typeof window !== "undefined" && window.location.pathname !== path) {
@@ -430,6 +457,7 @@ export default function DealsUI() {
         setSelectedDeal={setSelectedDeal}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
+        isLoading={isSearchLoading}
       />
     );
   }
@@ -453,6 +481,7 @@ export default function DealsUI() {
         onOpenNaki={() => navigateTo("/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
+        isLoading={isHomeLoading}
       />
     );
   }
@@ -461,7 +490,8 @@ export default function DealsUI() {
     return (
       <RecommendationsPage
         brief={shoppingBrief}
-        deals={dealsWithDiscounts}
+        baskets={recommendationBaskets}
+        suggestedDeals={recommendationSuggestions}
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
@@ -473,6 +503,7 @@ export default function DealsUI() {
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
+        isLoading={isRecommendationsLoading}
       />
     );
   }
@@ -498,8 +529,8 @@ export default function DealsUI() {
       featuredDeals={featuredDeals}
       behavioralDealSections={behavioralDealSections}
       allDeals={dealsWithDiscounts}
-      filteredDeals={homepageFilteredDeals}
-      allProductsTotalCount={filteredDeals.length}
+      filteredDeals={filteredDeals}
+      allProductsTotalCount={allProductsTotalCount}
       setSelectedDeal={setSelectedDeal}
       selfChecks={selfChecks}
       onOpenNaki={() => navigateTo("/naki")}

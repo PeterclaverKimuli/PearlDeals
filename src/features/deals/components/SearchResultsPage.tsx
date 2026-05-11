@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { CategoryItem, EnrichedDeal } from "../types";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
+import { LoadingState } from "./LoadingState";
 
 export function SearchResultsPage({
   search,
@@ -17,6 +18,7 @@ export function SearchResultsPage({
   setSelectedDeal,
   onBrowseDeals,
   onSearchSubmit,
+  isLoading,
 }: {
   search: string;
   setSearch: (value: string) => void;
@@ -30,6 +32,7 @@ export function SearchResultsPage({
   setSelectedDeal: (deal: EnrichedDeal) => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
+  isLoading: boolean;
 }) {
   const query = search.trim();
 
@@ -92,7 +95,12 @@ export function SearchResultsPage({
           </div>
         </section>
 
-        {results.length > 0 ? (
+        {isLoading ? (
+          <LoadingState
+            title="Searching deals"
+            body="Checking matching products across categories and stores."
+          />
+        ) : results.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {results.map((deal) => (
               <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
