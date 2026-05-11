@@ -545,6 +545,7 @@ export default function DealsUI() {
       onBrowseDeals={() => navigateTo(dealsPath)}
       onViewAllProducts={viewAllProducts}
       onSearchSubmit={navigateToSearch}
+      isLoading={isHomeLoading}
       isViewingAllProducts={isViewingAllProducts}
       page={productPage}
       onPageChange={setProductPage}

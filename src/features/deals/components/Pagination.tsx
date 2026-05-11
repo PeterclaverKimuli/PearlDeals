@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 
-export const productsPerPage = 10;
+export const productsPerPage = 12;
 
 export function getPageCount(totalItems: number) {
   return Math.max(1, Math.ceil(totalItems / productsPerPage));

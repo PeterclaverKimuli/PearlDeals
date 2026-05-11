@@ -26,6 +26,7 @@ import { formatUGX, getSavingsAmount } from "../utils";
 import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
 import { DealCard, FeaturedDealBanner } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
+import { LoadingState } from "./LoadingState";
 import { paginateItems, Pagination } from "./Pagination";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
@@ -61,6 +62,7 @@ export function HomePage({
   onBrowseDeals,
   onViewAllProducts,
   onSearchSubmit,
+  isLoading,
   isViewingAllProducts,
   page,
   onPageChange,
@@ -93,6 +95,7 @@ export function HomePage({
   onBrowseDeals: () => void;
   onViewAllProducts: () => void;
   onSearchSubmit: (query: string) => void;
+  isLoading: boolean;
   isViewingAllProducts: boolean;
   page: number;
   onPageChange: (page: number) => void;
@@ -292,6 +295,15 @@ export function HomePage({
           />
         ) : null}
 
+        {isLoading ? (
+          <div className="mt-4">
+            <LoadingState
+              title="Loading deals"
+              body="Getting the latest product comparisons ready."
+            />
+          </div>
+        ) : (
+          <>
         <section
           ref={heroRef}
           className="relative mt-4 mb-8 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-gray-950 shadow-2xl shadow-emerald-950/20"
@@ -642,6 +654,8 @@ export function HomePage({
             description="Quickly compare prices and choose what works for you."
           />
         </div>
+          </>
+        )}
       </div>
     </div>
   );
