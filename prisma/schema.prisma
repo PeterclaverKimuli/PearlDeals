@@ -18,18 +18,101 @@ model Product {
   @@index([category])
 }
 
+model Merchant {
+  id             Int      @id @default(autoincrement())
+  name           String
+  slug           String   @unique
+  baseUrl        String?
+  enabled        Boolean  @default(false)
+  scrapeStrategy String?
+  offers         Offer[]
+  scrapeJobs     ScrapeJob[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([enabled])
+}
+
 model Offer {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  site      String
-  price     Int
-  original  Int
-  url       String?
-  status    String?
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       Int             @id @default(autoincrement())
+  productId                Int
+  merchantId               Int?
+  site                     String
+  price                    Int
+  original                 Int
+  url                      String?
+  status                   String?
+  availability             String          @default("unknown")
+  lastScrapedAt            DateTime?
+  lastSuccessfulScrapeAt   DateTime?
+  failureCount             Int             @default(0)
+  scrapeStatus             String          @default("pending")
+  externalId               String?
+  canonicalUrl             String?
+  product                  Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  merchant                 Merchant?       @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  priceSnapshots           PriceSnapshot[]
+  scrapeJobs               ScrapeJob[]
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
 
   @@index([productId])
+  @@index([merchantId])
   @@index([site])
+  @@index([scrapeStatus])
+}
+
+model PriceSnapshot {
+  id           Int      @id @default(autoincrement())
+  offerId      Int
+  price        Int
+  original     Int?
+  availability String   @default("unknown")
+  status       String?
+  scrapedAt    DateTime @default(now())
+  sourceUrl    String?
+  offer        Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([offerId])
+  @@index([scrapedAt])
+}
+
+model ScrapeRun {
+  id           Int         @id @default(autoincrement())
+  status       String      @default("running")
+  startedAt    DateTime    @default(now())
+  completedAt  DateTime?
+  totalJobs    Int         @default(0)
+  successCount Int         @default(0)
+  failureCount Int         @default(0)
+  metadata     Json?
+  jobs         ScrapeJob[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+  @@index([startedAt])
+}
+
+model ScrapeJob {
+  id          Int        @id @default(autoincrement())
+  runId       Int
+  offerId     Int
+  merchantId  Int?
+  status      String
+  errorReason String?
+  durationMs  Int?
+  startedAt   DateTime   @default(now())
+  completedAt DateTime?
+  run         ScrapeRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  offer       Offer      @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  merchant    Merchant?  @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([runId])
+  @@index([offerId])
+  @@index([merchantId])
+  @@index([status])
 }

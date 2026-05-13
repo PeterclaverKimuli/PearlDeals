@@ -19,6 +19,7 @@
   },
   "include": [
     "api",
+    "prisma",
     "server",
     "shared",
     "src/features/deals/data.ts",

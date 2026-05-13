@@ -4,6 +4,11 @@ import { PrismaClient } from "@prisma/client";
 import type { Deal } from "../shared/deals/types.js";
 
 let prisma: PrismaClient | null = null;
+const visibleOfferWhere = {
+  scrapeStatus: {
+    not: "failed",
+  },
+};
 
 function getPrisma() {
   if (prisma) return prisma;
@@ -32,6 +37,9 @@ type ProductWithOffers = {
     original: number;
     url: string | null;
     status: string | null;
+    merchant: {
+      name: string;
+    } | null;
   }[];
 };
 
@@ -42,7 +50,7 @@ function productToDeal(product: ProductWithOffers): Deal {
     image: product.image,
     category: product.category,
     prices: product.offers.map((offer) => ({
-      site: offer.site,
+      site: offer.merchant?.name ?? offer.site,
       price: offer.price,
       original: offer.original,
       url: offer.url ?? undefined,
@@ -53,10 +61,19 @@ function productToDeal(product: ProductWithOffers): Deal {
 
 export async function getCatalogDeals(): Promise<Deal[]> {
   const products = await getPrisma().product.findMany({
+    where: {
+      offers: {
+        some: visibleOfferWhere,
+      },
+    },
     orderBy: { id: "asc" },
     include: {
       offers: {
+        where: visibleOfferWhere,
         orderBy: { id: "asc" },
+        include: {
+          merchant: true,
+        },
       },
     },
   });
