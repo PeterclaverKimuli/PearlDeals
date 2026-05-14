@@ -152,13 +152,13 @@ export function DealDetails({
                     return (
                       <div
                         key={`${deal.id}-${idx}`}
-                        className={`grid grid-cols-1 gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,1fr)_max-content] md:items-center md:gap-4 xl:grid-cols-[190px_minmax(130px,1fr)_max-content] ${
+                        className={`grid grid-cols-1 gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,52%)] ${
                           isBest
                             ? "border-emerald-200 bg-emerald-50"
                             : "border-gray-200 bg-white"
                         }`}
                       >
-                        <div className="md:min-w-0 xl:w-[190px]">
+                        <div className="min-w-0">
                           <p className="font-medium">{p.site}</p>
                           {p.status ? (
                             <p className="text-xs text-gray-400">
@@ -173,8 +173,8 @@ export function DealDetails({
                           ) : null}
                         </div>
 
-                        <div className="flex w-full flex-col items-stretch gap-2 md:w-auto md:items-end xl:contents">
-                          <div className="text-left md:text-right">
+                        <div className="flex min-w-0 w-full flex-col items-stretch gap-2 md:items-end md:justify-center">
+                          <div className="min-w-0 text-left md:text-right">
                             <p
                               className={`text-xs font-semibold md:text-sm ${isBest ? "text-green-700" : ""}`}
                             >
@@ -192,7 +192,7 @@ export function DealDetails({
                             <button
                               type="button"
                               onClick={() => handleSiteClick(p.url, p.site)}
-                              className={`mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-white md:mt-0 md:w-auto md:whitespace-nowrap md:px-4 ${
+                              className={`mt-2 inline-flex w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-white md:mt-0 md:w-auto md:max-w-[11rem] md:px-4 ${
                                 isBest
                                   ? "bg-emerald-700 shadow-lg shadow-emerald-900/20 hover:bg-emerald-800"
                                   : "bg-gray-950 hover:bg-emerald-700"
@@ -201,15 +201,17 @@ export function DealDetails({
                               {isBest ? (
                                 <Flame className="h-3.5 w-3.5" aria-hidden="true" />
                               ) : null}
-                              {isBest ? "Grab lowest price" : "Go to Site"}
+                              <span className="min-w-0 truncate">
+                                {isBest ? "Grab lowest price" : "Go to Site"}
+                              </span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               disabled
-                              className="mt-2 w-full cursor-not-allowed rounded-full bg-gray-300 px-3 py-2 text-xs text-gray-500 md:mt-0 md:w-auto"
+                              className="mt-2 w-full min-w-0 cursor-not-allowed rounded-full bg-gray-300 px-3 py-2 text-xs text-gray-500 md:mt-0 md:w-auto md:max-w-[11rem]"
                             >
-                              No Link
+                              <span className="block truncate">No Link</span>
                             </button>
                           )}
                         </div>
@@ -363,9 +365,11 @@ export function DealDetails({
 export function DealCard({
   deal,
   onSelect,
+  showActionIcon = true,
 }: {
   deal: EnrichedDeal;
   onSelect: (deal: EnrichedDeal) => void;
+  showActionIcon?: boolean;
 }) {
   const posthog = usePostHog();
   const bestPrice = deal.bestDeal.price;
@@ -440,7 +444,7 @@ export function DealCard({
             }}
           >
             View & Compare
-            <ArrowRight className="h-4 w-4" />
+            {showActionIcon ? <ArrowRight className="h-4 w-4" /> : null}
           </Button>
         </div>
       </CardContent>

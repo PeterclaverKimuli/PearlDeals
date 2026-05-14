@@ -313,8 +313,8 @@ export function LandingPage({
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 py-5 text-gray-950 md:px-6 md:py-8">
-      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col">
+    <div className="min-h-svh bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 py-5 text-gray-950 md:px-6 md:py-8">
+      <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] max-w-6xl flex-col md:min-h-[calc(100svh-4rem)]">
         <header className="mb-6 flex items-center justify-between gap-2 sm:gap-4">
           <button
             type="button"

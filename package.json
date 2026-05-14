@@ -46,6 +46,8 @@
     "scrape:prod:pilot:dry-run": "tsx prisma/run-prod-scrape.ts --pilot --limit=5 --dry-run",
     "scrape:prod:merchant": "tsx prisma/run-prod-scrape.ts --all --limit=10 --allow-writes",
     "scrape:prod:merchant:dry-run": "tsx prisma/run-prod-scrape.ts --all --limit=10 --dry-run",
+    "scrape:report:dev": "tsx prisma/report-scrape-status.ts --env=dev",
+    "scrape:report:prod": "tsx prisma/report-scrape-status.ts --env=prod",
     "offers:hide-merchant:prod": "tsx prisma/hide-merchant-offers-prod.ts",
     "offers:hide-merchant:prod:dry-run": "tsx prisma/hide-merchant-offers-prod.ts --dry-run",
     "offers:unhide-merchant:prod": "tsx prisma/unhide-merchant-offers-prod.ts",

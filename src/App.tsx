@@ -3,7 +3,10 @@ import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
 import { LandingPage } from "@/features/deals/components/LandingPage";
-import { RecommendationsPage } from "@/features/deals/components/RecommendationsPage";
+import {
+  RecommendationMatchesPage,
+  RecommendationsPage,
+} from "@/features/deals/components/RecommendationsPage";
 import { SearchResultsPage } from "@/features/deals/components/SearchResultsPage";
 import {
   FeedbackModal,
@@ -15,6 +18,7 @@ import type {
   CategoryItem,
   EnrichedDeal,
   RecommendationBasket,
+  RecommendationsPayload,
   SelfCheck,
   ShoppingBrief,
 } from "@/features/deals/types";
@@ -39,10 +43,7 @@ type SearchResponse = {
   count: number;
 };
 
-type RecommendationsResponse = {
-  baskets: RecommendationBasket[];
-  suggestions: EnrichedDeal[];
-};
+type RecommendationsResponse = RecommendationsPayload;
 
 function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
   const firstDeal = deals[0];
@@ -163,6 +164,9 @@ export default function DealsUI() {
   const [recommendationSuggestions, setRecommendationSuggestions] = useState<
     EnrichedDeal[]
   >([]);
+  const [matchingRecommendationDeals, setMatchingRecommendationDeals] = useState<
+    EnrichedDeal[]
+  >([]);
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isRecommendationsLoading, setIsRecommendationsLoading] =
@@ -281,6 +285,7 @@ export default function DealsUI() {
       if (!shoppingBrief) {
         setRecommendationBaskets([]);
         setRecommendationSuggestions([]);
+        setMatchingRecommendationDeals([]);
         setIsRecommendationsLoading(false);
         return;
       }
@@ -301,6 +306,7 @@ export default function DealsUI() {
       if (isCurrent) {
         setRecommendationBaskets(payload.baskets);
         setRecommendationSuggestions(payload.suggestions);
+        setMatchingRecommendationDeals(payload.matchingDeals);
         setIsRecommendationsLoading(false);
       }
     }
@@ -309,6 +315,7 @@ export default function DealsUI() {
       if (isCurrent) {
         setRecommendationBaskets([]);
         setRecommendationSuggestions([]);
+        setMatchingRecommendationDeals([]);
         setIsRecommendationsLoading(false);
       }
     });
@@ -463,6 +470,8 @@ export default function DealsUI() {
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
         isLoading={isSearchLoading}
+        page={productPage}
+        onPageChange={setProductPage}
       />
     );
   }
@@ -499,6 +508,7 @@ export default function DealsUI() {
         brief={shoppingBrief}
         baskets={recommendationBaskets}
         suggestedDeals={recommendationSuggestions}
+        matchingDeals={matchingRecommendationDeals}
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
@@ -507,6 +517,29 @@ export default function DealsUI() {
         setSelectedCategory={selectCategory}
         visibleCategories={visibleCategories}
         setSelectedDeal={setSelectedDeal}
+        onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
+        onBrowseDeals={() => navigateTo(dealsPath)}
+        onSearchSubmit={navigateToSearch}
+        onViewMatchingProducts={() => navigateTo("/recommendations/matches")}
+        isLoading={isRecommendationsLoading}
+      />
+    );
+  }
+
+  if (routePath === "/recommendations/matches") {
+    return (
+      <RecommendationMatchesPage
+        brief={shoppingBrief}
+        matchingDeals={matchingRecommendationDeals}
+        search={search}
+        setSearch={setSearch}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={selectCategory}
+        visibleCategories={visibleCategories}
+        setSelectedDeal={setSelectedDeal}
+        onBackToRecommendations={() => navigateTo("/recommendations")}
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}

@@ -1,6 +1,7 @@
 import { behavioralCategories, rawDeals } from "../src/features/deals/data.js";
 import {
   enrichDeal,
+  getBriefMatchingDeals,
   getRecommendationBaskets,
   getRecommendationSuggestions,
   getVisibleCategories,
@@ -160,5 +161,6 @@ export function getRecommendationsPayload(
   return {
     baskets: getRecommendationBaskets(deals, brief),
     suggestions: getRecommendationSuggestions(deals, brief),
+    matchingDeals: getBriefMatchingDeals(deals, brief),
   };
 }

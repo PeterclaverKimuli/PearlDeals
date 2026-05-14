@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import feedbackAvatar from "@/assets/Feedback prompt.png";
 import recommendationAvatar from "@/assets/Ready Prompt - transparent.png";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowLeft,
   ArrowRight,
   ShoppingBasket,
   Sparkles,
@@ -22,13 +23,16 @@ import {
 } from "../utils";
 import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
+import { DealCard } from "./DealViews";
 import { LoadingState } from "./LoadingState";
 import { RecommendationFeedbackModal } from "./Modals";
+import { paginateItems, Pagination } from "./Pagination";
 
 export function RecommendationsPage({
   brief,
   baskets,
   suggestedDeals,
+  matchingDeals,
   search,
   setSearch,
   isSidebarOpen,
@@ -40,11 +44,13 @@ export function RecommendationsPage({
   onEditBrief,
   onBrowseDeals,
   onSearchSubmit,
+  onViewMatchingProducts,
   isLoading,
 }: {
   brief: ShoppingBrief | null;
   baskets: RecommendationBasket[];
   suggestedDeals: EnrichedDeal[];
+  matchingDeals: EnrichedDeal[];
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
@@ -56,6 +62,7 @@ export function RecommendationsPage({
   onEditBrief: () => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
+  onViewMatchingProducts: () => void;
   isLoading: boolean;
 }) {
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
@@ -72,6 +79,9 @@ export function RecommendationsPage({
   );
   const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
   const hasVisibleRecommendations = visibleBaskets.length > 0;
+  const visibleMatchingDeals = matchingDeals.filter((deal) =>
+    matchesDealSearch(deal, search),
+  );
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -200,6 +210,32 @@ export function RecommendationsPage({
           />
         )}
 
+        {brief && !isLoading && visibleMatchingDeals.length > 0 ? (
+          <section className="mt-6 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+                  Full match list
+                </p>
+                <h2 className="mt-1 text-xl font-black text-gray-950">
+                  All matching products in your budget
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-gray-600">
+                  See every matching product, grouped by category.
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="h-11 w-full cursor-pointer rounded-full bg-gray-950 px-5 font-bold text-white hover:bg-emerald-700 sm:w-auto"
+                onClick={onViewMatchingProducts}
+              >
+                View all matches
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </section>
+        ) : null}
+
         {brief ? (
           <>
             <RecommendationFeedbackRequest
@@ -218,6 +254,174 @@ export function RecommendationsPage({
             />
           </>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function RecommendationMatchesPage({
+  brief,
+  matchingDeals,
+  search,
+  setSearch,
+  isSidebarOpen,
+  setIsSidebarOpen,
+  selectedCategory,
+  setSelectedCategory,
+  visibleCategories,
+  setSelectedDeal,
+  onBackToRecommendations,
+  onEditBrief,
+  onBrowseDeals,
+  onSearchSubmit,
+  isLoading,
+}: {
+  brief: ShoppingBrief | null;
+  matchingDeals: EnrichedDeal[];
+  search: string;
+  setSearch: (value: string) => void;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (value: boolean) => void;
+  selectedCategory: string | null;
+  setSelectedCategory: (category: string | null) => void;
+  visibleCategories: CategoryItem[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onBackToRecommendations: () => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+  onSearchSubmit: (query: string) => void;
+  isLoading: boolean;
+}) {
+  const visibleMatchingDeals = matchingDeals.filter((deal) =>
+    matchesDealSearch(deal, search),
+  );
+  const categorySections = getMatchingDealSections(visibleMatchingDeals, brief);
+
+  return (
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
+      <AppHeaderShell
+        search={search}
+        setSearch={setSearch}
+        showMenuButton
+        onMenuClick={() => setIsSidebarOpen(true)}
+        onHomeClick={onBrowseDeals}
+        maxWidthClass="max-w-7xl"
+        resultCount={visibleMatchingDeals.length}
+        onSearchSubmit={onSearchSubmit}
+      />
+
+      <div className="mx-auto max-w-7xl">
+        <MobileOffcanvas
+          open={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onSelectCategory={setSelectedCategory}
+          selectedCategory={selectedCategory}
+          categoriesToShow={visibleCategories}
+        />
+
+        <section className="mt-8 mb-6 rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.2),transparent_30%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:mt-10 md:p-6">
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-4 h-10 cursor-pointer rounded-full border-white/25 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
+            onClick={onBackToRecommendations}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to recommendations
+          </Button>
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-200">
+                <Sparkles className="h-4 w-4" />
+                Full match list
+              </p>
+              <h1 className="text-3xl font-black tracking-tight md:text-5xl">
+                All matching products in your budget
+              </h1>
+              {brief ? (
+                <>
+                  <BriefChips brief={brief} />
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/80 md:text-base">
+                    Products are grouped by your selected categories and filtered
+                    by your budget and condition preferences.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/80 md:text-base">
+                  Create a shopping brief to see all matching products.
+                </p>
+              )}
+            </div>
+            {brief ? (
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                <span className="inline-flex h-10 items-center rounded-full bg-white/10 px-4 text-sm font-bold text-emerald-50">
+                  {visibleMatchingDeals.length}{" "}
+                  {visibleMatchingDeals.length === 1 ? "product" : "products"}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
+                  onClick={onEditBrief}
+                >
+                  Edit brief
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {isLoading ? (
+          <LoadingState
+            title="Loading matches"
+            body="Naki is checking every product against your brief."
+          />
+        ) : !brief ? (
+          <EmptyRecommendations
+            title="No brief yet"
+            body="Naki needs your budget, categories, and preferred condition before matches can be shown."
+            onEditBrief={onEditBrief}
+            onBrowseDeals={onBrowseDeals}
+          />
+        ) : categorySections.length > 0 ? (
+          <div className="space-y-6">
+            {categorySections.map((section) => (
+              <section
+                key={section.category}
+                className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5"
+              >
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight text-gray-950">
+                      {section.category}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {section.deals.length}{" "}
+                      {section.deals.length === 1 ? "match" : "matches"}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {section.deals.map((deal) => (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      onSelect={setSelectedDeal}
+                      showActionIcon={false}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <EmptyRecommendations
+            title="No matches found"
+            body="No products match your current brief and search."
+            onEditBrief={onEditBrief}
+            onBrowseDeals={onBrowseDeals}
+          />
+        )}
       </div>
     </div>
   );
@@ -506,6 +710,16 @@ function NoRecommendationMatches({
   onEditBrief: () => void;
   onBrowseDeals: () => void;
 }) {
+  const [suggestionsPage, setSuggestionsPage] = useState(1);
+  const { pageItems, pageCount, safePage } = paginateItems(
+    suggestedDeals,
+    suggestionsPage,
+  );
+
+  useEffect(() => {
+    setSuggestionsPage(1);
+  }, [suggestedDeals]);
+
   return (
     <div className="space-y-5">
       <EmptyRecommendations
@@ -527,7 +741,7 @@ function NoRecommendationMatches({
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {suggestedDeals.map((deal) => (
+            {pageItems.map((deal) => (
               <SuggestionCard
                 key={deal.id}
                 brief={brief}
@@ -535,6 +749,11 @@ function NoRecommendationMatches({
                 onSelect={setSelectedDeal}
               />
             ))}
+            <Pagination
+              page={safePage}
+              pageCount={pageCount}
+              onPageChange={setSuggestionsPage}
+            />
           </div>
         </section>
       ) : null}
@@ -653,6 +872,29 @@ function getVisibleStoreCount(
       visibleItems.map((match) => match.deal.bestDeal.site),
     ),
   ).size;
+}
+
+function getMatchingDealSections(
+  deals: EnrichedDeal[],
+  brief: ShoppingBrief | null,
+) {
+  if (!brief) {
+    return [];
+  }
+
+  return brief.categories
+    .map((category) => ({
+      category,
+      deals: deals
+        .filter((deal) => deal.category === category)
+        .sort(
+          (a, b) =>
+            a.bestDeal.price - b.bestDeal.price ||
+            b.discount - a.discount ||
+            a.title.localeCompare(b.title),
+        ),
+    }))
+    .filter((section) => section.deals.length > 0);
 }
 
 function BriefChips({ brief }: { brief: ShoppingBrief }) {

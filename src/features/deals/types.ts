@@ -6,6 +6,7 @@ export type {
   PriceEntry,
   RawDeal,
   RecommendationBasket,
+  RecommendationsPayload,
   RecommendationMatch,
   SelfCheck,
   ShoppingBrief,

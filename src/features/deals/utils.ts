@@ -367,6 +367,31 @@ export function getRecommendationSuggestions(
     .slice(0, 4);
 }
 
+export function getBriefMatchingDeals(
+  deals: EnrichedDeal[],
+  brief: ShoppingBrief | null,
+): EnrichedDeal[] {
+  if (!brief) {
+    return [];
+  }
+
+  return deals
+    .filter(
+      (deal) =>
+        brief.categories.includes(deal.category) &&
+        dealMatchesConditions(deal, brief),
+    )
+    .map((deal) => getDealForBrief(deal, brief))
+    .filter((deal): deal is EnrichedDeal => !!deal)
+    .filter((deal) => deal.bestDeal.price <= brief.budget)
+    .sort(
+      (a, b) =>
+        brief.categories.indexOf(a.category) - brief.categories.indexOf(b.category) ||
+        a.bestDeal.price - b.bestDeal.price ||
+        b.discount - a.discount,
+    );
+}
+
 export function getShareUrl() {
   if (typeof window === "undefined") {
     return "https://pearldeals.app/product";

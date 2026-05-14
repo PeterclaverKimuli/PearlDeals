@@ -49,6 +49,12 @@ export type RecommendationBasket = {
   complete: boolean;
 };
 
+export type RecommendationsPayload = {
+  baskets: RecommendationBasket[];
+  suggestions: EnrichedDeal[];
+  matchingDeals: EnrichedDeal[];
+};
+
 export type CategoryItem = {
   name: string;
   icon: string;
