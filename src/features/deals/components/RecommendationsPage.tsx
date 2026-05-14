@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import feedbackAvatar from "@/assets/Feedback prompt.png";
-import recommendationAvatar from "@/assets/Ready Prompt - transparent.png";
+import feedbackAvatar from "@/assets/Feedback prompt.webp";
+import recommendationAvatar from "@/assets/Ready Prompt - transparent.webp";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
+  ListChecks,
   ShoppingBasket,
   Sparkles,
   Store,
@@ -214,7 +215,8 @@ export function RecommendationsPage({
           <section className="mt-6 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+                <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700">
+                  <ListChecks className="h-4 w-4" aria-hidden="true" />
                   Full match list
                 </p>
                 <h2 className="mt-1 text-xl font-black text-gray-950">
@@ -332,7 +334,7 @@ export function RecommendationMatchesPage({
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-200">
-                <Sparkles className="h-4 w-4" />
+                <ListChecks className="h-4 w-4" aria-hidden="true" />
                 Full match list
               </p>
               <h1 className="text-3xl font-black tracking-tight md:text-5xl">

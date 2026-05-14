@@ -3,8 +3,8 @@ import { usePostHog } from "@posthog/react";
 import { ArrowRight, Check, Search, Star, Tags, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import feedbackAvatar from "@/assets/Feedback prompt.png";
-import welcomeAvatar from "@/assets/Welcome intro.png";
+import feedbackAvatar from "@/assets/Feedback prompt.webp";
+import welcomeAvatar from "@/assets/Welcome intro.webp";
 
 const ratingLabels: Record<string, string> = {
   "1": "Poor",

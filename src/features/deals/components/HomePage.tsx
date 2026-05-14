@@ -19,7 +19,7 @@ import {
   Tags,
   TrendingDown,
 } from "lucide-react";
-import feedbackAvatar from "@/assets/Feedback prompt.png";
+import feedbackAvatar from "@/assets/Feedback prompt.webp";
 import { Button } from "@/components/ui/button";
 import type { CategoryItem, EnrichedDeal, SelfCheck } from "../types";
 import { formatUGX, getSavingsAmount } from "../utils";

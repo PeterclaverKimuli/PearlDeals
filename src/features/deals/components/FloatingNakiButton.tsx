@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
 import { X } from "lucide-react";
-import welcomeAvatar from "@/assets/Welcome intro.png";
+import welcomeAvatar from "@/assets/Welcome intro.webp";
 
 const ctaVariant = "value_first";
 const dismissedStorageKey = "pearldeals:naki-floating-cta-dismissed:v1";

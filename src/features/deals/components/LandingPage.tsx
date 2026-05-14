@@ -20,11 +20,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import welcomeAvatar from "@/assets/Welcome intro.png";
-import budgetAvatar from "@/assets/Budget prompt.png";
-import categoryAvatar from "@/assets/Category prompt.png";
-import conditionAvatar from "@/assets/Condition prompt.png";
-import readyAvatar from "@/assets/Ready Prompt.png";
+import welcomeAvatar from "@/assets/Welcome intro.webp";
+import budgetAvatar from "@/assets/Budget prompt.webp";
+import categoryAvatar from "@/assets/Category prompt.webp";
+import conditionAvatar from "@/assets/Condition prompt.webp";
+import readyAvatar from "@/assets/Recommendation Prompt.webp";
 import type { CategoryItem, ConditionChoice, ShoppingBrief } from "../types";
 
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
