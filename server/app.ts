@@ -13,6 +13,7 @@ const shoppingBriefSchema = z.object({
   budget: z.number().nonnegative(),
   categories: z.array(z.string()),
   conditions: z.array(z.enum(["New", "Refurbished", "Used", "All"])),
+  budgetMode: z.enum(["manual", "surprise"]).optional(),
 });
 
 export function buildApp() {

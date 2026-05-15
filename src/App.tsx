@@ -430,6 +430,7 @@ export default function DealsUI() {
     return (
       <LandingPage
         categories={visibleCategories}
+        deals={dealsWithDiscounts}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onCompleteBrief={handleCompleteBrief}
         initialBrief={shoppingBrief}

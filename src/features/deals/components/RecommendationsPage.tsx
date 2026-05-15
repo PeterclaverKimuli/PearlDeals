@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import feedbackAvatar from "@/assets/Feedback prompt.webp";
 import recommendationAvatar from "@/assets/Ready Prompt - transparent.webp";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,11 @@ export function RecommendationsPage({
   const visibleMatchingDeals = matchingDeals.filter((deal) =>
     matchesDealSearch(deal, search),
   );
+  const shouldShowSingleCategoryProducts =
+    !!brief &&
+    brief.categories.length === 1 &&
+    visibleMatchingDeals.length > 0 &&
+    !visibleBaskets.some(({ visibleItems }) => visibleItems.length > 1);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -115,7 +120,7 @@ export function RecommendationsPage({
                 className="h-16 w-16 object-contain object-center drop-shadow-xl min-[375px]:h-20 min-[375px]:w-20 md:h-32 md:w-32"
               />
             </div>
-            <div className="grid min-w-0 gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
+            <div className="grid min-w-0 gap-6 xl:grid-cols-[1fr_auto] xl:items-center xl:gap-4">
               <div className="min-w-0">
                 <p className="mb-1.5 inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-200 min-[375px]:mb-2 min-[375px]:gap-2 min-[375px]:text-xs">
                   <Sparkles className="h-3.5 w-3.5 min-[375px]:h-4 min-[375px]:w-4" />
@@ -127,6 +132,16 @@ export function RecommendationsPage({
                 {brief ? (
                   <>
                     <BriefChips brief={brief} />
+                    {brief.budgetMode === "surprise" ? (
+                      <div className="mt-3 w-fit rounded-2xl border border-white/15 bg-white/10 px-3.5 py-2.5 text-emerald-50 shadow-sm">
+                        <p className="text-[0.68rem] font-bold uppercase tracking-wide text-amber-100">
+                          Surprise budget picked
+                        </p>
+                        <p className="mt-1 text-lg font-black leading-tight text-white">
+                          {formatUGX(brief.budget)}
+                        </p>
+                      </div>
+                    ) : null}
                     {visibleStoreCount > 0 ? (
                       <div className="mt-3">
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-50 min-[375px]:px-3 min-[375px]:text-xs">
@@ -180,6 +195,12 @@ export function RecommendationsPage({
             onEditBrief={onEditBrief}
             onBrowseDeals={onBrowseDeals}
           />
+        ) : shouldShowSingleCategoryProducts ? (
+          <SingleCategoryRecommendationList
+            brief={brief}
+            deals={visibleMatchingDeals}
+            setSelectedDeal={setSelectedDeal}
+          />
         ) : baskets.length > 0 ? (
           visibleBaskets.length > 0 ? (
             <div className="space-y-5">
@@ -211,7 +232,11 @@ export function RecommendationsPage({
           />
         )}
 
-        {brief && !isLoading && visibleMatchingDeals.length > 0 ? (
+        {brief &&
+        brief.budgetMode !== "surprise" &&
+        !shouldShowSingleCategoryProducts &&
+        !isLoading &&
+        visibleMatchingDeals.length > 0 ? (
           <section className="mt-6 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -298,6 +323,12 @@ export function RecommendationMatchesPage({
     matchesDealSearch(deal, search),
   );
   const categorySections = getMatchingDealSections(visibleMatchingDeals, brief);
+
+  useLayoutEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -763,6 +794,59 @@ function NoRecommendationMatches({
   );
 }
 
+function SingleCategoryRecommendationList({
+  brief,
+  deals,
+  setSelectedDeal,
+}: {
+  brief: ShoppingBrief;
+  deals: EnrichedDeal[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  const [page, setPage] = useState(1);
+  const sortedDeals = [...deals].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+  const { pageItems, pageCount, safePage } = paginateItems(sortedDeals, page);
+  const category = brief.categories[0] ?? "products";
+
+  useEffect(() => {
+    setPage(1);
+  }, [deals]);
+
+  return (
+    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+          Best matches
+        </p>
+        <h2 className="mt-1 text-xl font-black text-gray-950">
+          Recommended {category.toLowerCase()} in your budget
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          I found {sortedDeals.length}{" "}
+          {sortedDeals.length === 1 ? "product" : "products"} that match your
+          brief.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {pageItems.map((deal) => (
+          <SuggestionCard
+            key={deal.id}
+            brief={brief}
+            deal={deal}
+            onSelect={setSelectedDeal}
+          />
+        ))}
+        <Pagination page={safePage} pageCount={pageCount} onPageChange={setPage} />
+      </div>
+    </section>
+  );
+}
+
 function SuggestionCard({
   brief,
   deal,
@@ -902,7 +986,9 @@ function getMatchingDealSections(
 function BriefChips({ brief }: { brief: ShoppingBrief }) {
   return (
     <div className="mt-3 flex flex-wrap gap-1.5 min-[375px]:mt-4 min-[375px]:gap-2">
-      <SummaryChip label={formatUGX(brief.budget)} />
+      <SummaryChip
+        label={formatUGX(brief.budget)}
+      />
       {brief.categories.map((category) => (
         <SummaryChip key={category} label={category} />
       ))}

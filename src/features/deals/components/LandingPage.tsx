@@ -15,6 +15,7 @@ import {
   Grid2X2,
   Pencil,
   Search,
+  Shuffle,
   Sparkles,
   Tags,
 } from "lucide-react";
@@ -25,7 +26,13 @@ import budgetAvatar from "@/assets/Budget prompt.webp";
 import categoryAvatar from "@/assets/Category prompt.webp";
 import conditionAvatar from "@/assets/Condition prompt.webp";
 import readyAvatar from "@/assets/Recommendation Prompt.webp";
-import type { CategoryItem, ConditionChoice, ShoppingBrief } from "../types";
+import type {
+  CategoryItem,
+  ConditionChoice,
+  EnrichedDeal,
+  PriceEntry,
+  ShoppingBrief,
+} from "../types";
 
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
 
@@ -108,6 +115,8 @@ const budgetQuickChips = [
   { label: "500k", value: "500000" },
   { label: "1M", value: "1000000" },
 ];
+const surpriseBudgetPresets = [500000, 1000000, 1500000, 2000000];
+const fallbackSurpriseBudget = 2000000;
 const introPrefix = "Let’s find ";
 const introName = "deals";
 const introSuffix = " that fit you.";
@@ -117,12 +126,14 @@ const maxSelectedConditions = 3;
 
 export function LandingPage({
   categories,
+  deals,
   onBrowseDeals,
   onCompleteBrief,
   initialBrief,
   initialStep = "welcome",
 }: {
   categories: CategoryItem[];
+  deals: EnrichedDeal[];
   onBrowseDeals: () => void;
   onCompleteBrief: (brief: ShoppingBrief) => void;
   initialBrief: ShoppingBrief | null;
@@ -131,7 +142,12 @@ export function LandingPage({
   const posthog = usePostHog();
   const [activeStep, setActiveStep] = useState<IntakeStep>(initialStep);
   const [budget, setBudget] = useState(
-    initialBrief?.budget ? String(initialBrief.budget) : "",
+    initialBrief?.budget && initialBrief.budgetMode !== "surprise"
+      ? String(initialBrief.budget)
+      : "",
+  );
+  const [budgetMode, setBudgetMode] = useState<"manual" | "surprise">(
+    initialBrief?.budgetMode ?? "manual",
   );
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialBrief?.categories ?? [],
@@ -144,6 +160,7 @@ export function LandingPage({
 
   const stepIndex = steps.indexOf(activeStep);
   const currentCopy = stepCopy[activeStep];
+  const isSurpriseBudget = budgetMode === "surprise";
 
   const cleanBudget = useMemo(() => budget.replace(/[^\d]/g, ""), [budget]);
   const formattedBudget = useMemo(() => {
@@ -157,9 +174,18 @@ export function LandingPage({
 
     return selectedConditions.join(", ");
   }, [selectedConditions]);
+  const budgetSummary = isSurpriseBudget
+    ? "Surprise budget"
+    : formattedBudget
+      ? `UGX ${formattedBudget}`
+      : "Not set";
 
   const briefNote = useMemo(() => {
     if (activeStep === "budget") {
+      if (isSurpriseBudget) {
+        return "";
+      }
+
       return formattedBudget
         ? `Great, I will keep UGX ${formattedBudget} in mind while narrowing down deals.`
         : "Start with your budget so I can focus on products that fit your spending plan.";
@@ -188,7 +214,13 @@ export function LandingPage({
     }
 
     return "";
-  }, [activeStep, conditionSummary, formattedBudget, selectedCategories]);
+  }, [
+    activeStep,
+    conditionSummary,
+    formattedBudget,
+    isSurpriseBudget,
+    selectedCategories,
+  ]);
 
   const canGoBack = stepIndex > 0;
 
@@ -221,14 +253,22 @@ export function LandingPage({
 
     posthog.capture("shopping_brief_prompt_viewed", {
       step: "4_of_4",
-      budget: Number(cleanBudget),
+      ...(budgetMode === "manual" ? { budget: Number(cleanBudget) } : {}),
+      budget_mode: budgetMode,
       categories: selectedCategories,
       category_count: selectedCategories.length,
       conditions: selectedConditions,
       condition_count: selectedConditions.length,
       all_conditions_selected: selectedConditions.includes("All"),
     });
-  }, [activeStep, cleanBudget, posthog, selectedCategories, selectedConditions]);
+  }, [
+    activeStep,
+    budgetMode,
+    cleanBudget,
+    posthog,
+    selectedCategories,
+    selectedConditions,
+  ]);
 
   const goToStep = (nextStep: IntakeStep) => {
     setValidationMessage("");
@@ -241,8 +281,12 @@ export function LandingPage({
   };
 
   const validateCurrentStep = () => {
-    if (activeStep === "budget" && Number(cleanBudget) <= 0) {
-      setValidationMessage("Enter your budget before we continue.");
+    if (
+      activeStep === "budget" &&
+      budgetMode !== "surprise" &&
+      Number(cleanBudget) <= 0
+    ) {
+      setValidationMessage("Enter your budget or let me surprise you.");
       return false;
     }
 
@@ -263,8 +307,18 @@ export function LandingPage({
     if (!validateCurrentStep()) return;
 
     if (activeStep === "ready") {
+      const resolvedBudget =
+        budgetMode === "surprise"
+          ? resolveSurpriseBudget({
+              deals,
+              categories: selectedCategories,
+              conditions: selectedConditions,
+            })
+          : Number(cleanBudget);
+
       onCompleteBrief({
-        budget: Number(cleanBudget),
+        budget: resolvedBudget,
+        budgetMode,
         categories: selectedCategories,
         conditions: selectedConditions,
       });
@@ -312,6 +366,18 @@ export function LandingPage({
     });
   };
 
+  const activateManualBudget = (value: string) => {
+    setValidationMessage("");
+    setBudgetMode("manual");
+    setBudget(value);
+  };
+
+  const activateSurpriseBudget = () => {
+    setValidationMessage("");
+    setBudgetMode("surprise");
+    setBudget("");
+  };
+
   return (
     <div className="min-h-svh bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 py-5 text-gray-950 md:px-6 md:py-8">
       <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] max-w-6xl flex-col md:min-h-[calc(100svh-4rem)]">
@@ -330,14 +396,16 @@ export function LandingPage({
               <span className="text-green-600">Deals</span>
             </span>
           </button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 shrink-0 cursor-pointer rounded-full px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
-            onClick={onBrowseDeals}
-          >
-            Back to deals
-          </Button>
+          {activeStep !== "welcome" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 shrink-0 cursor-pointer rounded-full px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
+              onClick={onBrowseDeals}
+            >
+              Back to deals
+            </Button>
+          ) : null}
         </header>
 
         <main
@@ -507,7 +575,7 @@ export function LandingPage({
               <div className="space-y-3 text-sm">
                 <BriefRow
                   label="Budget"
-                  value={formattedBudget ? `UGX ${formattedBudget}` : "Not set"}
+                  value={budgetSummary}
                   active={activeStep === "budget"}
                 />
                 <BriefRow
@@ -561,14 +629,17 @@ export function LandingPage({
                   inputMode="numeric"
                   value={budget}
                   onChange={(event) => {
-                    setValidationMessage("");
-                    setBudget(event.target.value.replace(/[^\d]/g, ""));
+                    activateManualBudget(event.target.value.replace(/[^\d]/g, ""));
                   }}
                   placeholder="Example: 850000"
                   className="h-full rounded-none border-0 bg-white px-4 text-lg focus-visible:ring-0"
                 />
               </div>
-              {formattedBudget ? (
+              {isSurpriseBudget ? (
+                <p className="mt-2 text-sm font-medium text-green-700">
+                  I will pick a surprise budget after I know what you want.
+                </p>
+              ) : formattedBudget ? (
                 <p className="mt-2 text-sm font-medium text-green-700">
                   I will work with UGX {formattedBudget}.
                 </p>
@@ -583,8 +654,7 @@ export function LandingPage({
                     key={chip.value}
                     type="button"
                     onClick={() => {
-                      setValidationMessage("");
-                      setBudget(chip.value);
+                      activateManualBudget(chip.value);
                     }}
                     className={`h-9 cursor-pointer rounded-full border px-4 text-sm font-semibold transition ${
                       cleanBudget === chip.value
@@ -595,6 +665,31 @@ export function LandingPage({
                     {chip.label}
                   </button>
                 ))}
+              </div>
+              <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black text-gray-950">
+                      Not sure yet?
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      I will pick a surprise budget after I know what you want.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={isSurpriseBudget ? "default" : "outline"}
+                    className={`h-10 shrink-0 cursor-pointer rounded-full px-4 ${
+                      isSurpriseBudget
+                        ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                        : "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100"
+                    }`}
+                    onClick={activateSurpriseBudget}
+                  >
+                    <Shuffle className="h-4 w-4" />
+                    Surprise me
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -696,7 +791,7 @@ export function LandingPage({
                 onEdit={() => goToStep("budget")}
               >
                 <span className="text-base font-semibold text-gray-950">
-                  {formattedBudget ? `UGX ${formattedBudget}` : "Not set"}
+                  {budgetSummary}
                 </span>
               </PreferenceRow>
               <PreferenceRow
@@ -770,6 +865,66 @@ export function LandingPage({
       </>
     );
   }
+}
+
+function priceMatchesConditions(price: PriceEntry, conditions: ConditionChoice[]) {
+  if (conditions.includes("All")) return true;
+  return conditions.some((condition) => price.status === condition);
+}
+
+function getBestEligiblePrice(
+  deal: EnrichedDeal,
+  conditions: ConditionChoice[],
+) {
+  const eligiblePrices = deal.prices.filter((price) =>
+    priceMatchesConditions(price, conditions),
+  );
+
+  if (eligiblePrices.length === 0) return null;
+
+  return Math.min(...eligiblePrices.map((price) => price.price));
+}
+
+function presetCoversCategory({
+  deals,
+  category,
+  conditions,
+  preset,
+}: {
+  deals: EnrichedDeal[];
+  category: string;
+  conditions: ConditionChoice[];
+  preset: number;
+}) {
+  return deals.some((deal) => {
+    if (deal.category !== category) return false;
+    const bestEligiblePrice = getBestEligiblePrice(deal, conditions);
+    return typeof bestEligiblePrice === "number" && bestEligiblePrice <= preset;
+  });
+}
+
+function resolveSurpriseBudget({
+  deals,
+  categories,
+  conditions,
+}: {
+  deals: EnrichedDeal[];
+  categories: string[];
+  conditions: ConditionChoice[];
+}) {
+  if (deals.length === 0 || categories.length === 0) {
+    return fallbackSurpriseBudget;
+  }
+
+  const eligiblePresets = surpriseBudgetPresets.filter((preset) =>
+    categories.every((category) =>
+      presetCoversCategory({ deals, category, conditions, preset }),
+    ),
+  );
+  const presets = eligiblePresets.length > 0 ? eligiblePresets : [fallbackSurpriseBudget];
+  const randomIndex = Math.floor(Math.random() * presets.length);
+
+  return presets[randomIndex] ?? fallbackSurpriseBudget;
 }
 
 function BriefRow({

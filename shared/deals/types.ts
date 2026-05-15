@@ -33,6 +33,7 @@ export type ShoppingBrief = {
   budget: number;
   categories: string[];
   conditions: ConditionChoice[];
+  budgetMode?: "manual" | "surprise";
 };
 
 export type RecommendationMatch = {
