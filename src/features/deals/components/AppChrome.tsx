@@ -1,6 +1,6 @@
 import React from "react";
 import { usePostHog } from "@posthog/react";
-import { Check, Menu, Search, X } from "lucide-react";
+import { ArrowRight, Check, Grid2X2, Menu, Search, Tags, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { imageFallback } from "../data";
 import type { CategoryItem } from "../types";
@@ -284,41 +284,139 @@ export function MobileOffcanvas({
 
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
-      <div className="w-72 bg-white p-4 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">Categories</h2>
-          <button
-            onClick={onClose}
-            className="cursor-pointer text-xl"
-            type="button"
-            aria-label="Close categories"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          {categoriesToShow.map((cat) => (
-            <div
-              key={cat.name}
+      <aside className="flex h-dvh w-[min(21rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-r-[1.75rem] border-r border-emerald-950/10 bg-white shadow-2xl shadow-emerald-950/20">
+        <div className="border-b border-emerald-950/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.18),transparent_36%),linear-gradient(180deg,#ffffff,#f7fee7)] px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
               onClick={() => {
-                posthog.capture("category_clicked", {
-                  category: cat.name,
-                  source: "mobile_offcanvas",
-                });
-                onSelectCategory(cat.name);
+                onSelectCategory(null);
                 onClose();
               }}
-              className={`flex cursor-pointer items-center justify-between rounded-lg px-2 py-2 hover:bg-gray-100 ${selectedCategory === cat.name ? "bg-gray-100 font-medium text-green-600" : ""}`}
+              className="min-w-0 cursor-pointer text-left"
+              aria-label="View all PearlDeals categories"
             >
-              <span>{cat.name}</span>
-              <span className="text-gray-400">›</span>
-            </div>
-          ))}
-        </div>
-      </div>
+              <span className="flex min-w-0 scale-90 origin-left">
+                <BrandMark />
+              </span>
+            </button>
+            <button
+              onClick={onClose}
+              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-emerald-950/10 bg-white text-gray-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/25"
+              type="button"
+              aria-label="Close categories"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-      <div className="flex-1 bg-black/30" onClick={onClose} />
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <Grid2X2 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-black leading-6 text-gray-950">
+                Browse categories
+              </h2>
+              <p className="mt-1 text-sm leading-5 text-gray-600">
+                Pick a category to compare trusted Ugandan deals.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+          <button
+            type="button"
+            onClick={() => {
+              onSelectCategory(null);
+              onClose();
+            }}
+            className={`mb-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+              selectedCategory === null
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5"
+                : "border-gray-200 bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50"
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                  selectedCategory === null
+                    ? "bg-emerald-600 text-white"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                <Tags className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black">All deals</span>
+                <span className="mt-0.5 block text-xs leading-4 text-gray-500">
+                  Browse every product comparison.
+                </span>
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-gray-400" />
+          </button>
+
+          <div className="space-y-2">
+            {categoriesToShow.map((cat) => (
+              <button
+                key={cat.name}
+                type="button"
+                onClick={() => {
+                  posthog.capture("category_clicked", {
+                    category: cat.name,
+                    source: "mobile_offcanvas",
+                  });
+                  onSelectCategory(cat.name);
+                  onClose();
+                }}
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                  selectedCategory === cat.name
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5"
+                    : "border-transparent bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50"
+                }`}
+              >
+              <span className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-lg ${
+                    selectedCategory === cat.name
+                      ? "bg-emerald-600 text-white"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {cat.icon}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black">
+                    {cat.name}
+                  </span>
+                  {cat.description ? (
+                    <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
+                      {cat.description}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+              <ArrowRight
+                className={`h-4 w-4 shrink-0 ${
+                  selectedCategory === cat.name
+                    ? "text-emerald-600"
+                    : "text-gray-400"
+                }`}
+              />
+              </button>
+            ))}
+          </div>
+        </nav>
+      </aside>
+
+      <button
+        type="button"
+        className="flex-1 cursor-default bg-gray-950/45 backdrop-blur-[2px]"
+        onClick={onClose}
+        aria-label="Close categories"
+      />
     </div>
   );
 }
