@@ -15,6 +15,7 @@ import type {
   CategoryItem,
   EnrichedDeal,
   PaginationMeta,
+  PriceEntry,
   RecommendationBasket,
   RecommendationMatch,
   ShoppingBrief,
@@ -595,7 +596,7 @@ function RecommendationRow({
   const { deal, reasons } = match;
   const savingsAmount = getSavingsAmount(deal);
   const comparisonPrices = deal.prices
-    .filter((price) => price !== deal.bestDeal)
+    .filter((price) => !isSamePriceEntry(price, deal.bestDeal))
     .sort((a, b) => a.price - b.price);
 
   return (
@@ -674,6 +675,16 @@ function RecommendationRow({
         </Button>
       </div>
     </article>
+  );
+}
+
+function isSamePriceEntry(price: PriceEntry, other: PriceEntry) {
+  return (
+    price.site === other.site &&
+    price.price === other.price &&
+    price.original === other.original &&
+    (price.status ?? "") === (other.status ?? "") &&
+    (price.url ?? "") === (other.url ?? "")
   );
 }
 
