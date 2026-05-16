@@ -4,7 +4,7 @@ import type { CategoryItem, EnrichedDeal } from "../types";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { LoadingState } from "./LoadingState";
-import { paginateItems, Pagination } from "./Pagination";
+import { Pagination } from "./Pagination";
 
 export function SearchResultsPage({
   search,
@@ -21,6 +21,7 @@ export function SearchResultsPage({
   onSearchSubmit,
   isLoading,
   page,
+  pageCount,
   onPageChange,
 }: {
   search: string;
@@ -37,10 +38,11 @@ export function SearchResultsPage({
   onSearchSubmit: (query: string) => void;
   isLoading: boolean;
   page: number;
+  pageCount: number;
   onPageChange: (page: number) => void;
 }) {
   const query = search.trim();
-  const { pageItems, pageCount, safePage } = paginateItems(results, page);
+  const safePage = Math.min(Math.max(page, 1), pageCount);
 
   const clearSearch = () => {
     setSearch("");
@@ -108,7 +110,7 @@ export function SearchResultsPage({
           />
         ) : results.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {pageItems.map((deal) => (
+            {results.map((deal) => (
               <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
             ))}
             <Pagination

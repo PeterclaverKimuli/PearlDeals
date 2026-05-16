@@ -8,9 +8,60 @@ import {
   matchesDealSearch,
   normalizeDeals,
 } from "../shared/deals/logic.js";
-import type { EnrichedDeal, ShoppingBrief } from "../shared/deals/types.js";
+import type {
+  EnrichedDeal,
+  PaginationMeta,
+  ShoppingBrief,
+} from "../shared/deals/types.js";
 
 const fallbackDeals = normalizeDeals(rawDeals).map((deal) => enrichDeal(deal));
+const defaultPage = 1;
+const defaultPageSize = 12;
+const maxPageSize = 48;
+
+export type PageOptions = {
+  page?: number | string | null;
+  pageSize?: number | string | null;
+};
+
+type RecommendationsOptions = PageOptions & {
+  query?: string | null;
+};
+
+function toPositiveInteger(value: number | string | null | undefined) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.floor(parsed) : 0;
+}
+
+export function normalizePageOptions(options: PageOptions = {}) {
+  const page = Math.max(defaultPage, toPositiveInteger(options.page) || defaultPage);
+  const requestedPageSize =
+    toPositiveInteger(options.pageSize) || defaultPageSize;
+  const pageSize = Math.min(Math.max(1, requestedPageSize), maxPageSize);
+
+  return {
+    page,
+    pageSize,
+  };
+}
+
+export function paginateDeals<T>(items: T[], options: PageOptions = {}) {
+  const { page, pageSize } = normalizePageOptions(options);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const start = (safePage - 1) * pageSize;
+  const pagination: PaginationMeta = {
+    page: safePage,
+    pageSize,
+    totalCount: items.length,
+    pageCount,
+  };
+
+  return {
+    items: items.slice(start, start + pageSize),
+    pagination,
+  };
+}
 const phoneCategoryName = "Phones";
 
 function isPhoneDeal(deal: EnrichedDeal) {
@@ -84,12 +135,18 @@ export function getHomepagePayload({
   selectedCategory,
   selectedBehavioralCategory,
   isViewingAllProducts,
+  includeDeals = true,
+  page,
+  pageSize,
 }: {
   deals: EnrichedDeal[];
   query: string;
   selectedCategory: string | null;
   selectedBehavioralCategory: string | null;
   isViewingAllProducts: boolean;
+  includeDeals?: boolean;
+  page?: number | string | null;
+  pageSize?: number | string | null;
 }) {
   const selectedBehavioralCategoryConfig =
     behavioralCategories.find(
@@ -122,16 +179,20 @@ export function getHomepagePayload({
     ),
   }));
 
+  const filteredPage = paginateDeals(
+    isPlainHomepage ? getHomepagePreviewDeals(filteredDeals, 8, 2) : filteredDeals,
+    { page, pageSize },
+  );
+
   return {
-    deals,
+    deals: includeDeals ? deals : [],
     count: deals.length,
     visibleCategories: getVisibleCategories(deals),
     featuredDeals: getHomepageTopDeals(deals),
     behavioralDealSections,
-    filteredDeals: isPlainHomepage
-      ? getHomepagePreviewDeals(filteredDeals, 8, 2)
-      : filteredDeals,
+    filteredDeals: filteredPage.items,
     allProductsTotalCount: filteredDeals.length,
+    filteredDealsPagination: filteredPage.pagination,
   };
 }
 
@@ -142,25 +203,38 @@ export function getCategoriesPayload(deals: EnrichedDeal[]) {
   };
 }
 
-export function getSearchPayload(deals: EnrichedDeal[], query: string) {
+export function getSearchPayload(
+  deals: EnrichedDeal[],
+  query: string,
+  options: PageOptions = {},
+) {
   const results = query.trim()
     ? deals.filter((deal) => matchesDealSearch(deal, query))
     : [];
+  const resultsPage = paginateDeals(results, options);
 
   return {
     query,
-    results,
+    results: resultsPage.items,
     count: results.length,
+    pagination: resultsPage.pagination,
   };
 }
 
 export function getRecommendationsPayload(
   deals: EnrichedDeal[],
   brief: ShoppingBrief,
+  options: RecommendationsOptions = {},
 ) {
+  const matchingDeals = getBriefMatchingDeals(deals, brief).filter((deal) =>
+    matchesDealSearch(deal, options.query ?? ""),
+  );
+  const matchingDealsPage = paginateDeals(matchingDeals, options);
+
   return {
     baskets: getRecommendationBaskets(deals, brief),
     suggestions: getRecommendationSuggestions(deals, brief),
-    matchingDeals: getBriefMatchingDeals(deals, brief),
+    matchingDeals: matchingDealsPage.items,
+    matchingDealsPagination: matchingDealsPage.pagination,
   };
 }

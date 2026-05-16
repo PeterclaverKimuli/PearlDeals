@@ -3,6 +3,8 @@ import { getSearchPayload, loadApiDeals, sendJson } from "./_utils.js";
 type SearchRequest = {
   query: {
     q?: string;
+    page?: string;
+    pageSize?: string;
   };
 };
 
@@ -12,5 +14,12 @@ export default async function handler(
 ) {
   const deals = await loadApiDeals();
 
-  sendJson(res, 200, getSearchPayload(deals, req.query.q ?? ""));
+  sendJson(
+    res,
+    200,
+    getSearchPayload(deals, req.query.q ?? "", {
+      page: req.query.page,
+      pageSize: req.query.pageSize,
+    }),
+  );
 }

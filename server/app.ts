@@ -68,6 +68,9 @@ export function buildApp() {
       category?: string;
       behavioralCategory?: string;
       viewAll?: string;
+      includeDeals?: string;
+      page?: string;
+      pageSize?: string;
     };
   }>("/api/home", async (request) => {
     const deals = await loadDeals(app.log);
@@ -78,31 +81,47 @@ export function buildApp() {
       selectedCategory: request.query.category ?? null,
       selectedBehavioralCategory: request.query.behavioralCategory ?? null,
       isViewingAllProducts: request.query.viewAll === "true",
+      includeDeals: request.query.includeDeals === "true",
+      page: request.query.page,
+      pageSize: request.query.pageSize,
     });
   });
 
-  app.get<{ Querystring: { q?: string } }>("/api/search", async (request) => {
-    const deals = await loadDeals(app.log);
-    const query = request.query.q ?? "";
+  app.get<{ Querystring: { q?: string; page?: string; pageSize?: string } }>(
+    "/api/search",
+    async (request) => {
+      const deals = await loadDeals(app.log);
+      const query = request.query.q ?? "";
 
-    return getSearchPayload(deals, query);
-  });
-
-  app.post("/api/recommendations", async (request, reply) => {
-    const deals = await loadDeals(app.log);
-    const parsedBrief = shoppingBriefSchema.safeParse(request.body);
-
-    if (!parsedBrief.success) {
-      return reply.code(400).send({
-        error: "Invalid shopping brief",
-        issues: parsedBrief.error.flatten(),
+      return getSearchPayload(deals, query, {
+        page: request.query.page,
+        pageSize: request.query.pageSize,
       });
-    }
+    },
+  );
 
-    const brief = parsedBrief.data;
+  app.post<{ Querystring: { q?: string; page?: string; pageSize?: string } }>(
+    "/api/recommendations",
+    async (request, reply) => {
+      const deals = await loadDeals(app.log);
+      const parsedBrief = shoppingBriefSchema.safeParse(request.body);
 
-    return getRecommendationsPayload(deals, brief);
-  });
+      if (!parsedBrief.success) {
+        return reply.code(400).send({
+          error: "Invalid shopping brief",
+          issues: parsedBrief.error.flatten(),
+        });
+      }
+
+      const brief = parsedBrief.data;
+
+      return getRecommendationsPayload(deals, brief, {
+        query: request.query.q,
+        page: request.query.page,
+        pageSize: request.query.pageSize,
+      });
+    },
+  );
 
   return app;
 }

@@ -50,10 +50,18 @@ export type RecommendationBasket = {
   complete: boolean;
 };
 
+export type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  pageCount: number;
+};
+
 export type RecommendationsPayload = {
   baskets: RecommendationBasket[];
   suggestions: EnrichedDeal[];
   matchingDeals: EnrichedDeal[];
+  matchingDealsPagination: PaginationMeta;
 };
 
 export type CategoryItem = {

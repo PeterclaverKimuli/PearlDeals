@@ -5,7 +5,7 @@ import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
 import { LoadingState } from "./LoadingState";
-import { paginateItems, Pagination } from "./Pagination";
+import { Pagination } from "./Pagination";
 import type { CategoryItem, EnrichedDeal } from "../types";
 
 export function CategoryPage({
@@ -17,6 +17,8 @@ export function CategoryPage({
   setSelectedCategory,
   visibleCategories,
   filteredDeals,
+  resultCount,
+  pageCount,
   setSelectedDeal,
   onOpenNaki,
   onBrowseDeals,
@@ -33,6 +35,8 @@ export function CategoryPage({
   setSelectedCategory: (category: string | null) => void;
   visibleCategories: CategoryItem[];
   filteredDeals: EnrichedDeal[];
+  resultCount: number;
+  pageCount: number;
   setSelectedDeal: (deal: EnrichedDeal) => void;
   onOpenNaki: () => void;
   onBrowseDeals: () => void;
@@ -42,7 +46,7 @@ export function CategoryPage({
   onPageChange: (page: number) => void;
 }) {
   const posthog = usePostHog();
-  const { pageItems, pageCount, safePage } = paginateItems(filteredDeals, page);
+  const safePage = Math.min(Math.max(page, 1), pageCount);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] px-4 pb-4 text-gray-950 md:px-6 md:pb-6">
@@ -53,7 +57,7 @@ export function CategoryPage({
         onMenuClick={() => setIsSidebarOpen(true)}
         onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-7xl"
-        resultCount={filteredDeals.length}
+        resultCount={resultCount}
         onSearchSubmit={onSearchSubmit}
       />
 
@@ -132,7 +136,7 @@ export function CategoryPage({
                   </h1>
                 </div>
                 <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-emerald-50">
-                  {filteredDeals.length} products found
+                  {resultCount} products found
                 </span>
               </div>
             </section>
@@ -151,7 +155,7 @@ export function CategoryPage({
               />
             ) : (
               <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                {pageItems.map((deal) => (
+                {filteredDeals.map((deal) => (
                   <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
                 ))}
 

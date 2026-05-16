@@ -17,6 +17,7 @@ import { behavioralCategories } from "@/features/deals/data";
 import type {
   CategoryItem,
   EnrichedDeal,
+  PaginationMeta,
   RecommendationBasket,
   RecommendationsPayload,
   SelfCheck,
@@ -36,14 +37,23 @@ type HomeResponse = {
   behavioralDealSections: (CategoryItem & { deals: EnrichedDeal[] })[];
   filteredDeals: EnrichedDeal[];
   allProductsTotalCount: number;
+  filteredDealsPagination: PaginationMeta;
 };
 
 type SearchResponse = {
   results: EnrichedDeal[];
   count: number;
+  pagination: PaginationMeta;
 };
 
 type RecommendationsResponse = RecommendationsPayload;
+
+const initialPagination: PaginationMeta = {
+  page: 1,
+  pageSize: 12,
+  totalCount: 0,
+  pageCount: 1,
+};
 
 function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
   const firstDeal = deals[0];
@@ -157,7 +167,11 @@ export default function DealsUI() {
   >([]);
   const [filteredDeals, setFilteredDeals] = useState<EnrichedDeal[]>([]);
   const [allProductsTotalCount, setAllProductsTotalCount] = useState(0);
+  const [filteredDealsPagination, setFilteredDealsPagination] =
+    useState<PaginationMeta>(initialPagination);
   const [searchResults, setSearchResults] = useState<EnrichedDeal[]>([]);
+  const [searchPagination, setSearchPagination] =
+    useState<PaginationMeta>(initialPagination);
   const [recommendationBaskets, setRecommendationBaskets] = useState<
     RecommendationBasket[]
   >([]);
@@ -167,6 +181,8 @@ export default function DealsUI() {
   const [matchingRecommendationDeals, setMatchingRecommendationDeals] = useState<
     EnrichedDeal[]
   >([]);
+  const [matchingRecommendationPagination, setMatchingRecommendationPagination] =
+    useState<PaginationMeta>(initialPagination);
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isRecommendationsLoading, setIsRecommendationsLoading] =
@@ -204,6 +220,15 @@ export default function DealsUI() {
         params.set("behavioralCategory", selectedBehavioralCategory);
       }
       if (isViewingAllProducts) params.set("viewAll", "true");
+      const shouldIncludeDeals =
+        routePath !== "/search" &&
+        !routePath.startsWith("/recommendations") &&
+        !search.trim() &&
+        !selectedCategory &&
+        !selectedBehavioralCategory &&
+        !isViewingAllProducts;
+      if (shouldIncludeDeals) params.set("includeDeals", "true");
+      params.set("page", String(productPage));
 
       const query = params.toString();
       const response = await fetch(`/api/home${query ? `?${query}` : ""}`);
@@ -213,12 +238,15 @@ export default function DealsUI() {
 
       const payload = (await response.json()) as HomeResponse;
       if (isCurrent) {
-        setDealsWithDiscounts(payload.deals);
+        if (shouldIncludeDeals || payload.deals.length > 0) {
+          setDealsWithDiscounts(payload.deals);
+        }
         setVisibleCategories(payload.visibleCategories);
         setFeaturedDeals(payload.featuredDeals);
         setBehavioralDealSections(payload.behavioralDealSections);
         setFilteredDeals(payload.filteredDeals);
         setAllProductsTotalCount(payload.allProductsTotalCount);
+        setFilteredDealsPagination(payload.filteredDealsPagination);
         setIsHomeLoading(false);
       }
     }
@@ -231,6 +259,7 @@ export default function DealsUI() {
         setBehavioralDealSections([]);
         setFilteredDeals([]);
         setAllProductsTotalCount(0);
+        setFilteredDealsPagination(initialPagination);
         setIsHomeLoading(false);
       }
     });
@@ -238,7 +267,14 @@ export default function DealsUI() {
     return () => {
       isCurrent = false;
     };
-  }, [search, selectedCategory, selectedBehavioralCategory, isViewingAllProducts]);
+  }, [
+    search,
+    selectedCategory,
+    selectedBehavioralCategory,
+    isViewingAllProducts,
+    productPage,
+    routePath,
+  ]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -247,13 +283,14 @@ export default function DealsUI() {
       const trimmedSearch = search.trim();
       if (!trimmedSearch) {
         setSearchResults([]);
+        setSearchPagination(initialPagination);
         setIsSearchLoading(false);
         return;
       }
 
       setIsSearchLoading(true);
       const response = await fetch(
-        `/api/search?q=${encodeURIComponent(trimmedSearch)}`,
+        `/api/search?q=${encodeURIComponent(trimmedSearch)}&page=${productPage}`,
       );
       if (!response.ok) {
         throw new Error(`Search API returned ${response.status}`);
@@ -262,6 +299,7 @@ export default function DealsUI() {
       const payload = (await response.json()) as SearchResponse;
       if (isCurrent) {
         setSearchResults(payload.results);
+        setSearchPagination(payload.pagination);
         setIsSearchLoading(false);
       }
     }
@@ -269,6 +307,7 @@ export default function DealsUI() {
     loadSearchResults().catch(() => {
       if (isCurrent) {
         setSearchResults([]);
+        setSearchPagination(initialPagination);
         setIsSearchLoading(false);
       }
     });
@@ -276,7 +315,7 @@ export default function DealsUI() {
     return () => {
       isCurrent = false;
     };
-  }, [search]);
+  }, [search, productPage]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -286,12 +325,18 @@ export default function DealsUI() {
         setRecommendationBaskets([]);
         setRecommendationSuggestions([]);
         setMatchingRecommendationDeals([]);
+        setMatchingRecommendationPagination(initialPagination);
         setIsRecommendationsLoading(false);
         return;
       }
 
       setIsRecommendationsLoading(true);
-      const response = await fetch("/api/recommendations", {
+      const params = new URLSearchParams({
+        page: String(productPage),
+      });
+      if (search.trim()) params.set("q", search.trim());
+
+      const response = await fetch(`/api/recommendations?${params.toString()}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -307,6 +352,7 @@ export default function DealsUI() {
         setRecommendationBaskets(payload.baskets);
         setRecommendationSuggestions(payload.suggestions);
         setMatchingRecommendationDeals(payload.matchingDeals);
+        setMatchingRecommendationPagination(payload.matchingDealsPagination);
         setIsRecommendationsLoading(false);
       }
     }
@@ -316,6 +362,7 @@ export default function DealsUI() {
         setRecommendationBaskets([]);
         setRecommendationSuggestions([]);
         setMatchingRecommendationDeals([]);
+        setMatchingRecommendationPagination(initialPagination);
         setIsRecommendationsLoading(false);
       }
     });
@@ -323,7 +370,7 @@ export default function DealsUI() {
     return () => {
       isCurrent = false;
     };
-  }, [shoppingBrief]);
+  }, [shoppingBrief, productPage, search]);
 
   useLayoutEffect(() => {
     if (typeof window !== "undefined") {
@@ -335,11 +382,18 @@ export default function DealsUI() {
     selectedBehavioralCategory,
     isViewingAllProducts,
     selectedDeal,
+    productPage,
   ]);
 
   useEffect(() => {
     setProductPage(1);
-  }, [search, selectedCategory, selectedBehavioralCategory, isViewingAllProducts]);
+  }, [
+    routePath,
+    search,
+    selectedCategory,
+    selectedBehavioralCategory,
+    isViewingAllProducts,
+  ]);
 
   const selfChecks = useMemo(
     () => runSelfChecks(dealsWithDiscounts),
@@ -461,7 +515,7 @@ export default function DealsUI() {
         search={search}
         setSearch={setSearch}
         results={searchResults}
-        resultCount={searchResults.length}
+        resultCount={searchPagination.totalCount}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         visibleCategories={visibleCategories}
@@ -472,6 +526,7 @@ export default function DealsUI() {
         onSearchSubmit={navigateToSearch}
         isLoading={isSearchLoading}
         page={productPage}
+        pageCount={searchPagination.pageCount}
         onPageChange={setProductPage}
       />
     );
@@ -492,6 +547,8 @@ export default function DealsUI() {
         setSelectedCategory={selectCategory}
         visibleCategories={visibleCategories}
         filteredDeals={filteredDeals}
+        resultCount={allProductsTotalCount}
+        pageCount={filteredDealsPagination.pageCount}
         setSelectedDeal={setSelectedDeal}
         onOpenNaki={() => navigateTo("/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
@@ -510,6 +567,7 @@ export default function DealsUI() {
         baskets={recommendationBaskets}
         suggestedDeals={recommendationSuggestions}
         matchingDeals={matchingRecommendationDeals}
+        matchingDealsPagination={matchingRecommendationPagination}
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
@@ -523,6 +581,7 @@ export default function DealsUI() {
         onSearchSubmit={navigateToSearch}
         onViewMatchingProducts={() => navigateTo("/recommendations/matches")}
         isLoading={isRecommendationsLoading}
+        onMatchingDealsPageChange={setProductPage}
       />
     );
   }
@@ -532,6 +591,7 @@ export default function DealsUI() {
       <RecommendationMatchesPage
         brief={shoppingBrief}
         matchingDeals={matchingRecommendationDeals}
+        matchingDealsPagination={matchingRecommendationPagination}
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
@@ -545,6 +605,8 @@ export default function DealsUI() {
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
         isLoading={isRecommendationsLoading}
+        page={productPage}
+        onPageChange={setProductPage}
       />
     );
   }
@@ -583,6 +645,7 @@ export default function DealsUI() {
       activeViewKey={`${routePath}:${selectedCategory ?? ""}:${selectedBehavioralCategory ?? ""}:${isViewingAllProducts}`}
       isViewingAllProducts={isViewingAllProducts}
       page={productPage}
+      pageCount={filteredDealsPagination.pageCount}
       onPageChange={setProductPage}
     />
   );

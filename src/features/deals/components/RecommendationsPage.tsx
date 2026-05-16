@@ -14,6 +14,7 @@ import { imageFallback } from "../data";
 import type {
   CategoryItem,
   EnrichedDeal,
+  PaginationMeta,
   RecommendationBasket,
   RecommendationMatch,
   ShoppingBrief,
@@ -34,6 +35,7 @@ export function RecommendationsPage({
   baskets,
   suggestedDeals,
   matchingDeals,
+  matchingDealsPagination,
   search,
   setSearch,
   isSidebarOpen,
@@ -47,11 +49,13 @@ export function RecommendationsPage({
   onSearchSubmit,
   onViewMatchingProducts,
   isLoading,
+  onMatchingDealsPageChange,
 }: {
   brief: ShoppingBrief | null;
   baskets: RecommendationBasket[];
   suggestedDeals: EnrichedDeal[];
   matchingDeals: EnrichedDeal[];
+  matchingDealsPagination: PaginationMeta;
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
@@ -65,6 +69,7 @@ export function RecommendationsPage({
   onSearchSubmit: (query: string) => void;
   onViewMatchingProducts: () => void;
   isLoading: boolean;
+  onMatchingDealsPageChange: (page: number) => void;
 }) {
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
     useState(false);
@@ -199,7 +204,9 @@ export function RecommendationsPage({
           <SingleCategoryRecommendationList
             brief={brief}
             deals={visibleMatchingDeals}
+            pagination={matchingDealsPagination}
             setSelectedDeal={setSelectedDeal}
+            onPageChange={onMatchingDealsPageChange}
           />
         ) : baskets.length > 0 ? (
           visibleBaskets.length > 0 ? (
@@ -289,6 +296,7 @@ export function RecommendationsPage({
 export function RecommendationMatchesPage({
   brief,
   matchingDeals,
+  matchingDealsPagination,
   search,
   setSearch,
   isSidebarOpen,
@@ -302,9 +310,12 @@ export function RecommendationMatchesPage({
   onBrowseDeals,
   onSearchSubmit,
   isLoading,
+  page,
+  onPageChange,
 }: {
   brief: ShoppingBrief | null;
   matchingDeals: EnrichedDeal[];
+  matchingDealsPagination: PaginationMeta;
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
@@ -318,6 +329,8 @@ export function RecommendationMatchesPage({
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
   isLoading: boolean;
+  page: number;
+  onPageChange: (page: number) => void;
 }) {
   const visibleMatchingDeals = matchingDeals.filter((deal) =>
     matchesDealSearch(deal, search),
@@ -339,7 +352,7 @@ export function RecommendationMatchesPage({
         onMenuClick={() => setIsSidebarOpen(true)}
         onHomeClick={onBrowseDeals}
         maxWidthClass="max-w-7xl"
-        resultCount={visibleMatchingDeals.length}
+        resultCount={matchingDealsPagination.totalCount}
         onSearchSubmit={onSearchSubmit}
       />
 
@@ -388,8 +401,8 @@ export function RecommendationMatchesPage({
             {brief ? (
               <div className="flex flex-wrap gap-2 lg:justify-end">
                 <span className="inline-flex h-10 items-center rounded-full bg-white/10 px-4 text-sm font-bold text-emerald-50">
-                  {visibleMatchingDeals.length}{" "}
-                  {visibleMatchingDeals.length === 1 ? "product" : "products"}
+                  {matchingDealsPagination.totalCount}{" "}
+                  {matchingDealsPagination.totalCount === 1 ? "product" : "products"}
                 </span>
                 <Button
                   type="button"
@@ -446,6 +459,11 @@ export function RecommendationMatchesPage({
                 </div>
               </section>
             ))}
+            <Pagination
+              page={Math.min(Math.max(page, 1), matchingDealsPagination.pageCount)}
+              pageCount={matchingDealsPagination.pageCount}
+              onPageChange={onPageChange}
+            />
           </div>
         ) : (
           <EmptyRecommendations
@@ -797,25 +815,24 @@ function NoRecommendationMatches({
 function SingleCategoryRecommendationList({
   brief,
   deals,
+  pagination,
   setSelectedDeal,
+  onPageChange,
 }: {
   brief: ShoppingBrief;
   deals: EnrichedDeal[];
+  pagination: PaginationMeta;
   setSelectedDeal: (deal: EnrichedDeal) => void;
+  onPageChange: (page: number) => void;
 }) {
-  const [page, setPage] = useState(1);
   const sortedDeals = [...deals].sort(
     (a, b) =>
       a.bestDeal.price - b.bestDeal.price ||
       b.discount - a.discount ||
       a.title.localeCompare(b.title),
   );
-  const { pageItems, pageCount, safePage } = paginateItems(sortedDeals, page);
   const category = brief.categories[0] ?? "products";
-
-  useEffect(() => {
-    setPage(1);
-  }, [deals]);
+  const safePage = Math.min(Math.max(pagination.page, 1), pagination.pageCount);
 
   return (
     <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
@@ -827,13 +844,13 @@ function SingleCategoryRecommendationList({
           Recommended {category.toLowerCase()} in your budget
         </h2>
         <p className="mt-1 text-sm leading-6 text-gray-600">
-          I found {sortedDeals.length}{" "}
-          {sortedDeals.length === 1 ? "product" : "products"} that match your
-          brief.
+          I found {pagination.totalCount}{" "}
+          {pagination.totalCount === 1 ? "product" : "products"} that match
+          your brief.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {pageItems.map((deal) => (
+        {sortedDeals.map((deal) => (
           <SuggestionCard
             key={deal.id}
             brief={brief}
@@ -841,7 +858,11 @@ function SingleCategoryRecommendationList({
             onSelect={setSelectedDeal}
           />
         ))}
-        <Pagination page={safePage} pageCount={pageCount} onPageChange={setPage} />
+        <Pagination
+          page={safePage}
+          pageCount={pagination.pageCount}
+          onPageChange={onPageChange}
+        />
       </div>
     </section>
   );

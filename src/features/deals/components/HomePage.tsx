@@ -27,7 +27,7 @@ import { AppHeaderShell, MobileOffcanvas, ValueProp } from "./AppChrome";
 import { DealCard, FeaturedDealBanner } from "./DealViews";
 import { FloatingNakiButton } from "./FloatingNakiButton";
 import { LoadingState } from "./LoadingState";
-import { paginateItems, Pagination } from "./Pagination";
+import { Pagination } from "./Pagination";
 import { FeedbackModal, NakiScrollPromptModal } from "./Modals";
 
 const nakiScrollModalStorageKey = "pearldeals:naki-scroll-modal-shown:v2";
@@ -66,6 +66,7 @@ export function HomePage({
   activeViewKey,
   isViewingAllProducts,
   page,
+  pageCount,
   onPageChange,
 }: {
   search: string;
@@ -100,6 +101,7 @@ export function HomePage({
   activeViewKey: string;
   isViewingAllProducts: boolean;
   page: number;
+  pageCount: number;
   onPageChange: (page: number) => void;
 }) {
   const posthog = usePostHog();
@@ -118,17 +120,9 @@ export function HomePage({
   ).size;
   const biggestSaving = Math.max(0, ...allDeals.map(getSavingsAmount));
   const bestHeroDeal = featuredDeals[0] ?? allDeals[0];
-  const {
-    pageItems: visibleProductDeals,
-    pageCount: productsPageCount,
-    safePage: productsPage,
-  } = isViewingAllProducts
-    ? paginateItems(filteredDeals, page)
-    : {
-        pageItems: filteredDeals,
-        pageCount: 1,
-        safePage: 1,
-      };
+  const visibleProductDeals = filteredDeals;
+  const productsPageCount = isViewingAllProducts ? pageCount : 1;
+  const productsPage = Math.min(Math.max(page, 1), productsPageCount);
   const heroStats = [
     {
       label: "Products tracked",

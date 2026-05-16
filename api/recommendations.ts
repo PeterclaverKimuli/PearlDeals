@@ -7,6 +7,11 @@ import {
 
 type RecommendationsRequest = {
   method?: string;
+  query?: {
+    q?: string;
+    page?: string;
+    pageSize?: string;
+  };
   body: unknown;
 };
 
@@ -30,5 +35,13 @@ export default async function handler(
 
   const deals = await loadApiDeals();
 
-  sendJson(res, 200, getRecommendationsPayload(deals, parsedBrief.data));
+  sendJson(
+    res,
+    200,
+    getRecommendationsPayload(deals, parsedBrief.data, {
+      query: req.query?.q,
+      page: req.query?.page,
+      pageSize: req.query?.pageSize,
+    }),
+  );
 }

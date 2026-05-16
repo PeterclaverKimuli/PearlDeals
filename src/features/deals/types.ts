@@ -3,6 +3,7 @@ export type {
   ConditionChoice,
   Deal,
   EnrichedDeal,
+  PaginationMeta,
   PriceEntry,
   RawDeal,
   RecommendationBasket,
