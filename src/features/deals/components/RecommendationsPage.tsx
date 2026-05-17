@@ -1,14 +1,18 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { usePostHog } from "@posthog/react";
 import feedbackAvatar from "@/assets/Feedback prompt.webp";
 import recommendationAvatar from "@/assets/Ready Prompt - transparent.webp";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
+  ExternalLink,
   ListChecks,
   ShoppingBasket,
   Sparkles,
   Store,
+  X,
 } from "lucide-react";
 import { imageFallback } from "../data";
 import type {
@@ -28,7 +32,7 @@ import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { LoadingState } from "./LoadingState";
-import { RecommendationFeedbackModal } from "./Modals";
+import { LeaveSiteModal, RecommendationFeedbackModal } from "./Modals";
 import { paginateItems, Pagination } from "./Pagination";
 
 export function RecommendationsPage({
@@ -525,64 +529,300 @@ function RecommendationBasketView({
   visibleItems: RecommendationMatch[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
 }) {
+  const posthog = usePostHog();
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [pendingSite, setPendingSite] = useState<{
+    url: string;
+    site: string;
+  } | null>(null);
+  const basketSavings = basket.items.reduce(
+    (total, item) => total + getSavingsAmount(item.deal),
+    0,
+  );
+  const handleOpenShopModal = () => {
+    posthog.capture("basket_shop_opened", {
+      basket_id: basket.id,
+      product_count: basket.items.length,
+      total: basket.total,
+      balance: basket.balance,
+      savings: basketSavings,
+      complete: basket.complete,
+    });
+    setIsShopModalOpen(true);
+  };
+  const handleSiteClick = (deal: EnrichedDeal) => {
+    if (!deal.bestDeal.url) return;
+
+    posthog.capture("basket_site_clicked", {
+      basket_id: basket.id,
+      product_title: deal.title,
+      product_id: deal.id,
+      category: deal.category,
+      site: deal.bestDeal.site,
+      price: deal.bestDeal.price,
+    });
+    setPendingSite({
+      url: deal.bestDeal.url,
+      site: deal.bestDeal.site || "selected",
+    });
+  };
+  const handleSelectDealFromBasket = (deal: EnrichedDeal) => {
+    posthog.capture("basket_product_comparison_opened", {
+      basket_id: basket.id,
+      product_title: deal.title,
+      product_id: deal.id,
+      category: deal.category,
+      price: deal.bestDeal.price,
+      site: deal.bestDeal.site,
+    });
+    setIsShopModalOpen(false);
+    setSelectedDeal(deal);
+  };
+  const handleContinueToSite = () => {
+    if (!pendingSite || typeof window === "undefined") return;
+    window.location.href = pendingSite.url;
+  };
+
   return (
-    <section className="grid gap-4 rounded-3xl border border-emerald-900/10 bg-white/70 p-3 shadow-sm shadow-emerald-950/5 lg:grid-cols-[1fr_20rem]">
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-black text-gray-950">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <ShoppingBasket className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span>Basket option {basket.id}</span>
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              This combination fits within your total budget.
-            </p>
-          </div>
-          <span className="text-xs font-medium text-gray-500">
-            {basket.items.length} products
-          </span>
-        </div>
-
-        {visibleItems.length > 0 ? (
-          <div className="space-y-3">
-            {visibleItems.map((match) => (
-              <RecommendationRow
-                key={match.deal.id}
-                match={match}
-                onSelect={setSelectedDeal}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
-            No recommended products match your current search.
-          </div>
-        )}
-      </div>
-
-      <aside className="self-start rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-        <h3 className="text-base font-black text-gray-950">Budget summary</h3>
-        <div className="mt-4 space-y-3 text-sm">
-          <SummaryAmount label="Products total" value={basket.total} />
-          <SummaryAmount label="Balance" value={basket.balance} highlight />
-        </div>
-
-        {basket.complete ? (
-          <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-            This basket stays within budget and leaves you with a balance.
+    <>
+      <section className="relative grid gap-4 rounded-3xl border border-emerald-900/10 bg-white/70 p-3 pt-5 shadow-sm shadow-emerald-950/5 lg:grid-cols-[1fr_20rem]">
+        {basketSavings > 0 ? (
+          <p className="absolute right-4 top-0 inline-flex -translate-y-1/2 rounded-full bg-red-500 px-3 py-1.5 text-xs font-black text-white shadow-md shadow-red-500/25">
+            Saves you {formatUGX(basketSavings)}
           </p>
-        ) : (
-          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-semibold">Some categories were not included.</p>
-            <p className="mt-1">
-              Missing: {basket.missingCategories.join(", ")}
+        ) : null}
+        <div>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-black text-gray-950">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <ShoppingBasket className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>Basket {basket.id}</span>
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                This combination fits within your total budget.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+              <span className="text-xs font-medium text-gray-500">
+                {basket.items.length} products
+              </span>
+            </div>
+          </div>
+
+          {visibleItems.length > 0 ? (
+            <div className="space-y-3">
+              {visibleItems.map((match) => (
+                <RecommendationRow
+                  key={match.deal.id}
+                  match={match}
+                  onSelect={setSelectedDeal}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+              No recommended products match your current search.
+            </div>
+          )}
+        </div>
+
+        <aside className="self-start rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <h3 className="text-base font-black text-gray-950">Budget summary</h3>
+          <div className="mt-4 space-y-3 text-sm">
+            <SummaryAmount label="Products total" value={basket.total} />
+            <SummaryAmount label="Balance" value={basket.balance} highlight />
+            {basketSavings > 0 ? (
+              <SummaryAmount
+                label="Savings"
+                value={basketSavings}
+                highlight
+              />
+            ) : null}
+          </div>
+
+          {basket.complete ? (
+            <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+              This basket stays within budget and leaves you with a balance.
+            </p>
+          ) : (
+            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p className="font-semibold">Some categories were not included.</p>
+              <p className="mt-1">
+                Missing: {basket.missingCategories.join(", ")}
+              </p>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            className="mt-4 h-11 w-full cursor-pointer rounded-full bg-gray-950 font-bold text-white hover:bg-emerald-700"
+            onClick={handleOpenShopModal}
+          >
+            <ShoppingBasket className="h-4 w-4" aria-hidden="true" />
+            Shop basket
+          </Button>
+        </aside>
+      </section>
+
+      <BasketShopModal
+        open={isShopModalOpen}
+        basket={basket}
+        savings={basketSavings}
+        onClose={() => setIsShopModalOpen(false)}
+        onSelectDeal={handleSelectDealFromBasket}
+        onSiteClick={handleSiteClick}
+      />
+      <LeaveSiteModal
+        open={!!pendingSite}
+        siteName={pendingSite?.site || "selected"}
+        onClose={() => setPendingSite(null)}
+        onContinue={handleContinueToSite}
+      />
+    </>
+  );
+}
+
+function BasketShopModal({
+  open,
+  basket,
+  savings,
+  onClose,
+  onSelectDeal,
+  onSiteClick,
+}: {
+  open: boolean;
+  basket: RecommendationBasket;
+  savings: number;
+  onClose: () => void;
+  onSelectDeal: (deal: EnrichedDeal) => void;
+  onSiteClick: (deal: EnrichedDeal) => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-gray-950/60 p-3 sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`basket-shop-title-${basket.id}`}
+        className="my-3 w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl shadow-emerald-950/20 sm:my-6"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0">
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700">
+              <ShoppingBasket className="h-4 w-4" aria-hidden="true" />
+              Shopping plan
+            </p>
+            <h2
+              id={`basket-shop-title-${basket.id}`}
+              className="mt-1 text-2xl font-black text-gray-950"
+            >
+              Shop Basket {basket.id}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Use the best listed store for each product, then compare details
+              before you leave PearlDeals.
             </p>
           </div>
-        )}
-      </aside>
-    </section>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Close shop basket modal"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="grid gap-3 border-b border-gray-200 bg-emerald-50/70 px-4 py-4 text-sm sm:grid-cols-3 sm:px-6">
+          <SummaryTile label="Products total" value={formatUGX(basket.total)} />
+          <SummaryTile label="Balance" value={formatUGX(basket.balance)} />
+          <SummaryTile label="Savings" value={formatUGX(savings)} />
+        </div>
+
+        <div className="max-h-[65vh] space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
+          {basket.items.map(({ deal }) => (
+            <div
+              key={deal.id}
+              className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div className="flex h-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+                <img
+                  src={deal.image || imageFallback}
+                  alt={deal.title}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = imageFallback;
+                  }}
+                  className="h-full w-full p-2 object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+                  {deal.category}
+                </p>
+                <h3 className="mt-1 text-base font-black leading-snug text-gray-950">
+                  {deal.title}
+                </h3>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <span className="inline-flex items-center gap-1">
+                    <Store className="h-3.5 w-3.5" aria-hidden="true" />
+                    {deal.bestDeal.site}
+                  </span>
+                  <span>{deal.bestDeal.status || "Condition unknown"}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:min-w-44 sm:items-end">
+                <p className="text-lg font-black text-green-700">
+                  {formatUGX(deal.bestDeal.price)}
+                </p>
+                <div className="flex w-full flex-col gap-2 sm:w-auto">
+                  {deal.bestDeal.url ? (
+                    <Button
+                      type="button"
+                      className="h-10 w-full cursor-pointer rounded-full bg-emerald-700 px-4 font-bold text-white hover:bg-emerald-800 sm:w-auto"
+                      onClick={() => onSiteClick(deal)}
+                    >
+                      Go to store
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled
+                      className="h-10 w-full cursor-not-allowed rounded-full bg-gray-300 px-4 text-gray-500 sm:w-auto"
+                    >
+                      No link
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-full cursor-pointer rounded-full px-4 font-bold sm:w-auto"
+                    onClick={() => onSelectDeal(deal)}
+                  >
+                    View comparison
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+      <p className="mt-1 text-base font-black text-gray-950">{value}</p>
+    </div>
   );
 }
 
@@ -594,10 +834,12 @@ function RecommendationRow({
   onSelect: (deal: EnrichedDeal) => void;
 }) {
   const { deal, reasons } = match;
+  const [areOtherStoresOpen, setAreOtherStoresOpen] = useState(false);
   const savingsAmount = getSavingsAmount(deal);
   const comparisonPrices = deal.prices
     .filter((price) => !isSamePriceEntry(price, deal.bestDeal))
     .sort((a, b) => a.price - b.price);
+  const otherStoresId = `other-stores-${deal.id}`;
 
   return (
     <article className="grid gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center">
@@ -629,12 +871,12 @@ function RecommendationRow({
         <h3 className="mt-2 text-base font-black leading-snug text-gray-950">
           {deal.title}
         </h3>
-        <p className="mt-1 text-xs text-gray-500">Best at {deal.bestDeal.site}</p>
-        {deal.bestDeal.status ? (
-          <p className="mt-0.5 text-xs text-gray-500">
-            Condition: {deal.bestDeal.status}
-          </p>
-        ) : null}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+          <span>Best at {deal.bestDeal.site}</span>
+          {deal.bestDeal.status ? (
+            <span>Condition: {deal.bestDeal.status}</span>
+          ) : null}
+        </div>
       </div>
       <div className="flex flex-col gap-2 sm:min-w-48 sm:items-end">
         <div className="sm:text-right">
@@ -649,20 +891,45 @@ function RecommendationRow({
         </div>
         {comparisonPrices.length > 0 ? (
           <div className="w-full rounded-2xl bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:max-w-56">
-            <p className="mb-1 font-bold text-gray-500">Other stores</p>
-            <div className="space-y-1">
-              {comparisonPrices.map((price, index) => (
-                <div
-                  key={`${deal.id}-${price.site}-${index}`}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <span className="truncate">{price.site}</span>
-                  <span className="shrink-0 font-semibold text-gray-900">
-                    {formatUGX(price.price)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center justify-between gap-2 text-left font-bold text-gray-600"
+              aria-expanded={areOtherStoresOpen}
+              aria-controls={otherStoresId}
+              onClick={() => setAreOtherStoresOpen((isOpen) => !isOpen)}
+            >
+              <span>
+                Other stores ({comparisonPrices.length})
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${
+                  areOtherStoresOpen ? "rotate-180" : ""
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+            {areOtherStoresOpen ? (
+              <div id={otherStoresId} className="mt-2 space-y-1.5">
+                {comparisonPrices.map((price, index) => (
+                  <div
+                    key={`${deal.id}-${price.site}-${index}`}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-gray-700">
+                        {price.site}
+                      </span>
+                      <span className="block truncate text-[0.68rem] text-gray-500">
+                        {price.status || "Condition unknown"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-semibold text-gray-900">
+                      {formatUGX(price.price)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
         <Button
