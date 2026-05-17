@@ -702,7 +702,7 @@ function BasketShopModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-gray-950/60 p-3 sm:p-4">
+    <div className="fixed inset-0 z-[80] flex min-h-dvh w-screen items-start justify-center overflow-y-auto bg-gray-950/60 p-3 sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
