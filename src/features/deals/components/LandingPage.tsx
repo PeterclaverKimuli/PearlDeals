@@ -437,7 +437,7 @@ export function LandingPage({
           }`}
         >
           <section
-            className={`border border-emerald-900/10 bg-white/85 p-4 shadow-xl shadow-emerald-950/5 backdrop-blur md:rounded-[2rem] md:p-6 ${
+            className={`rounded-[2rem] border border-emerald-900/10 bg-white/85 p-4 shadow-xl shadow-emerald-950/5 backdrop-blur md:p-6 ${
               activeStep === "welcome" ? "w-full max-w-3xl" : ""
             }`}
           >
