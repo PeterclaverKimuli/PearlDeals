@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CategoryItem, EnrichedDeal } from "../types";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { LoadingState } from "./LoadingState";
+import { UnavailableProductModal } from "./Modals";
 import { Pagination } from "./Pagination";
 
 export function SearchResultsPage({
@@ -43,6 +45,27 @@ export function SearchResultsPage({
 }) {
   const query = search.trim();
   const safePage = Math.min(Math.max(page, 1), pageCount);
+  const [isUnavailableProductModalOpen, setIsUnavailableProductModalOpen] =
+    useState(false);
+  const [promptedSearchTerms, setPromptedSearchTerms] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  useEffect(() => {
+    const normalizedQuery = query.toLowerCase();
+
+    if (
+      isLoading ||
+      !normalizedQuery ||
+      resultCount > 0 ||
+      promptedSearchTerms.has(normalizedQuery)
+    ) {
+      return;
+    }
+
+    setPromptedSearchTerms((current) => new Set(current).add(normalizedQuery));
+    setIsUnavailableProductModalOpen(true);
+  }, [isLoading, promptedSearchTerms, query, resultCount]);
 
   const clearSearch = () => {
     setSearch("");
@@ -140,6 +163,11 @@ export function SearchResultsPage({
             </Button>
           </div>
         )}
+        <UnavailableProductModal
+          open={isUnavailableProductModalOpen}
+          onClose={() => setIsUnavailableProductModalOpen(false)}
+          searchQuery={query}
+        />
       </div>
     </div>
   );

@@ -37,9 +37,8 @@ import type {
 type IntakeStep = "welcome" | "budget" | "categories" | "condition" | "ready";
 
 const steps: IntakeStep[] = [
-  "welcome",
-  "budget",
   "categories",
+  "budget",
   "condition",
   "ready",
 ];
@@ -62,16 +61,16 @@ const stepCopy: Record<
     avatarAlt: "Naki waving to welcome shoppers",
   },
   budget: {
-    eyebrow: "Step 1",
+    eyebrow: "Step 2",
     title: "What budget should we work with?",
     body: "Enter the highest amount you want to spend. We will use it later to shape recommendations around deals that make sense for you.",
     avatar: budgetAvatar,
     avatarAlt: "Naki thinking about a shopping budget",
   },
   categories: {
-    eyebrow: "Step 2",
-    title: "What are you shopping for?",
-    body: "Pick everything you want to buy. You can choose up to three.",
+    eyebrow: "Step 1",
+    title: "What deals are you looking for?",
+    body: "You can choose up to 3 product categories",
     avatar: categoryAvatar,
     avatarAlt: "Naki pointing at product categories",
   },
@@ -121,6 +120,7 @@ const introPrefix = "Let’s find ";
 const introName = "deals";
 const introSuffix = " that fit you.";
 const introText = `${introPrefix}${introName}${introSuffix}`;
+const nakiGreetingText = "Hi, I am Naki";
 const maxSelectedCategories = 3;
 const maxSelectedConditions = 3;
 
@@ -130,7 +130,7 @@ export function LandingPage({
   onBrowseDeals,
   onCompleteBrief,
   initialBrief,
-  initialStep = "welcome",
+  initialStep = "categories",
 }: {
   categories: CategoryItem[];
   deals: EnrichedDeal[];
@@ -157,10 +157,13 @@ export function LandingPage({
   );
   const [validationMessage, setValidationMessage] = useState("");
   const [typedIntroLength, setTypedIntroLength] = useState(0);
+  const [typedGreetingLength, setTypedGreetingLength] = useState(0);
 
   const stepIndex = steps.indexOf(activeStep);
   const currentCopy = stepCopy[activeStep];
   const isSurpriseBudget = budgetMode === "surprise";
+  const isFirstStep = stepIndex === 0;
+  const inputStepCount = steps.length - 1;
 
   const cleanBudget = useMemo(() => budget.replace(/[^\d]/g, ""), [budget]);
   const formattedBudget = useMemo(() => {
@@ -244,6 +247,24 @@ export function LandingPage({
         return current + 1;
       });
     }, 45);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeStep]);
+
+  useEffect(() => {
+    if (activeStep !== "categories") return;
+
+    setTypedGreetingLength(0);
+    const intervalId = window.setInterval(() => {
+      setTypedGreetingLength((current) => {
+        if (current >= nakiGreetingText.length) {
+          window.clearInterval(intervalId);
+          return current;
+        }
+
+        return current + 1;
+      });
+    }, 55);
 
     return () => window.clearInterval(intervalId);
   }, [activeStep]);
@@ -396,7 +417,7 @@ export function LandingPage({
               <span className="text-green-600">Deals</span>
             </span>
           </button>
-          {activeStep !== "welcome" ? (
+          {activeStep !== "welcome" && activeStep !== "categories" ? (
             <Button
               type="button"
               variant="outline"
@@ -416,7 +437,7 @@ export function LandingPage({
           }`}
         >
           <section
-            className={`rounded-[2rem] border border-emerald-900/10 bg-white/85 p-4 shadow-xl shadow-emerald-950/5 backdrop-blur md:p-6 ${
+            className={`border border-emerald-900/10 bg-white/85 p-4 shadow-xl shadow-emerald-950/5 backdrop-blur md:rounded-[2rem] md:p-6 ${
               activeStep === "welcome" ? "w-full max-w-3xl" : ""
             }`}
           >
@@ -427,7 +448,9 @@ export function LandingPage({
               </div>
               {activeStep !== "welcome" ? (
                 <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                  {stepIndex} of {steps.length - 1}
+                  {activeStep === "ready"
+                    ? "Ready"
+                    : `${stepIndex + 1} of ${inputStepCount}`}
                 </span>
               ) : null}
             </div>
@@ -495,6 +518,14 @@ export function LandingPage({
                         : ""
                   }`}
                 >
+                  {activeStep === "categories" ? (
+                    <p className="mb-2 text-base font-bold text-green-700 md:text-lg">
+                      {nakiGreetingText.slice(0, typedGreetingLength)}
+                      {typedGreetingLength < nakiGreetingText.length ? (
+                        <span>|</span>
+                      ) : null}
+                    </p>
+                  ) : null}
                   <h1 className="text-3xl font-black tracking-normal text-gray-950 md:text-5xl">
                     {currentCopy.title}
                   </h1>
@@ -528,15 +559,15 @@ export function LandingPage({
                 type="button"
                 variant="outline"
                 className="h-11 cursor-pointer rounded-full px-5"
-                onClick={activeStep === "welcome" ? onBrowseDeals : goBack}
-                disabled={activeStep !== "welcome" && !canGoBack}
+                onClick={isFirstStep ? onBrowseDeals : goBack}
+                disabled={!isFirstStep && !canGoBack}
               >
-                {activeStep === "welcome" ? (
+                {isFirstStep ? (
                   <Tags className="h-4 w-4" />
                 ) : (
                   <ChevronLeft className="h-4 w-4" />
                 )}
-                {activeStep === "welcome" ? "View all deals first" : "Back"}
+                {isFirstStep ? "View all deals first" : "Back"}
               </Button>
 
               <Button
@@ -546,14 +577,12 @@ export function LandingPage({
               >
                 {activeStep === "ready"
                   ? "Show recommendations"
-                  : activeStep === "welcome"
-                    ? "Start shopping"
-                    : "Continue"}
+                  : "Continue"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
             <p className="mt-4 text-center text-xs text-gray-500">
-              Naki is not an AI assistant.
+              Prices from verified Ugandan sites· Updated daily
             </p>
           </section>
 
@@ -574,11 +603,6 @@ export function LandingPage({
               </div>
               <div className="space-y-3 text-sm">
                 <BriefRow
-                  label="Budget"
-                  value={budgetSummary}
-                  active={activeStep === "budget"}
-                />
-                <BriefRow
                   label="Categories"
                   value={
                     selectedCategories.length > 0
@@ -586,6 +610,11 @@ export function LandingPage({
                       : "Not selected"
                   }
                   active={activeStep === "categories"}
+                />
+                <BriefRow
+                  label="Budget"
+                  value={budgetSummary}
+                  active={activeStep === "budget"}
                 />
                 <BriefRow
                   label="Condition"

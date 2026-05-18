@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
 import feedbackAvatar from "@/assets/Feedback prompt.webp";
 import recommendationAvatar from "@/assets/Ready Prompt - transparent.webp";
@@ -52,7 +52,6 @@ export function RecommendationsPage({
   onEditBrief,
   onBrowseDeals,
   onSearchSubmit,
-  onViewMatchingProducts,
   isLoading,
   onMatchingDealsPageChange,
 }: {
@@ -72,10 +71,12 @@ export function RecommendationsPage({
   onEditBrief: () => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
-  onViewMatchingProducts: () => void;
   isLoading: boolean;
   onMatchingDealsPageChange: (page: number) => void;
 }) {
+  const [activeRecommendationsTab, setActiveRecommendationsTab] = useState<
+    "baskets" | "matches"
+  >("baskets");
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
     useState(false);
   const visibleBaskets = baskets
@@ -205,75 +206,92 @@ export function RecommendationsPage({
             onEditBrief={onEditBrief}
             onBrowseDeals={onBrowseDeals}
           />
-        ) : shouldShowSingleCategoryProducts ? (
-          <SingleCategoryRecommendationList
-            brief={brief}
-            deals={visibleMatchingDeals}
-            pagination={matchingDealsPagination}
-            setSelectedDeal={setSelectedDeal}
-            onPageChange={onMatchingDealsPageChange}
-          />
-        ) : baskets.length > 0 ? (
-          visibleBaskets.length > 0 ? (
-            <div className="space-y-5">
-              {visibleBaskets.map(({ basket, visibleItems }) => (
-                <RecommendationBasketView
-                  key={basket.id}
-                  basket={basket}
-                  visibleItems={visibleItems}
-                  setSelectedDeal={setSelectedDeal}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyRecommendations
-              title="No matches found"
-              body="No recommended products match your current search."
-              onEditBrief={onEditBrief}
-              onBrowseDeals={onBrowseDeals}
-              showActions={false}
-            />
-          )
         ) : (
-          <NoRecommendationMatches
-            brief={brief}
-            suggestedDeals={suggestedDeals}
-            setSelectedDeal={setSelectedDeal}
-            onEditBrief={onEditBrief}
-            onBrowseDeals={onBrowseDeals}
-          />
-        )}
-
-        {brief &&
-        brief.budgetMode !== "surprise" &&
-        !shouldShowSingleCategoryProducts &&
-        !isLoading &&
-        visibleMatchingDeals.length > 0 ? (
-          <section className="mt-6 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700">
-                  <ListChecks className="h-4 w-4" aria-hidden="true" />
-                  Full match list
-                </p>
-                <h2 className="mt-1 text-xl font-black text-gray-950">
-                  All matching products in your budget
-                </h2>
-                <p className="mt-1 text-sm leading-6 text-gray-600">
-                  See every matching product, grouped by category.
-                </p>
+          <section className="space-y-5">
+            <div className="rounded-3xl border border-emerald-900/10 bg-white/80 p-2 shadow-sm shadow-emerald-950/5">
+              <div className="grid grid-cols-2 gap-2">
+                <RecommendationTabButton
+                  active={activeRecommendationsTab === "baskets"}
+                  icon={<ShoppingBasket className="h-4 w-4" aria-hidden="true" />}
+                  label="Baskets"
+                  count={visibleBaskets.length}
+                  onClick={() => setActiveRecommendationsTab("baskets")}
+                />
+                <RecommendationTabButton
+                  active={activeRecommendationsTab === "matches"}
+                  icon={<ListChecks className="h-4 w-4" aria-hidden="true" />}
+                  label="All matches"
+                  count={matchingDealsPagination.totalCount}
+                  onClick={() => setActiveRecommendationsTab("matches")}
+                />
               </div>
-              <Button
-                type="button"
-                className="h-11 w-full cursor-pointer rounded-full bg-gray-950 px-5 font-bold text-white hover:bg-emerald-700 sm:w-auto"
-                onClick={onViewMatchingProducts}
-              >
-                View all matches
-                <ArrowRight className="h-4 w-4" />
-              </Button>
             </div>
+
+            {activeRecommendationsTab === "baskets" ? (
+              <p className="px-1 text-sm leading-6 text-gray-600">
+                Baskets are suggested product combinations that fit your brief,
+                budget, and condition preferences.
+              </p>
+            ) : (
+              <p className="px-1 text-sm leading-6 text-gray-600">
+                All matches shows every product that fits your selected
+                categories, budget, and condition preferences.
+              </p>
+            )}
+
+            {activeRecommendationsTab === "baskets" ? (
+              shouldShowSingleCategoryProducts ? (
+                <SingleCategoryRecommendationList
+                  brief={brief}
+                  deals={visibleMatchingDeals}
+                  pagination={matchingDealsPagination}
+                  setSelectedDeal={setSelectedDeal}
+                  onPageChange={onMatchingDealsPageChange}
+                />
+              ) : baskets.length > 0 ? (
+                visibleBaskets.length > 0 ? (
+                  <div className="space-y-5">
+                    {visibleBaskets.map(({ basket, visibleItems }) => (
+                      <RecommendationBasketView
+                        key={basket.id}
+                        basket={basket}
+                        visibleItems={visibleItems}
+                        setSelectedDeal={setSelectedDeal}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyRecommendations
+                    title="No matches found"
+                    body="No recommended products match your current search."
+                    onEditBrief={onEditBrief}
+                    onBrowseDeals={onBrowseDeals}
+                    showActions={false}
+                  />
+                )
+              ) : (
+                <NoRecommendationMatches
+                  brief={brief}
+                  suggestedDeals={suggestedDeals}
+                  setSelectedDeal={setSelectedDeal}
+                  onEditBrief={onEditBrief}
+                  onBrowseDeals={onBrowseDeals}
+                />
+              )
+            ) : (
+              <RecommendationAllMatchesList
+                brief={brief}
+                deals={visibleMatchingDeals}
+                pagination={matchingDealsPagination}
+                page={matchingDealsPagination.page}
+                setSelectedDeal={setSelectedDeal}
+                onPageChange={onMatchingDealsPageChange}
+                onEditBrief={onEditBrief}
+                onBrowseDeals={onBrowseDeals}
+              />
+            )}
           </section>
-        ) : null}
+        )}
 
         {brief ? (
           <>
@@ -295,6 +313,116 @@ export function RecommendationsPage({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function RecommendationTabButton({
+  active,
+  icon,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  icon: ReactNode;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-black transition ${
+        active
+          ? "bg-gray-950 text-white shadow-md shadow-gray-950/15"
+          : "bg-white text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
+      }`}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {icon}
+      <span>{label}</span>
+      <span
+        className={`rounded-full px-2 py-0.5 text-[0.68rem] ${
+          active ? "bg-white/15 text-white" : "bg-gray-100 text-gray-500"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function RecommendationAllMatchesList({
+  brief,
+  deals,
+  pagination,
+  page,
+  setSelectedDeal,
+  onPageChange,
+  onEditBrief,
+  onBrowseDeals,
+}: {
+  brief: ShoppingBrief;
+  deals: EnrichedDeal[];
+  pagination: PaginationMeta;
+  page: number;
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onPageChange: (page: number) => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+}) {
+  const categorySections = getMatchingDealSections(deals, brief);
+  const safePage = Math.min(Math.max(page, 1), pagination.pageCount);
+
+  return categorySections.length > 0 ? (
+    <div className="space-y-6">
+      {categorySections.map((section) => (
+        <section
+          key={section.category}
+          className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5"
+        >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700">
+                <ListChecks className="h-4 w-4" aria-hidden="true" />
+                Full match list
+              </p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-950">
+                {section.category}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {section.deals.length}{" "}
+                {section.deals.length === 1 ? "match" : "matches"}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {section.deals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                onSelect={setSelectedDeal}
+                showActionIcon={false}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+      <Pagination
+        page={safePage}
+        pageCount={pagination.pageCount}
+        onPageChange={onPageChange}
+      />
+    </div>
+  ) : (
+    <EmptyRecommendations
+      title="No matches found"
+      body="No products match your current brief and search."
+      onEditBrief={onEditBrief}
+      onBrowseDeals={onBrowseDeals}
+      showActions={false}
+    />
   );
 }
 
@@ -937,7 +1065,7 @@ function RecommendationRow({
           className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700 sm:w-auto"
           onClick={() => onSelect(deal)}
         >
-          View & Compare
+          View all offers
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
@@ -1209,7 +1337,7 @@ function SuggestionCard({
             className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700"
             onClick={() => onSelect(deal)}
           >
-            View & Compare
+            View all offers
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

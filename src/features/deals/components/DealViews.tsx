@@ -443,7 +443,7 @@ export function DealCard({
               onSelect(deal);
             }}
           >
-            View & Compare
+            View all offers
             {showActionIcon ? <ArrowRight className="h-4 w-4" /> : null}
           </Button>
         </div>

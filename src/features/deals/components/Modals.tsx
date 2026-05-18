@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePostHog } from "@posthog/react";
 import { ArrowRight, Check, Search, Star, Tags, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -320,6 +320,177 @@ export function PriceDropAlertModal({
               </h3>
               <p className="mt-2 text-sm leading-6 text-gray-600">
                 We will let you know when the price drops for this product.
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <Button
+                onClick={onClose}
+                className="cursor-pointer bg-green-600 text-white hover:bg-green-700"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function UnavailableProductModal({
+  open,
+  onClose,
+  searchQuery,
+}: {
+  open: boolean;
+  onClose: () => void;
+  searchQuery: string;
+}) {
+  const posthog = usePostHog();
+  const requestedProductInputRef = useRef<HTMLInputElement | null>(null);
+  const [formData, setFormData] = useState({
+    requestedProduct: searchQuery,
+    email: "",
+    note: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setFormData({
+      requestedProduct: searchQuery,
+      email: "",
+      note: "",
+    });
+    setSubmitted(false);
+
+    window.setTimeout(() => {
+      requestedProductInputRef.current?.focus();
+      requestedProductInputRef.current?.select();
+    }, 0);
+  }, [open, searchQuery]);
+
+  if (!open) return null;
+
+  const handleChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    posthog.capture("unavailable_product_requested", {
+      search_query: searchQuery,
+      requested_product: formData.requestedProduct.trim(),
+      email: formData.email.trim(),
+      note: formData.note.trim(),
+      source: "search_no_results",
+    });
+
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b px-6 py-5">
+          <div>
+            <p className="text-sm font-medium text-green-600">
+              Product request
+            </p>
+            <h2 className="mt-1 text-2xl font-bold text-gray-900">
+              Want us to watch for it?
+            </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Tell us what you were looking for and we will let you know when it
+              becomes available.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-4 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Close unavailable product modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {!submitted ? (
+          <form onSubmit={handleSubmit} className="space-y-4 px-6 py-6">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Product name or details
+              </label>
+              <Input
+                ref={requestedProductInputRef}
+                value={formData.requestedProduct}
+                onChange={(event) =>
+                  handleChange("requestedProduct", event.target.value)
+                }
+                placeholder="Example: iPhone 13 Pro Max"
+                required
+                className="h-11"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(event) => handleChange("email", event.target.value)}
+                placeholder="Enter your email address"
+                required
+                className="h-11"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Extra details
+              </label>
+              <textarea
+                value={formData.note}
+                onChange={(event) => handleChange("note", event.target.value)}
+                placeholder="Brand, model, condition, budget, or anything else we should know..."
+                rows={4}
+                className="w-full rounded-md border border-gray-200 px-3 py-3 text-base outline-none focus:border-green-500 md:text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-11 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-11 cursor-pointer bg-green-600 text-white hover:bg-green-700"
+              >
+                Notify me
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="px-6 py-8">
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white">
+                <Check className="h-5 w-5" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                You&apos;re on the list
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                We&apos;ll let you know when this product becomes available.
               </p>
             </div>
 

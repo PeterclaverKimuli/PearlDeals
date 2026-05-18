@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePostHog } from "@posthog/react";
 import { ArrowRight, Check, Grid2X2, Menu, Search, Tags, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -44,10 +44,15 @@ export function AppHeader({
 }) {
   const posthog = usePostHog();
   const brandClasses = "flex items-center gap-2 text-3xl font-bold";
-  const trimmedSearch = search.trim();
+  const [draftSearch, setDraftSearch] = useState(search);
+  const hasSubmittedSearch = search.trim().length > 0;
+
+  useEffect(() => {
+    setDraftSearch(search);
+  }, [search]);
 
   const updateSearch = (value: string, source: "input" | "quick_chip") => {
-    setSearch(value);
+    setDraftSearch(value);
 
     if (source === "input" && value.length > 2) {
       posthog.capture("search_used", {
@@ -60,6 +65,8 @@ export function AppHeader({
     const nextQuery = query.trim();
     if (!nextQuery) return;
 
+    setDraftSearch(nextQuery);
+    setSearch(nextQuery);
     posthog.capture("search_used", {
       query: nextQuery,
       source,
@@ -102,7 +109,7 @@ export function AppHeader({
           className="rounded-[1.35rem] bg-gradient-to-r from-amber-300 via-lime-200 to-emerald-500 p-0.5 shadow-lg shadow-emerald-950/10 transition focus-within:shadow-xl focus-within:shadow-amber-950/15"
           onSubmit={(event) => {
             event.preventDefault();
-            submitSearch(search, "submit");
+            submitSearch(draftSearch, "submit");
           }}
         >
           <div className="rounded-[1.2rem] bg-white p-1.5 ring-1 ring-emerald-950/5">
@@ -111,20 +118,23 @@ export function AppHeader({
                 <Search className="h-4 w-4" />
               </span>
               <Input
-                value={search}
+                value={draftSearch}
                 onChange={(e) => updateSearch(e.target.value, "input")}
                 placeholder="Search phones, laptops, stores..."
                 className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-0 pr-2 text-base font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0 md:text-sm"
               />
-              {trimmedSearch && typeof resultCount === "number" ? (
+              {hasSubmittedSearch && typeof resultCount === "number" ? (
                 <span className="hidden shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900 min-[420px]:inline-flex">
                   {resultCount} matches
                 </span>
               ) : null}
-              {search ? (
+              {draftSearch ? (
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
+                  onClick={() => {
+                    setDraftSearch("");
+                    setSearch("");
+                  }}
                   className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-500 transition duration-200 hover:bg-gray-200 hover:text-gray-950 focus-visible:ring-3 focus-visible:ring-emerald-600/30"
                   aria-label="Clear search"
                 >
@@ -132,7 +142,7 @@ export function AppHeader({
                 </button>
               ) : null}
             </div>
-            {trimmedSearch && typeof resultCount === "number" ? (
+            {hasSubmittedSearch && typeof resultCount === "number" ? (
               <div className="mt-1 px-2 min-[420px]:hidden">
                 <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">
                   {resultCount} matches
@@ -151,7 +161,7 @@ export function AppHeader({
                 submitSearch(quickSearch, "quick_chip");
               }}
               className={`h-7 cursor-pointer rounded-full border px-3 text-xs font-bold transition ${
-                search === quickSearch
+                draftSearch === quickSearch
                   ? "border-emerald-600 bg-emerald-600 text-white"
                   : "border-emerald-200 bg-white/80 text-emerald-800 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-900"
               }`}

@@ -403,6 +403,13 @@ export default function DealsUI() {
     () => new Set(behavioralCategories.map((category) => category.name)),
     [],
   );
+  const nakiCategories = useMemo(
+    () =>
+      visibleCategories.length > 0
+        ? visibleCategories
+        : getVisibleCategories(dealsWithDiscounts),
+    [dealsWithDiscounts, visibleCategories],
+  );
 
   const navigateTo = (path: string) => {
     if (typeof window !== "undefined" && window.location.pathname !== path) {
@@ -423,6 +430,9 @@ export default function DealsUI() {
     if (!trimmedQuery) return;
 
     const path = `/search?q=${encodeURIComponent(trimmedQuery)}`;
+    setIsSearchLoading(true);
+    setSearchResults([]);
+    setSearchPagination(initialPagination);
     setSearch(trimmedQuery);
     if (typeof window !== "undefined" && window.location.pathname + window.location.search !== path) {
       window.history.pushState({}, "", path);
@@ -483,7 +493,7 @@ export default function DealsUI() {
   ) {
     return (
       <LandingPage
-        categories={visibleCategories}
+        categories={nakiCategories}
         deals={dealsWithDiscounts}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onCompleteBrief={handleCompleteBrief}
@@ -493,7 +503,7 @@ export default function DealsUI() {
             ? "ready"
             : routePath === "/naki/budget"
               ? "budget"
-              : "welcome"
+              : "categories"
         }
       />
     );
@@ -579,7 +589,6 @@ export default function DealsUI() {
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}
-        onViewMatchingProducts={() => navigateTo("/recommendations/matches")}
         isLoading={isRecommendationsLoading}
         onMatchingDealsPageChange={setProductPage}
       />
