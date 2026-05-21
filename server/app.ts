@@ -2,6 +2,13 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z } from "zod";
 import {
+  clearAdminSessionCookie,
+  createAdminSessionCookie,
+  getAdminRouteSegment,
+  isAdminAuthenticated,
+  isAdminTokenValid,
+} from "./adminAuth.js";
+import {
   getCategoriesPayload,
   getHomepagePayload,
   getRecommendationsPayload,
@@ -14,6 +21,10 @@ const shoppingBriefSchema = z.object({
   categories: z.array(z.string()),
   conditions: z.array(z.enum(["New", "Refurbished", "Used", "All"])),
   budgetMode: z.enum(["manual", "surprise"]).optional(),
+});
+
+const adminLoginSchema = z.object({
+  token: z.string(),
 });
 
 export function buildApp() {
@@ -30,6 +41,41 @@ export function buildApp() {
     service: "pearldeals-api",
     timestamp: new Date().toISOString(),
   }));
+
+  app.get("/api/admin/session", async (request) => ({
+    authenticated: isAdminAuthenticated(request),
+    adminPath: `/${getAdminRouteSegment()}/admin`,
+  }));
+
+  app.post("/api/admin/session", async (request, reply) => {
+    const parsedLogin = adminLoginSchema.safeParse(request.body);
+    if (!parsedLogin.success || !isAdminTokenValid(parsedLogin.data.token)) {
+      return reply.code(401).send({ error: "Invalid admin token" });
+    }
+
+    reply.header("Set-Cookie", createAdminSessionCookie(parsedLogin.data.token));
+    return {
+      authenticated: true,
+      adminPath: `/${getAdminRouteSegment()}/admin`,
+    };
+  });
+
+  app.delete("/api/admin/session", async (_request, reply) => {
+    reply.header("Set-Cookie", clearAdminSessionCookie());
+    return { authenticated: false };
+  });
+
+  app.get("/api/admin/health", async (request, reply) => {
+    if (!isAdminAuthenticated(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return {
+      status: "ok",
+      service: "pearldeals-admin-api",
+      timestamp: new Date().toISOString(),
+    };
+  });
 
   app.get("/api/deals", async () => {
     const deals = await loadDeals(app.log);

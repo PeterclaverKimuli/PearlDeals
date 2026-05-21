@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { AdminPage } from "@/features/admin/AdminPage";
 import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
 import { HomePage } from "@/features/deals/components/HomePage";
@@ -130,6 +131,8 @@ function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
 }
 
 const dealsPath = "/deals";
+const adminRouteSegment = import.meta.env.VITE_ADMIN_ROUTE_SEGMENT ?? "23234";
+const adminPath = `/${adminRouteSegment}/admin`;
 
 function getSearchQueryFromLocation() {
   if (typeof window === "undefined") return "";
@@ -152,6 +155,9 @@ export default function DealsUI() {
   const [isViewingAllProducts, setIsViewingAllProducts] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<EnrichedDeal | null>(null);
+  const [restoreBasketShopModalId, setRestoreBasketShopModalId] = useState<
+    number | null
+  >(null);
   const [search, setSearch] = useState(() => getSearchQueryFromLocation());
   const [bannerSrc, setBannerSrc] = useState(
     "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop",
@@ -410,6 +416,11 @@ export default function DealsUI() {
         : getVisibleCategories(dealsWithDiscounts),
     [dealsWithDiscounts, visibleCategories],
   );
+  const isAdminRoute = routePath === adminPath;
+
+  if (isAdminRoute) {
+    return <AdminPage />;
+  }
 
   const navigateTo = (path: string) => {
     if (typeof window !== "undefined" && window.location.pathname !== path) {
@@ -476,6 +487,11 @@ export default function DealsUI() {
   const handleCompleteBrief = (brief: ShoppingBrief) => {
     setShoppingBrief(brief);
     navigateTo("/recommendations");
+  };
+
+  const selectBasketDeal = (basketId: number, deal: EnrichedDeal) => {
+    setRestoreBasketShopModalId(basketId);
+    setSelectedDeal(deal);
   };
 
   const scrollToTopDeals = () => {
@@ -586,6 +602,9 @@ export default function DealsUI() {
         setSelectedCategory={selectCategory}
         visibleCategories={visibleCategories}
         setSelectedDeal={setSelectedDeal}
+        onSelectBasketDeal={selectBasketDeal}
+        restoreBasketShopModalId={restoreBasketShopModalId}
+        onBasketShopModalRestored={() => setRestoreBasketShopModalId(null)}
         onEditBrief={() => navigateTo(shoppingBrief ? "/brief" : "/naki")}
         onBrowseDeals={() => navigateTo(dealsPath)}
         onSearchSubmit={navigateToSearch}

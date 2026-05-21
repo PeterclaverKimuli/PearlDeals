@@ -404,8 +404,8 @@ export function UnavailableProductModal({
               Want us to watch for it?
             </h2>
             <p className="mt-2 text-sm text-gray-500">
-              Tell us what you were looking for and we will let you know when it
-              becomes available.
+              The product is not available right now. Please provide us with
+              more information and we will let you know once it is available.
             </p>
           </div>
           <button
@@ -438,6 +438,19 @@ export function UnavailableProductModal({
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
+                Extra details
+              </label>
+              <textarea
+                value={formData.note}
+                onChange={(event) => handleChange("note", event.target.value)}
+                placeholder="Brand, model, condition, budget, or anything else we should know..."
+                rows={4}
+                className="w-full rounded-md border border-gray-200 px-3 py-3 text-base outline-none focus:border-green-500 md:text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Email address
               </label>
               <Input
@@ -447,19 +460,6 @@ export function UnavailableProductModal({
                 placeholder="Enter your email address"
                 required
                 className="h-11"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Extra details
-              </label>
-              <textarea
-                value={formData.note}
-                onChange={(event) => handleChange("note", event.target.value)}
-                placeholder="Brand, model, condition, budget, or anything else we should know..."
-                rows={4}
-                className="w-full rounded-md border border-gray-200 px-3 py-3 text-base outline-none focus:border-green-500 md:text-sm"
               />
             </div>
 

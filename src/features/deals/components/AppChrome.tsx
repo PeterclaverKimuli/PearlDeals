@@ -45,7 +45,12 @@ export function AppHeader({
   const posthog = usePostHog();
   const brandClasses = "flex items-center gap-2 text-3xl font-bold";
   const [draftSearch, setDraftSearch] = useState(search);
-  const hasSubmittedSearch = search.trim().length > 0;
+  const trimmedDraftSearch = draftSearch.trim();
+  const trimmedSearch = search.trim();
+  const hasDraftSearch = trimmedDraftSearch.length > 0;
+  const hasSubmittedSearch =
+    trimmedSearch.length > 0 && trimmedDraftSearch === trimmedSearch;
+  const shouldShowSearchButton = hasDraftSearch && !hasSubmittedSearch;
 
   useEffect(() => {
     setDraftSearch(search);
@@ -139,6 +144,16 @@ export function AppHeader({
                   aria-label="Clear search"
                 >
                   <X className="h-4 w-4" />
+                </button>
+              ) : null}
+              {shouldShowSearchButton ? (
+                <button
+                  type="submit"
+                  className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-full bg-gray-950 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/30"
+                  aria-label={`Search for ${trimmedDraftSearch}`}
+                >
+                  <span className="hidden min-[360px]:inline">Search</span>
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               ) : null}
             </div>

@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 import { usePostHog } from "@posthog/react";
 import feedbackAvatar from "@/assets/Feedback prompt.webp";
 import recommendationAvatar from "@/assets/Ready Prompt - transparent.webp";
@@ -49,6 +55,9 @@ export function RecommendationsPage({
   setSelectedCategory,
   visibleCategories,
   setSelectedDeal,
+  onSelectBasketDeal,
+  restoreBasketShopModalId,
+  onBasketShopModalRestored,
   onEditBrief,
   onBrowseDeals,
   onSearchSubmit,
@@ -68,6 +77,9 @@ export function RecommendationsPage({
   setSelectedCategory: (category: string | null) => void;
   visibleCategories: CategoryItem[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
+  onSelectBasketDeal: (basketId: number, deal: EnrichedDeal) => void;
+  restoreBasketShopModalId: number | null;
+  onBasketShopModalRestored: () => void;
   onEditBrief: () => void;
   onBrowseDeals: () => void;
   onSearchSubmit: (query: string) => void;
@@ -257,6 +269,9 @@ export function RecommendationsPage({
                         basket={basket}
                         visibleItems={visibleItems}
                         setSelectedDeal={setSelectedDeal}
+                        onSelectBasketDeal={onSelectBasketDeal}
+                        restoreBasketShopModalId={restoreBasketShopModalId}
+                        onBasketShopModalRestored={onBasketShopModalRestored}
                       />
                     ))}
                   </div>
@@ -652,10 +667,16 @@ function RecommendationBasketView({
   basket,
   visibleItems,
   setSelectedDeal,
+  onSelectBasketDeal,
+  restoreBasketShopModalId,
+  onBasketShopModalRestored,
 }: {
   basket: RecommendationBasket;
   visibleItems: RecommendationMatch[];
   setSelectedDeal: (deal: EnrichedDeal) => void;
+  onSelectBasketDeal: (basketId: number, deal: EnrichedDeal) => void;
+  restoreBasketShopModalId: number | null;
+  onBasketShopModalRestored: () => void;
 }) {
   const posthog = usePostHog();
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
@@ -702,14 +723,26 @@ function RecommendationBasketView({
       category: deal.category,
       price: deal.bestDeal.price,
       site: deal.bestDeal.site,
+      source: "basket_shop_modal_product",
     });
     setIsShopModalOpen(false);
-    setSelectedDeal(deal);
+    onSelectBasketDeal(basket.id, deal);
   };
   const handleContinueToSite = () => {
     if (!pendingSite || typeof window === "undefined") return;
     window.location.href = pendingSite.url;
   };
+
+  useEffect(() => {
+    if (restoreBasketShopModalId !== basket.id) return;
+
+    setIsShopModalOpen(true);
+    onBasketShopModalRestored();
+  }, [
+    basket.id,
+    onBasketShopModalRestored,
+    restoreBasketShopModalId,
+  ]);
 
   return (
     <>
@@ -785,11 +818,12 @@ function RecommendationBasketView({
 
           <Button
             type="button"
-            className="mt-4 h-11 w-full cursor-pointer rounded-full bg-gray-950 font-bold text-white hover:bg-emerald-700"
+            className="mt-4 h-12 w-full cursor-pointer rounded-2xl bg-[linear-gradient(135deg,#facc15,#22c55e)] font-black text-gray-950 shadow-lg shadow-emerald-900/15 ring-1 ring-amber-200/70 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-900/20 focus-visible:ring-4 focus-visible:ring-amber-300/50"
             onClick={handleOpenShopModal}
           >
             <ShoppingBasket className="h-4 w-4" aria-hidden="true" />
             Shop basket
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </aside>
       </section>
@@ -873,8 +907,15 @@ function BasketShopModal({
         <div className="max-h-[65vh] space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
           {basket.items.map(({ deal }) => (
             <div
+              role="button"
+              tabIndex={0}
               key={deal.id}
-              className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
+              className="group/card grid cursor-pointer gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
+              onClick={() => onSelectDeal(deal)}
+              onKeyDown={(event) =>
+                handleProductSurfaceKeyDown(event, () => onSelectDeal(deal))
+              }
+              aria-label={`View comparison for ${deal.title}`}
             >
               <div className="flex h-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
                 <img
@@ -911,7 +952,10 @@ function BasketShopModal({
                     <Button
                       type="button"
                       className="h-10 w-full cursor-pointer rounded-full bg-emerald-700 px-4 font-bold text-white hover:bg-emerald-800 sm:w-auto"
-                      onClick={() => onSiteClick(deal)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSiteClick(deal);
+                      }}
                     >
                       Go to store
                       <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -921,18 +965,17 @@ function BasketShopModal({
                       type="button"
                       disabled
                       className="h-10 w-full cursor-not-allowed rounded-full bg-gray-300 px-4 text-gray-500 sm:w-auto"
+                      onClick={(event) => event.stopPropagation()}
                     >
                       No link
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 w-full cursor-pointer rounded-full px-4 font-bold sm:w-auto"
-                    onClick={() => onSelectDeal(deal)}
+                  <span
+                    className="inline-flex h-10 w-full items-center justify-center rounded-full border border-gray-200 bg-white px-4 font-bold text-gray-950 transition-colors group-hover/card:border-emerald-200 group-hover/card:text-emerald-700 sm:w-auto"
+                    aria-hidden="true"
                   >
                     View comparison
-                  </Button>
+                  </span>
                 </div>
               </div>
             </div>
@@ -961,6 +1004,7 @@ function RecommendationRow({
   match: RecommendationMatch;
   onSelect: (deal: EnrichedDeal) => void;
 }) {
+  const posthog = usePostHog();
   const { deal, reasons } = match;
   const [areOtherStoresOpen, setAreOtherStoresOpen] = useState(false);
   const savingsAmount = getSavingsAmount(deal);
@@ -968,9 +1012,26 @@ function RecommendationRow({
     .filter((price) => !isSamePriceEntry(price, deal.bestDeal))
     .sort((a, b) => a.price - b.price);
   const otherStoresId = `other-stores-${deal.id}`;
+  const openComparison = () => {
+    posthog.capture("product_opened", {
+      product: deal.title,
+      category: deal.category,
+      source: "recommendation_row",
+    });
+    onSelect(deal);
+  };
 
   return (
-    <article className="grid gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center">
+    <article
+      role="button"
+      tabIndex={0}
+      className="group/card grid cursor-pointer gap-3 rounded-3xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center"
+      onClick={openComparison}
+      onKeyDown={(event) =>
+        handleProductSurfaceKeyDown(event, openComparison)
+      }
+      aria-label={`Compare prices for ${deal.title}`}
+    >
       <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
         <img
           src={deal.image || imageFallback}
@@ -1024,7 +1085,10 @@ function RecommendationRow({
               className="flex w-full cursor-pointer items-center justify-between gap-2 text-left font-bold text-gray-600"
               aria-expanded={areOtherStoresOpen}
               aria-controls={otherStoresId}
-              onClick={() => setAreOtherStoresOpen((isOpen) => !isOpen)}
+              onClick={(event) => {
+                event.stopPropagation();
+                setAreOtherStoresOpen((isOpen) => !isOpen);
+              }}
             >
               <span>
                 Other stores ({comparisonPrices.length})
@@ -1060,14 +1124,13 @@ function RecommendationRow({
             ) : null}
           </div>
         ) : null}
-        <Button
-          type="button"
-          className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700 sm:w-auto"
-          onClick={() => onSelect(deal)}
+        <span
+          className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700 sm:w-auto"
+          aria-hidden="true"
         >
-          View all offers
+          Compare prices
           <ArrowRight className="h-4 w-4" />
-        </Button>
+        </span>
       </div>
     </article>
   );
@@ -1081,6 +1144,17 @@ function isSamePriceEntry(price: PriceEntry, other: PriceEntry) {
     (price.status ?? "") === (other.status ?? "") &&
     (price.url ?? "") === (other.url ?? "")
   );
+}
+
+function handleProductSurfaceKeyDown(
+  event: KeyboardEvent<HTMLElement>,
+  onOpen: () => void,
+) {
+  if (event.target !== event.currentTarget) return;
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  onOpen();
 }
 
 function SummaryAmount({
@@ -1283,6 +1357,7 @@ function SuggestionCard({
   deal: EnrichedDeal;
   onSelect: (deal: EnrichedDeal) => void;
 }) {
+  const posthog = usePostHog();
   const condition = deal.bestDeal.status || "Unknown";
   const priceMatches = deal.bestDeal.price <= brief.budget;
   const categoryMatches = brief.categories.includes(deal.category);
@@ -1290,9 +1365,22 @@ function SuggestionCard({
     condition !== "Unknown" &&
     (brief.conditions.includes("All") ||
       brief.conditions.some((selectedCondition) => selectedCondition === condition));
+  const openComparison = () => {
+    posthog.capture("product_opened", {
+      product: deal.title,
+      category: deal.category,
+      source: "recommendation_suggestion_card",
+    });
+    onSelect(deal);
+  };
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl">
+    <button
+      type="button"
+      className="group/card flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
+      onClick={openComparison}
+      aria-label={`Compare prices for ${deal.title}`}
+    >
       <div className="flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50">
         <img
           src={deal.image || imageFallback}
@@ -1332,17 +1420,16 @@ function SuggestionCard({
         </div>
 
         <div className="mt-auto pt-4">
-          <Button
-            type="button"
-            className="w-full cursor-pointer rounded-full bg-gray-950 text-white hover:bg-emerald-700"
-            onClick={() => onSelect(deal)}
+          <span
+            className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700"
+            aria-hidden="true"
           >
-            View all offers
+            Compare prices
             <ArrowRight className="h-4 w-4" />
-          </Button>
+          </span>
         </div>
       </div>
-    </article>
+    </button>
   );
 }
 

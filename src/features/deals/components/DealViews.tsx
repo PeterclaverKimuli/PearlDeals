@@ -192,14 +192,14 @@ export function DealDetails({
                             <button
                               type="button"
                               onClick={() => handleSiteClick(p.url, p.site)}
-                              className={`mt-2 inline-flex w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-white md:mt-0 md:w-auto md:max-w-[11rem] md:px-4 ${
+                              className={`mt-2 inline-flex h-11 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none md:mt-0 md:w-auto md:max-w-[12rem] ${
                                 isBest
-                                  ? "bg-emerald-700 shadow-lg shadow-emerald-900/20 hover:bg-emerald-800"
-                                  : "bg-gray-950 hover:bg-emerald-700"
+                                  ? "bg-emerald-700 shadow-emerald-900/25 ring-1 ring-emerald-500/20 hover:bg-emerald-800 hover:shadow-lg hover:shadow-emerald-900/30"
+                                  : "bg-gray-950 ring-1 ring-gray-900/10 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-900/20"
                               }`}
                             >
                               {isBest ? (
-                                <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+                                <Flame className="h-4 w-4" aria-hidden="true" />
                               ) : null}
                               <span className="min-w-0 truncate">
                                 {isBest ? "Grab lowest price" : "Go to Site"}
@@ -221,6 +221,58 @@ export function DealDetails({
                 </div>
               </div>
 
+              <div className="mt-1 mb-4 flex items-center justify-end gap-2">
+                <div className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsWaitlistOpen(true)}
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none"
+                    aria-label="Add deal"
+                  >
+                    <PlusCircle className="h-7 w-7" />
+                  </button>
+                  <ActionPopover label="Found a better price, Post it" />
+                </div>
+
+                <div className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      posthog.capture("deal_shared", {
+                        product: deal.title,
+                        category: deal.category,
+                        price: deal.bestDeal?.price,
+                      });
+
+                      handleShare();
+                    }}
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none"
+                    aria-label="Share this deal"
+                  >
+                    <Share2 className="h-6 w-6" />
+                  </button>
+                  <ActionPopover label="Share this deal" />
+                </div>
+
+                <div className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => setLiked((prev) => !prev)}
+                    className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-4 focus-visible:ring-red-500/20 focus-visible:outline-none ${
+                      liked
+                        ? "border-red-200 bg-red-50 text-red-500"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                    }`}
+                    aria-label="Like this deal"
+                  >
+                    <Heart
+                      className={`h-6 w-6 transition ${liked ? "fill-current" : ""}`}
+                    />
+                  </button>
+                  <ActionPopover label="Like this deal" />
+                </div>
+              </div>
+
               <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-3">
@@ -239,60 +291,12 @@ export function DealDetails({
                   </div>
                   <Button
                     type="button"
-                    className="h-11 shrink-0 cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
+                    className="h-12 shrink-0 cursor-pointer rounded-full bg-amber-400 px-6 font-black text-gray-950 shadow-lg shadow-amber-900/15 ring-1 ring-amber-300 transition hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl hover:shadow-amber-900/20 focus-visible:ring-4 focus-visible:ring-amber-300/50"
                     onClick={handleOpenPriceDropAlert}
                   >
                     <BellRing className="h-4 w-4" aria-hidden="true" />
                     Notify me
                   </Button>
-                </div>
-              </div>
-
-              <div className="mt-1 mb-6 flex items-center justify-end gap-2">
-                <div className="group relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsWaitlistOpen(true)}
-                    className="flex h-10 w-10 cursor-pointer items-center justify-center"
-                    aria-label="Add deal"
-                  >
-                    <PlusCircle className="h-8 w-8 text-gray-400 hover:text-gray-600" />
-                  </button>
-                  <ActionPopover label="Found a better price, Post it" />
-                </div>
-
-                <div className="group relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      posthog.capture("deal_shared", {
-                        product: deal.title,
-                        category: deal.category,
-                        price: deal.bestDeal?.price,
-                      });
-
-                      handleShare();
-                    }}
-                    className="flex h-10 w-10 cursor-pointer items-center justify-center"
-                    aria-label="Share this deal"
-                  >
-                    <Share2 className="h-7 w-7 text-gray-400 hover:text-gray-600" />
-                  </button>
-                  <ActionPopover label="Share this deal" />
-                </div>
-
-                <div className="group relative">
-                  <button
-                    type="button"
-                    onClick={() => setLiked((prev) => !prev)}
-                    className="flex h-10 w-10 cursor-pointer items-center justify-center"
-                    aria-label="Like this deal"
-                  >
-                    <Heart
-                      className={`h-7 w-7 transition ${liked ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-500"}`}
-                    />
-                  </button>
-                  <ActionPopover label="Like this deal" />
                 </div>
               </div>
 
@@ -375,9 +379,22 @@ export function DealCard({
   const bestPrice = deal.bestDeal.price;
   const bestDeal = deal.bestDeal;
   const savingsAmount = getSavingsAmount(deal);
+  const openDeal = () => {
+    posthog.capture("product_opened", {
+      product: deal.title,
+      category: deal.category,
+      source: "product_card",
+    });
+    onSelect(deal);
+  };
 
   return (
-    <Card className="relative flex h-full gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white py-0 shadow-sm ring-0 transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/10">
+    <button
+      type="button"
+      onClick={openDeal}
+      className="group/card relative flex h-full w-full cursor-pointer flex-col gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white py-0 text-left text-sm shadow-sm ring-0 transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/10 focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
+      aria-label={`Compare prices for ${deal.title}`}
+    >
       <div className="absolute left-3 top-2 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-lg">
         Save {formatUGX(savingsAmount)}
       </div>
@@ -433,22 +450,16 @@ export function DealCard({
         </div>
 
         <div className="mt-auto pt-3">
-          <Button
-            className="h-10 w-full cursor-pointer rounded-full bg-gray-950 font-bold text-white hover:bg-emerald-700"
-            onClick={() => {
-              posthog.capture("product_opened", {
-                product: deal.title,
-                category: deal.category,
-              });
-              onSelect(deal);
-            }}
+          <span
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 font-bold whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700"
+            aria-hidden="true"
           >
-            View all offers
+            Compare prices
             {showActionIcon ? <ArrowRight className="h-4 w-4" /> : null}
-          </Button>
+          </span>
         </div>
       </CardContent>
-    </Card>
+    </button>
   );
 }
 
