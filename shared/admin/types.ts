@@ -92,3 +92,35 @@ export type AdminAuditEntry = {
   after: unknown;
   createdAt: string;
 };
+
+export type AdminScrapeProbeResult = {
+  scrapeable: boolean;
+  url: string;
+  merchantCandidate: string | null;
+  strategy: "known_adapter" | "generic" | "none";
+  title: string | null;
+  image: string | null;
+  price: number | null;
+  original: number | null;
+  status: string | null;
+  availability: string | null;
+  canonicalUrl: string | null;
+  warnings: string[];
+  errors: string[];
+};
+
+export type AdminCreateProductOfferInput = {
+  merchantName: string;
+  price: number;
+  original: number;
+  url: string;
+  status: string;
+  availability: string;
+};
+
+export type AdminCreateProductInput = {
+  title: string;
+  category: string;
+  image: string;
+  offers: AdminCreateProductOfferInput[];
+};

@@ -9,9 +9,12 @@ import {
   EyeOff,
   LockKeyhole,
   LogOut,
+  Plus,
+  Search,
   Power,
   PowerOff,
   RefreshCw,
+  Trash2,
   ShieldCheck,
   Store,
   Tags,
@@ -19,9 +22,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
+  AdminCreateProductOfferInput,
   AdminMerchantRow,
   AdminOfferRow,
   AdminProductRow,
+  AdminScrapeProbeResult,
   AdminScrapeRunRow,
   AdminSummary,
 } from "../../../shared/admin/types";
@@ -35,6 +40,11 @@ type ProductsResponse = { products: AdminProductRow[] };
 type OffersResponse = { offers: AdminOfferRow[] };
 type MerchantsResponse = { merchants: AdminMerchantRow[] };
 type ScrapeRunsResponse = { scrapeRuns: AdminScrapeRunRow[] };
+type ScrapeProbeResponse = { probe: AdminScrapeProbeResult };
+type CreateOfferDraft = AdminCreateProductOfferInput & {
+  probeUrl: string;
+  probeStatus: string;
+};
 
 type AdminDashboardData = {
   summary: AdminSummary;
@@ -44,7 +54,13 @@ type AdminDashboardData = {
   scrapeRuns: AdminScrapeRunRow[];
 };
 
-type AdminDashboardTab = "products" | "merchants" | "offers" | "scrape-runs";
+type AdminDashboardTab =
+  | "products"
+  | "merchants"
+  | "offers"
+  | "scrape-runs"
+  | "scrape-probe"
+  | "add-product";
 type ProductSortKey = "updated" | "title" | "category" | "visibility" | "offers";
 type MerchantSortKey = "name" | "enabled" | "offers" | "failed";
 type OfferSortKey = "updated" | "product" | "merchant" | "price" | "scrape";
@@ -55,6 +71,8 @@ const dashboardTabs: { id: AdminDashboardTab; label: string }[] = [
   { id: "merchants", label: "Merchants" },
   { id: "offers", label: "Recent Offers" },
   { id: "scrape-runs", label: "Recent Scrape Runs" },
+  { id: "scrape-probe", label: "Scrape Probe" },
+  { id: "add-product", label: "Add Product" },
 ];
 
 function getErrorMessage(error: unknown) {
@@ -267,6 +285,27 @@ function FilterToolbar({
       </label>
     </div>
   );
+}
+
+function getHostname(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function createEmptyOfferDraft(): CreateOfferDraft {
+  return {
+    probeUrl: "",
+    probeStatus: "Not checked",
+    merchantName: "",
+    price: 0,
+    original: 0,
+    url: "",
+    status: "New",
+    availability: "unknown",
+  };
 }
 
 function PageControls({
@@ -541,6 +580,21 @@ function AdminDashboard({
 }) {
   const [activeTab, setActiveTab] = useState<AdminDashboardTab>("products");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [probeUrl, setProbeUrl] = useState("");
+  const [probeResult, setProbeResult] = useState<AdminScrapeProbeResult | null>(
+    null,
+  );
+  const [isProbeLoading, setIsProbeLoading] = useState(false);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createCategory, setCreateCategory] = useState("");
+  const [createImage, setCreateImage] = useState("");
+  const [createOffers, setCreateOffers] = useState<CreateOfferDraft[]>(() => [
+    createEmptyOfferDraft(),
+    createEmptyOfferDraft(),
+    createEmptyOfferDraft(),
+  ]);
+  const [pendingProbeIndex, setPendingProbeIndex] = useState<number | null>(null);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [merchantSearch, setMerchantSearch] = useState("");
   const [offerSearch, setOfferSearch] = useState("");
@@ -743,6 +797,143 @@ function AdminDashboard({
     }
   }
 
+  async function runScrapeProbe(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsProbeLoading(true);
+    setProbeResult(null);
+
+    try {
+      const response = await fetch("/api/admin/scrape-probe", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: probeUrl }),
+      });
+      const payload = await readJson<ScrapeProbeResponse>(response);
+      setProbeResult(payload.probe);
+    } catch (error) {
+      window.alert(getErrorMessage(error));
+    } finally {
+      setIsProbeLoading(false);
+    }
+  }
+
+  function updateCreateOffer(index: number, patch: Partial<CreateOfferDraft>) {
+    setCreateOffers((offers) =>
+      offers.map((offer, offerIndex) =>
+        offerIndex === index ? { ...offer, ...patch } : offer,
+      ),
+    );
+  }
+
+  async function probeCreateOffer(index: number) {
+    const offer = createOffers[index];
+    if (!offer.probeUrl.trim()) return;
+
+    setPendingProbeIndex(index);
+
+    try {
+      const response = await fetch("/api/admin/scrape-probe", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: offer.probeUrl }),
+      });
+      const payload = await readJson<ScrapeProbeResponse>(response);
+      const probe = payload.probe;
+
+      if (!probe.scrapeable) {
+        updateCreateOffer(index, {
+          probeStatus: probe.errors.join(" ") || "Probe failed",
+        });
+        return;
+      }
+
+      if (!createTitle && probe.title) setCreateTitle(probe.title);
+      if (!createImage && probe.image) setCreateImage(probe.image);
+
+      updateCreateOffer(index, {
+        probeStatus: "Scrapeable",
+        merchantName: probe.merchantCandidate ?? getHostname(probe.url),
+        price: probe.price ?? 0,
+        original: probe.original ?? probe.price ?? 0,
+        url: probe.canonicalUrl ?? probe.url,
+        status: probe.status ?? "New",
+        availability: probe.availability ?? "unknown",
+      });
+    } catch (error) {
+      updateCreateOffer(index, {
+        probeStatus: getErrorMessage(error),
+      });
+    } finally {
+      setPendingProbeIndex(null);
+    }
+  }
+
+  async function createProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsCreatingProduct(true);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirm: "create-product",
+          title: createTitle,
+          category: createCategory,
+          image: createImage,
+          offers: createOffers.map(
+            ({ merchantName, price, original, url, status, availability }) => ({
+              merchantName,
+              price,
+              original,
+              url,
+              status,
+              availability,
+            }),
+          ),
+        }),
+      });
+
+      await readJson<unknown>(response);
+      window.alert("Product created.");
+      setCreateTitle("");
+      setCreateCategory("");
+      setCreateImage("");
+      setCreateOffers([
+        createEmptyOfferDraft(),
+        createEmptyOfferDraft(),
+        createEmptyOfferDraft(),
+      ]);
+      await onRefresh();
+      setActiveTab("products");
+    } catch (error) {
+      window.alert(getErrorMessage(error));
+    } finally {
+      setIsCreatingProduct(false);
+    }
+  }
+
+  function addCreateOffer() {
+    setCreateOffers((offers) => [...offers, createEmptyOfferDraft()]);
+  }
+
+  function removeCreateOffer(index: number) {
+    setCreateOffers((offers) => {
+      if (offers.length <= 3) return offers;
+
+      return offers.filter((_, offerIndex) => offerIndex !== index);
+    });
+  }
+
   return (
     <div className="grid gap-5">
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -777,7 +968,7 @@ function AdminDashboard({
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm">
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {dashboardTabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
@@ -1173,6 +1364,320 @@ function AdminDashboard({
               </code>
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {activeTab === "scrape-probe" ? (
+        <section className="rounded-lg border border-cyan-200 bg-white/95 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-medium">Scrape Probe</h2>
+              <p className="text-sm text-muted-foreground">
+                Test a product URL before adding or scheduling a merchant.
+              </p>
+            </div>
+            {probeResult ? (
+              <StatusPill
+                value={probeResult.scrapeable ? "scrapeable" : "not scrapeable"}
+                tone={probeResult.scrapeable ? "green" : "red"}
+              />
+            ) : null}
+          </div>
+
+          <form
+            className="mt-4 grid gap-3 rounded-lg border border-cyan-100 bg-cyan-50/50 p-3 sm:grid-cols-[1fr_auto]"
+            onSubmit={runScrapeProbe}
+          >
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Product URL
+              <Input
+                value={probeUrl}
+                onChange={(event) => setProbeUrl(event.target.value)}
+                placeholder="https://merchant.example/product"
+                type="url"
+                required
+              />
+            </label>
+            <div className="flex items-end">
+              <Button type="submit" disabled={isProbeLoading}>
+                <Search aria-hidden="true" />
+                {isProbeLoading ? "Checking" : "Probe URL"}
+              </Button>
+            </div>
+          </form>
+
+          {probeResult ? (
+            <div className="mt-4 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+              <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                <h3 className="text-sm font-medium">Result</h3>
+                <dl className="mt-3 grid gap-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground">Merchant candidate</dt>
+                    <dd className="font-medium">
+                      {probeResult.merchantCandidate ?? "Unknown"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Strategy</dt>
+                    <dd className="font-medium">
+                      {probeResult.strategy.replace(/_/g, " ")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Availability</dt>
+                    <dd className="font-medium">
+                      {probeResult.availability ?? "Unknown"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Canonical URL</dt>
+                    <dd className="break-all font-medium">
+                      {probeResult.canonicalUrl ?? "Not found"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-lg border border-cyan-100 bg-white p-4">
+                <div className="grid gap-4 sm:grid-cols-[7rem_1fr]">
+                  <div className="aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {probeResult.image ? (
+                      <img
+                        src={probeResult.image}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-3 text-center text-xs text-muted-foreground">
+                        No image
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-medium">
+                      {probeResult.title ?? "No title extracted"}
+                    </h3>
+                    <div className="mt-3 grid gap-2 text-sm">
+                      <p>
+                        <span className="text-muted-foreground">Price:</span>{" "}
+                        {probeResult.price
+                          ? `UGX ${formatMoney(probeResult.price)}`
+                          : "Not found"}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Original:</span>{" "}
+                        {probeResult.original
+                          ? `UGX ${formatMoney(probeResult.original)}`
+                          : "Not found"}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Status:</span>{" "}
+                        {probeResult.status ?? "Not found"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {probeResult.warnings.length > 0 ? (
+                  <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    {probeResult.warnings.join(" ")}
+                  </div>
+                ) : null}
+
+                {probeResult.errors.length > 0 ? (
+                  <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                    {probeResult.errors.join(" ")}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {activeTab === "add-product" ? (
+        <section className="rounded-lg border border-fuchsia-200 bg-white/95 p-4 shadow-sm">
+          <div>
+            <h2 className="text-base font-medium">Add Product</h2>
+            <p className="text-sm text-muted-foreground">
+              Probe at least three merchant URLs, review the fields, then create the product.
+            </p>
+          </div>
+
+          <form className="mt-4 grid gap-5" onSubmit={createProduct}>
+            <div className="grid gap-3 rounded-lg border border-fuchsia-100 bg-fuchsia-50/40 p-3 md:grid-cols-3">
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Product title
+                <Input
+                  value={createTitle}
+                  onChange={(event) => setCreateTitle(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Category
+                <Input
+                  value={createCategory}
+                  onChange={(event) => setCreateCategory(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Image URL
+                <Input
+                  value={createImage}
+                  onChange={(event) => setCreateImage(event.target.value)}
+                  type="url"
+                  required
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-4">
+              {createOffers.map((offer, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <label className="grid flex-1 gap-1 text-sm font-medium text-slate-700">
+                      Offer {index + 1} URL
+                      <Input
+                        value={offer.probeUrl}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            probeUrl: event.target.value,
+                          })
+                        }
+                        type="url"
+                        required
+                      />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => probeCreateOffer(index)}
+                      disabled={pendingProbeIndex === index}
+                    >
+                      <Search aria-hidden="true" />
+                      {pendingProbeIndex === index ? "Checking" : "Probe"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => removeCreateOffer(index)}
+                      disabled={createOffers.length <= 3}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      Remove
+                    </Button>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <StatusPill
+                      value={offer.probeStatus}
+                      tone={
+                        offer.probeStatus === "Scrapeable"
+                          ? "green"
+                          : offer.probeStatus === "Not checked"
+                            ? "slate"
+                            : "red"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Merchant
+                      <Input
+                        value={offer.merchantName}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            merchantName: event.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Price
+                      <Input
+                        value={offer.price || ""}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            price: Number(event.target.value),
+                          })
+                        }
+                        type="number"
+                        min={1}
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Original
+                      <Input
+                        value={offer.original || ""}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            original: Number(event.target.value),
+                          })
+                        }
+                        type="number"
+                        min={1}
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Status
+                      <Input
+                        value={offer.status}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            status: event.target.value || "New",
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Availability
+                      <Input
+                        value={offer.availability}
+                        onChange={(event) =>
+                          updateCreateOffer(index, {
+                            availability: event.target.value || "unknown",
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Canonical URL
+                      <Input
+                        value={offer.url}
+                        onChange={(event) =>
+                          updateCreateOffer(index, { url: event.target.value })
+                        }
+                        type="url"
+                        required
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Button type="button" variant="outline" onClick={addCreateOffer}>
+                <Plus aria-hidden="true" />
+                Add Offer
+              </Button>
+              <Button type="submit" disabled={isCreatingProduct}>
+                <Tags aria-hidden="true" />
+                {isCreatingProduct ? "Creating" : "Create Product"}
+              </Button>
+            </div>
+          </form>
         </section>
       ) : null}
     </div>

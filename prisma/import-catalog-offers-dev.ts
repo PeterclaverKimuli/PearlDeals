@@ -95,7 +95,7 @@ async function main() {
       price: mapping.price,
       original: mapping.original ?? mapping.price,
       url: mapping.url,
-      status: mapping.status,
+      status: mapping.status ?? "New",
       canonicalUrl: mapping.url,
     };
 

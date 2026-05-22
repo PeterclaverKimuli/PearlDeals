@@ -17,10 +17,12 @@ import {
   getAdminSummary,
 } from "./adminData.js";
 import {
+  createAdminProduct,
   setMerchantEnabled,
   setOfferHidden,
   setProductHidden,
 } from "./adminMutations.js";
+import { probeScrapeUrl } from "./scrapeProbe.js";
 import {
   getCategoriesPayload,
   getHomepagePayload,
@@ -44,6 +46,24 @@ const adminConfirmationSchema = z.object({
 });
 const adminMerchantEnabledSchema = adminConfirmationSchema.extend({
   enabled: z.boolean(),
+});
+const adminScrapeProbeSchema = z.object({
+  url: z.string().trim().min(1),
+});
+const adminCreateProductOfferSchema = z.object({
+  merchantName: z.string(),
+  price: z.number().int().positive(),
+  original: z.number().int().positive(),
+  url: z.string(),
+  status: z.string(),
+  availability: z.string(),
+});
+const adminCreateProductSchema = z.object({
+  confirm: z.literal("create-product"),
+  title: z.string(),
+  category: z.string(),
+  image: z.string(),
+  offers: z.array(adminCreateProductOfferSchema).min(3),
 });
 
 function requireAdminRequest(request: AdminRequestLike) {
@@ -114,6 +134,24 @@ export function buildApp() {
     }
 
     return { products: await getAdminProducts() };
+  });
+
+  app.post("/api/admin/products", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    const parsedBody = adminCreateProductSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "Invalid product creation payload." });
+    }
+
+    return {
+      created: await createAdminProduct({
+        input: parsedBody.data,
+        actor: "admin",
+      }),
+    };
   });
 
   app.get("/api/admin/offers", async (request, reply) => {
@@ -262,6 +300,21 @@ export function buildApp() {
       };
     },
   );
+
+  app.post("/api/admin/scrape-probe", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    const parsedBody = adminScrapeProbeSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "A URL is required." });
+    }
+
+    return {
+      probe: await probeScrapeUrl(parsedBody.data.url),
+    };
+  });
 
   app.get("/api/deals", async () => {
     const deals = await loadDeals(app.log);

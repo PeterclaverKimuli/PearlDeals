@@ -1,4 +1,4 @@
-import type { CategoryItem, RawDeal } from "./types";
+import type { CategoryItem, RawDeal } from "./types.js";
 
 export function makeSvgDataUri(label: string, bg: string, fg = "#111827") {
   const svg = `

@@ -74,7 +74,7 @@ async function main() {
             price.price,
             price.original,
             price.url ?? null,
-            price.status ?? null,
+            price.status ?? "New",
           ],
         );
       }

@@ -110,7 +110,7 @@ Production scrape/import jobs stay outside the web UI.
 
 ## Phase 5: Scrape Probe
 
-Status: planned.
+Status: implemented.
 
 Add an admin-only URL probe that checks whether a merchant product URL can be scraped before saving anything.
 
@@ -148,7 +148,7 @@ Output includes:
 
 ## Phase 6: Product Creation Flow
 
-Status: planned.
+Status: implemented.
 
 Add the admin product creation workflow.
 
@@ -158,7 +158,7 @@ Add the admin product creation workflow.
 - Each URL runs through scrape probe.
 - Successful probes prefill offer fields.
 - Admin can manually correct extracted values.
-- Product can only be created once exactly 3 valid visible merchant offers are present.
+- Product can only be created once at least 3 valid visible merchant offers are present; admins may add more offers when available.
 - Product and offers are created in one transaction.
 - Creation writes an `AdminAuditLog` entry.
 
@@ -188,6 +188,6 @@ Before treating admin v1 as ready:
 - Admin and storefront stay in the same repo.
 - The hidden route is fixed per environment and stored in env.
 - `ADMIN_TOKEN` is the real security mechanism.
-- Product creation requires exactly 3 visible merchant offers in v1.
+- Product creation requires at least 3 visible merchant offers in v1.
 - Generic scraping is for admin-assisted discovery, not guaranteed scheduled scraping.
 - Scheduled production scraping remains limited to reviewed merchants.

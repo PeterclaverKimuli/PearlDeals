@@ -940,7 +940,7 @@ function BasketShopModal({
                     <Store className="h-3.5 w-3.5" aria-hidden="true" />
                     {deal.bestDeal.site}
                   </span>
-                  <span>{deal.bestDeal.status || "Condition unknown"}</span>
+                  <span>{deal.bestDeal.status || "New"}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:min-w-44 sm:items-end">
@@ -1112,7 +1112,7 @@ function RecommendationRow({
                         {price.site}
                       </span>
                       <span className="block truncate text-[0.68rem] text-gray-500">
-                        {price.status || "Condition unknown"}
+                        {price.status || "New"}
                       </span>
                     </span>
                     <span className="shrink-0 font-semibold text-gray-900">
@@ -1358,11 +1358,11 @@ function SuggestionCard({
   onSelect: (deal: EnrichedDeal) => void;
 }) {
   const posthog = usePostHog();
-  const condition = deal.bestDeal.status || "Unknown";
+  const condition = deal.bestDeal.status || "New";
   const priceMatches = deal.bestDeal.price <= brief.budget;
   const categoryMatches = brief.categories.includes(deal.category);
   const conditionMatches =
-    condition !== "Unknown" &&
+    condition !== "New" &&
     (brief.conditions.includes("All") ||
       brief.conditions.some((selectedCondition) => selectedCondition === condition));
   const openComparison = () => {

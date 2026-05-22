@@ -67,7 +67,7 @@ function productToDeal(product: ProductWithOffers): Deal {
       price: offer.price,
       original: offer.original,
       url: offer.url ?? undefined,
-      status: offer.status ?? undefined,
+      status: offer.status ?? "New",
     })),
   };
 }

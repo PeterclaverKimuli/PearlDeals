@@ -26,6 +26,10 @@ function isConditionChoice(value: string | undefined): value is ConditionChoice 
   return !!value && conditionChoices.includes(value as ConditionChoice);
 }
 
+function normalizeStatus(value: string | undefined) {
+  return value?.trim() || "New";
+}
+
 function normalizeText(value: string | undefined, fallback: string) {
   if (!value) return fallback;
 
@@ -58,7 +62,7 @@ export function normalizeDeals(input: RawDeal[]): Deal[] {
                   ? price.original
                   : price.price || 0,
               url: price.url,
-              status: price.status,
+              status: normalizeStatus(price.status),
             }))
         : [];
 

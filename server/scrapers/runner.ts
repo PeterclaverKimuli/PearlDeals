@@ -33,6 +33,10 @@ function getFailureMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown scrape error";
 }
 
+function getOfferStatus(result: ScrapeResult, offer: ScrapeOffer) {
+  return result.condition ?? offer.status ?? "New";
+}
+
 async function scrapeOffer({
   adapter,
   offer,
@@ -128,7 +132,7 @@ export async function runScrapeForOffers({
           ? {
               price: result.price,
               original: result.original ?? result.price,
-              status: result.condition ?? offer.status,
+              status: getOfferStatus(result, offer),
               availability: result.availability,
               canonicalUrl: result.canonicalUrl ?? offer.canonicalUrl,
               lastScrapedAt: completedAt,
@@ -150,7 +154,7 @@ export async function runScrapeForOffers({
             price: result.price,
             original: result.original ?? result.price,
             availability: result.availability,
-            status: result.condition ?? offer.status,
+            status: getOfferStatus(result, offer),
             sourceUrl: result.canonicalUrl ?? offer.url,
           },
         });

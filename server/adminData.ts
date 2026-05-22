@@ -144,7 +144,7 @@ export async function getAdminOffers(): Promise<AdminOfferRow[]> {
     price: offer.price,
     original: offer.original,
     url: offer.url,
-    status: offer.status,
+    status: offer.status ?? "New",
     availability: offer.availability,
     scrapeStatus: offer.scrapeStatus,
     failureCount: offer.failureCount,
