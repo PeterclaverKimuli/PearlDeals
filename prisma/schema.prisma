@@ -11,11 +11,13 @@ model Product {
   title     String
   image     String
   category  String
+  hidden    Boolean  @default(false)
   offers    Offer[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category])
+  @@index([hidden])
 }
 
 model Merchant {
@@ -115,4 +117,19 @@ model ScrapeJob {
   @@index([offerId])
   @@index([merchantId])
   @@index([status])
+}
+
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  targetType String
+  targetId   String?
+  actor      String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

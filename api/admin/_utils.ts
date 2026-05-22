@@ -13,6 +13,7 @@ type AdminResponse = Parameters<typeof sendJson>[0];
 export type AdminApiRequest = AdminRequestLike & {
   method?: string;
   body?: unknown;
+  query?: Record<string, string | string[] | undefined>;
 };
 
 function getTokenFromBody(body: unknown) {
@@ -60,4 +61,71 @@ export function handleAdminSession(req: AdminApiRequest, res: AdminResponse) {
   }
 
   sendJson(res, 405, { error: "Method not allowed" });
+}
+
+export async function handleAdminGet(
+  req: AdminApiRequest,
+  res: AdminResponse,
+  loadPayload: () => Promise<unknown>,
+) {
+  if (req.method && req.method !== "GET") {
+    sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    sendJson(res, 200, await loadPayload());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Admin request failed";
+    sendJson(res, 500, { error: message });
+  }
+}
+
+export function getRequestNumberParam(req: AdminApiRequest, name: string) {
+  const value = req.query?.[name];
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(rawValue);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid ${name}.`);
+  }
+
+  return parsed;
+}
+
+export function getBodyRecord(body: unknown) {
+  return body && typeof body === "object"
+    ? (body as Record<string, unknown>)
+    : {};
+}
+
+export function requireConfirmation(body: unknown, expected: string) {
+  const record = getBodyRecord(body);
+
+  if (record.confirm !== expected) {
+    throw new Error(`Confirmation "${expected}" is required.`);
+  }
+}
+
+export async function handleAdminPost(
+  req: AdminApiRequest,
+  res: AdminResponse,
+  mutate: () => Promise<unknown>,
+) {
+  if (req.method !== "POST") {
+    sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    sendJson(res, 200, await mutate());
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Admin mutation failed";
+    sendJson(res, 400, { error: message });
+  }
 }

@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { AdminPage } from "@/features/admin/AdminPage";
 import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
@@ -133,6 +140,8 @@ function runSelfChecks(deals: EnrichedDeal[]): SelfCheck[] {
 const dealsPath = "/deals";
 const adminRouteSegment = import.meta.env.VITE_ADMIN_ROUTE_SEGMENT ?? "23234";
 const adminPath = `/${adminRouteSegment}/admin`;
+const themeStorageKey = "pearldeals:theme";
+type ThemePreference = "light" | "dark";
 
 function getSearchQueryFromLocation() {
   if (typeof window === "undefined") return "";
@@ -140,7 +149,12 @@ function getSearchQueryFromLocation() {
   return new URLSearchParams(window.location.search).get("q") ?? "";
 }
 
+function getInitialTheme(): ThemePreference {
+  return "light";
+}
+
 export default function DealsUI() {
+  const [theme] = useState<ThemePreference>(() => getInitialTheme());
   const [routePath, setRoutePath] = useState(() =>
     typeof window === "undefined" ? "/" : window.location.pathname,
   );
@@ -193,6 +207,16 @@ export default function DealsUI() {
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isRecommendationsLoading, setIsRecommendationsLoading] =
     useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.classList.toggle("dark", theme === "dark");
+    root.style.colorScheme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  const renderWithTheme = (content: ReactNode) => content;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -419,7 +443,7 @@ export default function DealsUI() {
   const isAdminRoute = routePath === adminPath;
 
   if (isAdminRoute) {
-    return <AdminPage />;
+    return renderWithTheme(<AdminPage />);
   }
 
   const navigateTo = (path: string) => {
@@ -507,7 +531,7 @@ export default function DealsUI() {
     routePath === "/naki/budget" ||
     routePath === "/brief"
   ) {
-    return (
+    return renderWithTheme(
       <LandingPage
         categories={nakiCategories}
         deals={dealsWithDiscounts}
@@ -519,24 +543,24 @@ export default function DealsUI() {
             ? "ready"
             : routePath === "/naki/budget"
               ? "budget"
-              : "categories"
+          : "categories"
         }
-      />
+      />,
     );
   }
 
   if (selectedDeal) {
-    return (
+    return renderWithTheme(
       <DealDetails
         key={selectedDeal.id}
         deal={selectedDeal}
         onBack={() => setSelectedDeal(null)}
-      />
+      />,
     );
   }
 
   if (routePath === "/search") {
-    return (
+    return renderWithTheme(
       <SearchResultsPage
         search={search}
         setSearch={setSearch}
@@ -554,12 +578,12 @@ export default function DealsUI() {
         page={productPage}
         pageCount={searchPagination.pageCount}
         onPageChange={setProductPage}
-      />
+      />,
     );
   }
 
   if (selectedCategory || selectedBehavioralCategory || isViewingAllProducts) {
-    return (
+    return renderWithTheme(
       <CategoryPage
         search={search}
         setSearch={setSearch}
@@ -582,12 +606,12 @@ export default function DealsUI() {
         isLoading={isHomeLoading}
         page={productPage}
         onPageChange={setProductPage}
-      />
+      />,
     );
   }
 
   if (routePath === "/recommendations") {
-    return (
+    return renderWithTheme(
       <RecommendationsPage
         brief={shoppingBrief}
         baskets={recommendationBaskets}
@@ -610,12 +634,12 @@ export default function DealsUI() {
         onSearchSubmit={navigateToSearch}
         isLoading={isRecommendationsLoading}
         onMatchingDealsPageChange={setProductPage}
-      />
+      />,
     );
   }
 
   if (routePath === "/recommendations/matches") {
-    return (
+    return renderWithTheme(
       <RecommendationMatchesPage
         brief={shoppingBrief}
         matchingDeals={matchingRecommendationDeals}
@@ -635,11 +659,11 @@ export default function DealsUI() {
         isLoading={isRecommendationsLoading}
         page={productPage}
         onPageChange={setProductPage}
-      />
+      />,
     );
   }
 
-  return (
+  return renderWithTheme(
     <HomePage
       search={search}
       setSearch={setSearch}
@@ -675,6 +699,6 @@ export default function DealsUI() {
       page={productPage}
       pageCount={filteredDealsPagination.pageCount}
       onPageChange={setProductPage}
-    />
+    />,
   );
 }

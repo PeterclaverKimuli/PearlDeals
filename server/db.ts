@@ -10,10 +10,22 @@ const visibleOfferWhere = {
   },
 };
 
-function getPrisma() {
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+
+function getDatabaseUrl() {
+  if (!isProductionRuntime() && process.env.DATABASE_URL_DEV) {
+    return process.env.DATABASE_URL_DEV;
+  }
+
+  return process.env.DATABASE_URL;
+}
+
+export function getPrisma() {
   if (prisma) return prisma;
 
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = getDatabaseUrl();
   if (!connectionString) {
     throw new Error("DATABASE_URL is not configured");
   }
@@ -31,6 +43,7 @@ type ProductWithOffers = {
   title: string;
   image: string;
   category: string;
+  hidden: boolean;
   offers: {
     site: string;
     price: number;
@@ -62,6 +75,7 @@ function productToDeal(product: ProductWithOffers): Deal {
 export async function getCatalogDeals(): Promise<Deal[]> {
   const products = await getPrisma().product.findMany({
     where: {
+      hidden: false,
       offers: {
         some: visibleOfferWhere,
       },

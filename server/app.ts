@@ -7,7 +7,20 @@ import {
   getAdminRouteSegment,
   isAdminAuthenticated,
   isAdminTokenValid,
+  type AdminRequestLike,
 } from "./adminAuth.js";
+import {
+  getAdminMerchants,
+  getAdminOffers,
+  getAdminProducts,
+  getAdminScrapeRuns,
+  getAdminSummary,
+} from "./adminData.js";
+import {
+  setMerchantEnabled,
+  setOfferHidden,
+  setProductHidden,
+} from "./adminMutations.js";
 import {
   getCategoriesPayload,
   getHomepagePayload,
@@ -26,6 +39,16 @@ const shoppingBriefSchema = z.object({
 const adminLoginSchema = z.object({
   token: z.string(),
 });
+const adminConfirmationSchema = z.object({
+  confirm: z.string(),
+});
+const adminMerchantEnabledSchema = adminConfirmationSchema.extend({
+  enabled: z.boolean(),
+});
+
+function requireAdminRequest(request: AdminRequestLike) {
+  return isAdminAuthenticated(request);
+}
 
 export function buildApp() {
   const app = Fastify({
@@ -66,7 +89,7 @@ export function buildApp() {
   });
 
   app.get("/api/admin/health", async (request, reply) => {
-    if (!isAdminAuthenticated(request)) {
+    if (!requireAdminRequest(request)) {
       return reply.code(401).send({ error: "Admin authentication required" });
     }
 
@@ -76,6 +99,169 @@ export function buildApp() {
       timestamp: new Date().toISOString(),
     };
   });
+
+  app.get("/api/admin/summary", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return getAdminSummary();
+  });
+
+  app.get("/api/admin/products", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return { products: await getAdminProducts() };
+  });
+
+  app.get("/api/admin/offers", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return { offers: await getAdminOffers() };
+  });
+
+  app.get("/api/admin/merchants", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return { merchants: await getAdminMerchants() };
+  });
+
+  app.get("/api/admin/scrape-runs", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    return { scrapeRuns: await getAdminScrapeRuns() };
+  });
+
+  app.post<{ Params: { id: string } }>(
+    "/api/admin/products/:id/hide",
+    async (request, reply) => {
+      if (!requireAdminRequest(request)) {
+        return reply.code(401).send({ error: "Admin authentication required" });
+      }
+
+      const parsedBody = adminConfirmationSchema.safeParse(request.body);
+      if (!parsedBody.success || parsedBody.data.confirm !== "hide-product") {
+        return reply
+          .code(400)
+          .send({ error: 'Confirmation "hide-product" is required.' });
+      }
+
+      return {
+        product: await setProductHidden({
+          productId: Number(request.params.id),
+          hidden: true,
+          actor: "admin",
+        }),
+      };
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/admin/products/:id/unhide",
+    async (request, reply) => {
+      if (!requireAdminRequest(request)) {
+        return reply.code(401).send({ error: "Admin authentication required" });
+      }
+
+      const parsedBody = adminConfirmationSchema.safeParse(request.body);
+      if (!parsedBody.success || parsedBody.data.confirm !== "unhide-product") {
+        return reply
+          .code(400)
+          .send({ error: 'Confirmation "unhide-product" is required.' });
+      }
+
+      return {
+        product: await setProductHidden({
+          productId: Number(request.params.id),
+          hidden: false,
+          actor: "admin",
+        }),
+      };
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/admin/offers/:id/hide",
+    async (request, reply) => {
+      if (!requireAdminRequest(request)) {
+        return reply.code(401).send({ error: "Admin authentication required" });
+      }
+
+      const parsedBody = adminConfirmationSchema.safeParse(request.body);
+      if (!parsedBody.success || parsedBody.data.confirm !== "hide-offer") {
+        return reply
+          .code(400)
+          .send({ error: 'Confirmation "hide-offer" is required.' });
+      }
+
+      return {
+        offer: await setOfferHidden({
+          offerId: Number(request.params.id),
+          hidden: true,
+          actor: "admin",
+        }),
+      };
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/admin/offers/:id/unhide",
+    async (request, reply) => {
+      if (!requireAdminRequest(request)) {
+        return reply.code(401).send({ error: "Admin authentication required" });
+      }
+
+      const parsedBody = adminConfirmationSchema.safeParse(request.body);
+      if (!parsedBody.success || parsedBody.data.confirm !== "unhide-offer") {
+        return reply
+          .code(400)
+          .send({ error: 'Confirmation "unhide-offer" is required.' });
+      }
+
+      return {
+        offer: await setOfferHidden({
+          offerId: Number(request.params.id),
+          hidden: false,
+          actor: "admin",
+        }),
+      };
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/admin/merchants/:id/enabled",
+    async (request, reply) => {
+      if (!requireAdminRequest(request)) {
+        return reply.code(401).send({ error: "Admin authentication required" });
+      }
+
+      const parsedBody = adminMerchantEnabledSchema.safeParse(request.body);
+      if (
+        !parsedBody.success ||
+        parsedBody.data.confirm !== "set-merchant-enabled"
+      ) {
+        return reply
+          .code(400)
+          .send({ error: 'Confirmation "set-merchant-enabled" is required.' });
+      }
+
+      return {
+        merchant: await setMerchantEnabled({
+          merchantId: Number(request.params.id),
+          enabled: parsedBody.data.enabled,
+          actor: "admin",
+        }),
+      };
+    },
+  );
 
   app.get("/api/deals", async () => {
     const deals = await loadDeals(app.log);
