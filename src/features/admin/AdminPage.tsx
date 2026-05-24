@@ -1,6 +1,14 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   Activity,
+  AlertTriangle,
   Boxes,
   ChevronLeft,
   ChevronRight,
@@ -9,8 +17,10 @@ import {
   EyeOff,
   LockKeyhole,
   LogOut,
+  Pencil,
   Plus,
   Search,
+  Save,
   Power,
   PowerOff,
   RefreshCw,
@@ -18,9 +28,12 @@ import {
   ShieldCheck,
   Store,
   Tags,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { imageFallback } from "../deals/data";
+import { formatMerchantDisplayName } from "../deals/utils";
 import type {
   AdminCreateProductOfferInput,
   AdminMerchantRow,
@@ -28,6 +41,7 @@ import type {
   AdminProductRow,
   AdminScrapeProbeResult,
   AdminScrapeRunRow,
+  AdminSimilarProduct,
   AdminSummary,
 } from "../../../shared/admin/types";
 
@@ -41,7 +55,9 @@ type OffersResponse = { offers: AdminOfferRow[] };
 type MerchantsResponse = { merchants: AdminMerchantRow[] };
 type ScrapeRunsResponse = { scrapeRuns: AdminScrapeRunRow[] };
 type ScrapeProbeResponse = { probe: AdminScrapeProbeResult };
+type DuplicateCheckResponse = { similarProducts: AdminSimilarProduct[] };
 type CreateOfferDraft = AdminCreateProductOfferInput & {
+  id?: number;
   probeUrl: string;
   probeStatus: string;
 };
@@ -59,8 +75,8 @@ type AdminDashboardTab =
   | "merchants"
   | "offers"
   | "scrape-runs"
-  | "scrape-probe"
-  | "add-product";
+  | "scrape-probe";
+type ProductTab = "list" | "add";
 type ProductSortKey = "updated" | "title" | "category" | "visibility" | "offers";
 type MerchantSortKey = "name" | "enabled" | "offers" | "failed";
 type OfferSortKey = "updated" | "product" | "merchant" | "price" | "scrape";
@@ -72,7 +88,6 @@ const dashboardTabs: { id: AdminDashboardTab; label: string }[] = [
   { id: "offers", label: "Recent Offers" },
   { id: "scrape-runs", label: "Recent Scrape Runs" },
   { id: "scrape-probe", label: "Scrape Probe" },
-  { id: "add-product", label: "Add Product" },
 ];
 
 function getErrorMessage(error: unknown) {
@@ -99,10 +114,31 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
+function formatPreviewMoney(value: number) {
+  return `UGX ${formatMoney(value)}`;
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Not yet";
 
   return new Date(value).toLocaleString();
+}
+
+function decodeHtmlEntities(value: string) {
+  if (typeof window === "undefined") {
+    return value
+      .replace(/&quot;/g, '"')
+      .replace(/&#34;/g, '"')
+      .replace(/&#x22;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#x27;/gi, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+
+  const element = document.createElement("textarea");
+  element.innerHTML = value;
+  return element.value;
 }
 
 type StatusTone = "green" | "amber" | "red" | "blue" | "slate";
@@ -308,6 +344,77 @@ function createEmptyOfferDraft(): CreateOfferDraft {
   };
 }
 
+function ActionTooltip({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  const triggerRef = useRef<HTMLSpanElement | null>(null);
+  const [position, setPosition] = useState<{
+    left: number;
+    top: number;
+    placement: "top" | "bottom";
+  } | null>(null);
+
+  function showTooltip() {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const maxWidth = 260;
+    const gutter = 12;
+    const center = rect.left + rect.width / 2;
+    const left = Math.min(
+      Math.max(center, gutter + maxWidth / 2),
+      window.innerWidth - gutter - maxWidth / 2,
+    );
+    const placement = rect.top > 56 ? "top" : "bottom";
+
+    setPosition({
+      left,
+      top: placement === "top" ? rect.top - 8 : rect.bottom + 8,
+      placement,
+    });
+  }
+
+  function hideTooltip() {
+    setPosition(null);
+  }
+
+  return (
+    <span
+      ref={triggerRef}
+      className="inline-flex"
+      onBlur={hideTooltip}
+      onFocus={showTooltip}
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+    >
+      {children}
+      {position && typeof document !== "undefined"
+        ? createPortal(
+            <span
+              className="pointer-events-none fixed z-50 max-w-[260px] -translate-x-1/2 rounded-md border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg"
+              style={{
+                left: position.left,
+                top: position.top,
+                transform:
+                  position.placement === "top"
+                    ? "translate(-50%, -100%)"
+                    : "translateX(-50%)",
+              }}
+            >
+              {label}
+            </span>,
+            document.body,
+          )
+        : null}
+    </span>
+  );
+}
+
 function PageControls({
   page,
   pageCount,
@@ -330,31 +437,227 @@ function PageControls({
         Showing {firstItem}-{lastItem} of {formatNumber(totalItems)}
       </p>
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page <= 1}
-        >
-          <ChevronLeft aria-hidden="true" />
-          Previous
-        </Button>
+        <ActionTooltip label="Go to the previous page">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(Math.max(1, page - 1))}
+            disabled={page <= 1}
+          >
+            <ChevronLeft aria-hidden="true" />
+            Previous
+          </Button>
+        </ActionTooltip>
         <span className="min-w-16 text-center text-xs font-medium text-slate-500">
           {page} / {pageCount}
         </span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(Math.min(pageCount, page + 1))}
-          disabled={page >= pageCount}
-        >
-          Next
-          <ChevronRight aria-hidden="true" />
-        </Button>
+        <ActionTooltip label="Go to the next page">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+            disabled={page >= pageCount}
+          >
+            Next
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </ActionTooltip>
       </div>
     </div>
+  );
+}
+
+function AdminProductCardPreview({
+  title,
+  category,
+  image,
+  offers,
+}: {
+  title: string;
+  category: string;
+  image: string;
+  offers: CreateOfferDraft[];
+}) {
+  const previewTitle = title.trim() || "Untitled product";
+  const previewCategory = category.trim() || "Uncategorized";
+  const previewImage = image.trim() || imageFallback;
+  const previewOffers = offers
+    .map((offer) => ({
+      site: formatMerchantDisplayName(
+        (offer.merchantName || getHostname(offer.url)).trim(),
+      ),
+      price: Number(offer.price),
+      original: Number(offer.original || offer.price),
+      status: offer.status.trim() || "New",
+    }))
+    .filter((offer) => offer.site && Number.isInteger(offer.price) && offer.price > 0);
+  const bestPrice =
+    previewOffers.length > 0
+      ? Math.min(...previewOffers.map((offer) => offer.price))
+      : 0;
+  const bestOffer =
+    previewOffers.find((offer) => offer.price === bestPrice) ?? previewOffers[0];
+  const savings =
+    previewOffers.length > 0
+      ? Math.max(...previewOffers.map((offer) => offer.price)) - bestPrice
+      : 0;
+
+  return (
+    <aside className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+      <div className="mb-3">
+        <h3 className="text-sm font-medium text-slate-900">Preview</h3>
+        <p className="text-xs text-muted-foreground">
+          Updates as product details and offer prices change.
+        </p>
+      </div>
+
+      <div className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white py-0 text-left text-sm shadow-sm">
+        {previewOffers.length > 0 ? (
+          <div className="absolute left-3 top-2 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-lg">
+            Save {formatPreviewMoney(savings)}
+          </div>
+        ) : null}
+
+        <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+          <img
+            src={previewImage}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = imageFallback;
+            }}
+            className="h-full w-full px-4 pt-10 pb-4 object-contain"
+          />
+        </div>
+
+        <div className="flex flex-grow flex-col p-3 text-sm">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+            <h2 className="line-clamp-2 min-w-0 flex-1 text-base font-black leading-tight text-gray-950 md:text-lg">
+              {previewTitle}
+            </h2>
+          </div>
+
+          <p className="mb-2 text-xs font-semibold text-emerald-700">
+            {previewCategory}
+          </p>
+
+          {bestOffer ? (
+            <>
+              <div className="mb-3">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xl font-black text-emerald-700">
+                    {formatPreviewMoney(bestOffer.price)}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <span className="inline-flex items-center gap-1">
+                    <Store className="h-3.5 w-3.5" aria-hidden="true" />
+                    {bestOffer.site}
+                  </span>
+                  {bestOffer.status ? (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                      {bestOffer.status}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mb-3 space-y-2 rounded-2xl bg-gray-50 p-3">
+                {previewOffers.map((offer, index) => (
+                  <div
+                    key={`${offer.site}-${index}`}
+                    className="flex flex-wrap justify-between gap-2 text-sm"
+                  >
+                    <span className="flex items-center gap-1 text-gray-600">
+                      <span>{offer.site}</span>
+                      {offer.price === bestPrice ? (
+                        <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                          Best
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      className={`break-words text-right text-xs md:text-sm ${
+                        offer.price === bestPrice
+                          ? "font-semibold text-green-700"
+                          : ""
+                      }`}
+                    >
+                      {formatPreviewMoney(offer.price)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mb-3 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600">
+              Add offer prices to complete preview.
+            </div>
+          )}
+
+          <div className="mt-auto pt-3">
+            <span className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 font-bold whitespace-nowrap text-white">
+              Compare prices
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function AdminErrorModal({
+  title,
+  message,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  onClose: () => void;
+}) {
+  if (!message) return null;
+
+  const duplicateMatch = message.match(
+    /^(Similar product already exists|Product already exists):\s(.+?)\s\((.+)\)\.$/,
+  );
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <div
+        aria-modal="true"
+        className="w-full max-w-md rounded-lg border border-rose-200 bg-white p-5 text-left shadow-2xl"
+        role="dialog"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+            {duplicateMatch ? (
+              <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-700">
+                <p>{duplicateMatch[1]}:</p>
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-950">
+                  {duplicateMatch[2]}
+                </p>
+                <p className="text-xs text-slate-500">{duplicateMatch[3]}</p>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-slate-700">{message}</p>
+            )}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            <X aria-hidden="true" />
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -480,10 +783,12 @@ export function AdminPage() {
             <h1 className="text-2xl font-semibold tracking-normal">Admin</h1>
           </div>
           {isAuthenticated ? (
-            <Button type="button" variant="outline" onClick={handleLogout}>
-              <LogOut aria-hidden="true" />
-              Sign out
-            </Button>
+            <ActionTooltip label="End this admin session">
+              <Button type="button" variant="outline" onClick={handleLogout}>
+                <LogOut aria-hidden="true" />
+                Sign out
+              </Button>
+            </ActionTooltip>
           ) : null}
         </header>
 
@@ -507,15 +812,17 @@ export function AdminPage() {
                 </div>
               </div>
               <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={loadDashboard}
-                  disabled={isDashboardLoading}
-                >
-                  <RefreshCw aria-hidden="true" />
-                  Refresh
-                </Button>
+                <ActionTooltip label="Reload the latest admin dashboard data">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={loadDashboard}
+                    disabled={isDashboardLoading}
+                  >
+                    <RefreshCw aria-hidden="true" />
+                    Refresh
+                  </Button>
+                </ActionTooltip>
               </div>
             </div>
 
@@ -579,6 +886,7 @@ function AdminDashboard({
   onRefresh: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<AdminDashboardTab>("products");
+  const [productTab, setProductTab] = useState<ProductTab>("list");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [probeUrl, setProbeUrl] = useState("");
   const [probeResult, setProbeResult] = useState<AdminScrapeProbeResult | null>(
@@ -593,8 +901,16 @@ function AdminDashboard({
     createEmptyOfferDraft(),
     createEmptyOfferDraft(),
   ]);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editingOriginalTitle, setEditingOriginalTitle] = useState("");
+  const [editingOriginalCategory, setEditingOriginalCategory] = useState("");
   const [pendingProbeIndex, setPendingProbeIndex] = useState<number | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [createProductMessage, setCreateProductMessage] = useState("");
+  const [similarProducts, setSimilarProducts] = useState<AdminSimilarProduct[]>(
+    [],
+  );
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [merchantSearch, setMerchantSearch] = useState("");
   const [offerSearch, setOfferSearch] = useState("");
@@ -612,6 +928,19 @@ function AdminDashboard({
   const merchantPageSize = 6;
   const offerPageSize = 10;
   const scrapeRunPageSize = 6;
+  const categoryOptions = Array.from(
+    new Set(
+      dashboard.products
+        .map((product) => product.category.trim())
+        .filter(Boolean),
+    ),
+  ).sort((left, right) => left.localeCompare(right));
+  const visibleCategoryOptions =
+    createCategory && !categoryOptions.includes(createCategory)
+      ? [...categoryOptions, createCategory].sort((left, right) =>
+          left.localeCompare(right),
+        )
+      : categoryOptions;
   const filteredProducts = dashboard.products
     .filter((product) =>
       includesSearch(
@@ -764,6 +1093,66 @@ function AdminDashboard({
     setScrapeRunPage(1);
   }, [scrapeRunSearch, scrapeRunSort]);
 
+  useEffect(() => {
+    const title = createTitle.trim();
+    const category = createCategory.trim();
+    const isEditing = editingProductId !== null;
+    const titleOrCategoryChanged =
+      !isEditing ||
+      title !== editingOriginalTitle.trim() ||
+      category !== editingOriginalCategory.trim();
+
+    if (
+      activeTab !== "products" ||
+      productTab !== "add" ||
+      title.length < 4 ||
+      !titleOrCategoryChanged
+    ) {
+      setSimilarProducts([]);
+      setIsCheckingDuplicates(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setIsCheckingDuplicates(true);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/admin/products/check-duplicate", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            category,
+            excludeProductId: editingProductId ?? undefined,
+          }),
+        });
+        const payload = await readJson<DuplicateCheckResponse>(response);
+        if (isCurrent) setSimilarProducts(payload.similarProducts);
+      } catch {
+        if (isCurrent) setSimilarProducts([]);
+      } finally {
+        if (isCurrent) setIsCheckingDuplicates(false);
+      }
+    }, 900);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    activeTab,
+    productTab,
+    createTitle,
+    createCategory,
+    editingProductId,
+    editingOriginalTitle,
+    editingOriginalCategory,
+  ]);
+
   async function runAdminAction({
     actionKey,
     url,
@@ -828,6 +1217,54 @@ function AdminDashboard({
     );
   }
 
+  function resetProductForm() {
+    setEditingProductId(null);
+    setEditingOriginalTitle("");
+    setEditingOriginalCategory("");
+    setCreateTitle("");
+    setCreateCategory("");
+    setCreateImage("");
+    setCreateOffers([
+      createEmptyOfferDraft(),
+      createEmptyOfferDraft(),
+      createEmptyOfferDraft(),
+    ]);
+    setCreateProductMessage("");
+    setSimilarProducts([]);
+  }
+
+  function editProduct(product: AdminProductRow) {
+    const productOffers = dashboard.offers
+      .filter((offer) => offer.productId === product.id)
+      .map((offer): CreateOfferDraft => ({
+        id: offer.id,
+        probeUrl: offer.url ?? "",
+        probeStatus: "Loaded from catalog",
+        merchantName: offer.merchantName ?? offer.site,
+        price: offer.price,
+        original: offer.original,
+        url: offer.url ?? "",
+        status: offer.status || "New",
+        availability: offer.availability || "unknown",
+      }));
+    const paddedOffers = [...productOffers];
+    while (paddedOffers.length < 3) {
+      paddedOffers.push(createEmptyOfferDraft());
+    }
+
+    setEditingProductId(product.id);
+    setEditingOriginalTitle(product.title);
+    setEditingOriginalCategory(product.category);
+    setCreateTitle(product.title);
+    setCreateCategory(product.category);
+    setCreateImage(product.image);
+    setCreateOffers(paddedOffers);
+    setCreateProductMessage("");
+    setSimilarProducts([]);
+    setActiveTab("products");
+    setProductTab("add");
+  }
+
   async function probeCreateOffer(index: number) {
     const offer = createOffers[index];
     if (!offer.probeUrl.trim()) return;
@@ -853,7 +1290,7 @@ function AdminDashboard({
         return;
       }
 
-      if (!createTitle && probe.title) setCreateTitle(probe.title);
+      if (!createTitle && probe.title) setCreateTitle(decodeHtmlEntities(probe.title));
       if (!createImage && probe.image) setCreateImage(probe.image);
 
       updateCreateOffer(index, {
@@ -877,21 +1314,29 @@ function AdminDashboard({
   async function createProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsCreatingProduct(true);
+    setCreateProductMessage("");
+
+    const isEditing = editingProductId !== null;
 
     try {
-      const response = await fetch("/api/admin/products", {
+      const response = await fetch(
+        isEditing
+          ? `/api/admin/products/${editingProductId}/update`
+          : "/api/admin/products",
+        {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          confirm: "create-product",
+          confirm: isEditing ? "update-product" : "create-product",
           title: createTitle,
           category: createCategory,
           image: createImage,
           offers: createOffers.map(
-            ({ merchantName, price, original, url, status, availability }) => ({
+            ({ id, merchantName, price, original, url, status, availability }) => ({
+              id,
               merchantName,
               price,
               original,
@@ -901,22 +1346,17 @@ function AdminDashboard({
             }),
           ),
         }),
-      });
+        },
+      );
 
       await readJson<unknown>(response);
-      window.alert("Product created.");
-      setCreateTitle("");
-      setCreateCategory("");
-      setCreateImage("");
-      setCreateOffers([
-        createEmptyOfferDraft(),
-        createEmptyOfferDraft(),
-        createEmptyOfferDraft(),
-      ]);
+      window.alert(isEditing ? "Product updated." : "Product created.");
+      resetProductForm();
       await onRefresh();
       setActiveTab("products");
+      setProductTab("list");
     } catch (error) {
-      window.alert(getErrorMessage(error));
+      setCreateProductMessage(getErrorMessage(error));
     } finally {
       setIsCreatingProduct(false);
     }
@@ -936,6 +1376,12 @@ function AdminDashboard({
 
   return (
     <div className="grid gap-5">
+      <AdminErrorModal
+        title={editingProductId ? "Product update failed" : "Product creation failed"}
+        message={createProductMessage}
+        onClose={() => setCreateProductMessage("")}
+      />
+
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={<Boxes className="size-4" aria-hidden="true" />}
@@ -968,7 +1414,7 @@ function AdminDashboard({
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm">
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {dashboardTabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
@@ -996,6 +1442,35 @@ function AdminDashboard({
             <h2 className="text-base font-medium">Products</h2>
             <StatusPill value={`${formatNumber(filteredProducts.length)} shown`} />
           </div>
+          <div className="mt-4 grid gap-2 rounded-lg border border-sky-100 bg-sky-50/60 p-2 sm:w-fit sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setProductTab("list")}
+              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                productTab === "list"
+                  ? "border-sky-300 bg-white text-sky-900"
+                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
+              }`}
+            >
+              Product List
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetProductForm();
+                setProductTab("add");
+              }}
+              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                productTab === "add"
+                  ? "border-sky-300 bg-white text-sky-900"
+                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
+              }`}
+            >
+              Add/Edit Product
+            </button>
+          </div>
+          {productTab === "list" ? (
+            <>
           <FilterToolbar
             search={productSearch}
             searchLabel="Search title, category, ID, visibility"
@@ -1011,9 +1486,10 @@ function AdminDashboard({
             onSortChange={(value) => setProductSort(value as ProductSortKey)}
           />
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="border-b border-sky-100 bg-sky-50/60 text-xs text-sky-800">
                 <tr>
+                  <th className="py-2 pr-3 font-medium">Image</th>
                   <th className="py-2 pr-3 font-medium">Product</th>
                   <th className="py-2 pr-3 font-medium">Category</th>
                   <th className="py-2 pr-3 font-medium">Visibility</th>
@@ -1025,8 +1501,29 @@ function AdminDashboard({
               <tbody className="divide-y divide-slate-100">
                 {pagedProducts.map((product) => (
                   <tr key={product.id}>
+                    <td className="py-3 pr-3">
+                      <div className="h-14 w-14 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] font-medium text-slate-400">
+                            No image
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="max-w-[18rem] py-3 pr-3">
-                      <p className="truncate font-medium">{product.title}</p>
+                      <p className="max-w-[18rem] whitespace-normal break-words font-medium leading-snug">
+                        {product.title}
+                      </p>
                       <p className="text-xs text-muted-foreground">ID {product.id}</p>
                     </td>
                     <td className="py-3 pr-3">{product.category}</td>
@@ -1040,43 +1537,64 @@ function AdminDashboard({
                       {formatDate(product.updatedAt)}
                     </td>
                     <td className="py-3 pr-3">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={
-                          product.visibility === "hidden"
-                            ? "outline"
-                            : "destructive"
-                        }
-                        disabled={pendingAction === `product:${product.id}`}
-                        onClick={() =>
-                          runAdminAction({
-                            actionKey: `product:${product.id}`,
-                            url: `/api/admin/products/${product.id}/${
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ActionTooltip label="Edit this product and its offers">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => editProduct(product)}
+                          >
+                            <Pencil aria-hidden="true" />
+                            Edit
+                          </Button>
+                        </ActionTooltip>
+                        <ActionTooltip
+                          label={
+                            product.visibility === "hidden"
+                              ? "Make this product eligible for the public catalog"
+                              : "Hide this product from the public catalog"
+                          }
+                        >
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={
                               product.visibility === "hidden"
-                                ? "unhide"
-                                : "hide"
-                            }`,
-                            body: {
-                              confirm:
-                                product.visibility === "hidden"
-                                  ? "unhide-product"
-                                  : "hide-product",
-                            },
-                            prompt:
-                              product.visibility === "hidden"
-                                ? `Unhide product ${product.id}? It will only appear publicly if it has a visible offer.`
-                                : `Hide product ${product.id} from the public catalog?`,
-                          })
-                        }
-                      >
-                        {product.visibility === "hidden" ? (
-                          <Eye aria-hidden="true" />
-                        ) : (
-                          <EyeOff aria-hidden="true" />
-                        )}
-                        {product.visibility === "hidden" ? "Unhide" : "Hide"}
-                      </Button>
+                                ? "outline"
+                                : "destructive"
+                            }
+                            disabled={pendingAction === `product:${product.id}`}
+                            onClick={() =>
+                              runAdminAction({
+                                actionKey: `product:${product.id}`,
+                                url: `/api/admin/products/${product.id}/${
+                                  product.visibility === "hidden"
+                                    ? "unhide"
+                                    : "hide"
+                                }`,
+                                body: {
+                                  confirm:
+                                    product.visibility === "hidden"
+                                      ? "unhide-product"
+                                      : "hide-product",
+                                },
+                                prompt:
+                                  product.visibility === "hidden"
+                                    ? `Unhide product ${product.id}? It will only appear publicly if it has a visible offer.`
+                                    : `Hide product ${product.id} from the public catalog?`,
+                              })
+                            }
+                          >
+                            {product.visibility === "hidden" ? (
+                              <Eye aria-hidden="true" />
+                            ) : (
+                              <EyeOff aria-hidden="true" />
+                            )}
+                            {product.visibility === "hidden" ? "Unhide" : "Hide"}
+                          </Button>
+                        </ActionTooltip>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1090,6 +1608,8 @@ function AdminDashboard({
             pageSize={productPageSize}
             onPageChange={setProductPage}
           />
+            </>
+          ) : null}
         </section>
       ) : null}
 
@@ -1144,32 +1664,40 @@ function AdminDashboard({
                         <StatusPill
                           value={merchant.enabled ? "enabled" : "disabled"}
                         />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={merchant.enabled ? "destructive" : "outline"}
-                          disabled={pendingAction === `merchant:${merchant.id}`}
-                          onClick={() =>
-                            runAdminAction({
-                              actionKey: `merchant:${merchant.id}`,
-                              url: `/api/admin/merchants/${merchant.id}/enabled`,
-                              body: {
-                                confirm: "set-merchant-enabled",
-                                enabled: !merchant.enabled,
-                              },
-                              prompt: merchant.enabled
-                                ? `Disable scraping for ${merchant.name}? Existing offers will not be hidden.`
-                                : `Enable scraping for ${merchant.name}?`,
-                            })
+                        <ActionTooltip
+                          label={
+                            merchant.enabled
+                              ? "Pause future scraping for this merchant"
+                              : "Allow this merchant to be scraped again"
                           }
                         >
-                          {merchant.enabled ? (
-                            <PowerOff aria-hidden="true" />
-                          ) : (
-                            <Power aria-hidden="true" />
-                          )}
-                          {merchant.enabled ? "Disable" : "Enable"}
-                        </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={merchant.enabled ? "destructive" : "outline"}
+                            disabled={pendingAction === `merchant:${merchant.id}`}
+                            onClick={() =>
+                              runAdminAction({
+                                actionKey: `merchant:${merchant.id}`,
+                                url: `/api/admin/merchants/${merchant.id}/enabled`,
+                                body: {
+                                  confirm: "set-merchant-enabled",
+                                  enabled: !merchant.enabled,
+                                },
+                                prompt: merchant.enabled
+                                  ? `Disable scraping for ${merchant.name}? Existing offers will not be hidden.`
+                                  : `Enable scraping for ${merchant.name}?`,
+                              })
+                            }
+                          >
+                            {merchant.enabled ? (
+                              <PowerOff aria-hidden="true" />
+                            ) : (
+                              <Power aria-hidden="true" />
+                            )}
+                            {merchant.enabled ? "Disable" : "Enable"}
+                          </Button>
+                        </ActionTooltip>
                       </div>
                     </td>
                   </tr>
@@ -1237,43 +1765,51 @@ function AdminDashboard({
                       {formatDate(offer.lastScrapedAt)}
                     </td>
                     <td className="py-3 pr-3">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={
+                      <ActionTooltip
+                        label={
                           offer.scrapeStatus === "failed"
-                            ? "outline"
-                            : "destructive"
-                        }
-                        disabled={pendingAction === `offer:${offer.id}`}
-                        onClick={() =>
-                          runAdminAction({
-                            actionKey: `offer:${offer.id}`,
-                            url: `/api/admin/offers/${offer.id}/${
-                              offer.scrapeStatus === "failed"
-                                ? "unhide"
-                                : "hide"
-                            }`,
-                            body: {
-                              confirm:
-                                offer.scrapeStatus === "failed"
-                                  ? "unhide-offer"
-                                  : "hide-offer",
-                            },
-                            prompt:
-                              offer.scrapeStatus === "failed"
-                                ? `Unhide offer ${offer.id}?`
-                                : `Hide offer ${offer.id} from the public catalog?`,
-                          })
+                            ? "Return this offer to public catalog eligibility"
+                            : "Hide this offer from the public catalog"
                         }
                       >
-                        {offer.scrapeStatus === "failed" ? (
-                          <Eye aria-hidden="true" />
-                        ) : (
-                          <EyeOff aria-hidden="true" />
-                        )}
-                        {offer.scrapeStatus === "failed" ? "Unhide" : "Hide"}
-                      </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={
+                            offer.scrapeStatus === "failed"
+                              ? "outline"
+                              : "destructive"
+                          }
+                          disabled={pendingAction === `offer:${offer.id}`}
+                          onClick={() =>
+                            runAdminAction({
+                              actionKey: `offer:${offer.id}`,
+                              url: `/api/admin/offers/${offer.id}/${
+                                offer.scrapeStatus === "failed"
+                                  ? "unhide"
+                                  : "hide"
+                              }`,
+                              body: {
+                                confirm:
+                                  offer.scrapeStatus === "failed"
+                                    ? "unhide-offer"
+                                    : "hide-offer",
+                              },
+                              prompt:
+                                offer.scrapeStatus === "failed"
+                                  ? `Unhide offer ${offer.id}?`
+                                  : `Hide offer ${offer.id} from the public catalog?`,
+                            })
+                          }
+                        >
+                          {offer.scrapeStatus === "failed" ? (
+                            <Eye aria-hidden="true" />
+                          ) : (
+                            <EyeOff aria-hidden="true" />
+                          )}
+                          {offer.scrapeStatus === "failed" ? "Unhide" : "Hide"}
+                        </Button>
+                      </ActionTooltip>
                     </td>
                   </tr>
                 ))}
@@ -1399,10 +1935,12 @@ function AdminDashboard({
               />
             </label>
             <div className="flex items-end">
-              <Button type="submit" disabled={isProbeLoading}>
-                <Search aria-hidden="true" />
-                {isProbeLoading ? "Checking" : "Probe URL"}
-              </Button>
+              <ActionTooltip label="Test whether this product URL can be scraped">
+                <Button type="submit" disabled={isProbeLoading}>
+                  <Search aria-hidden="true" />
+                  {isProbeLoading ? "Checking" : "Probe URL"}
+                </Button>
+              </ActionTooltip>
             </div>
           </form>
 
@@ -1495,13 +2033,29 @@ function AdminDashboard({
         </section>
       ) : null}
 
-      {activeTab === "add-product" ? (
+      {activeTab === "products" && productTab === "add" ? (
         <section className="rounded-lg border border-fuchsia-200 bg-white/95 p-4 shadow-sm">
           <div>
-            <h2 className="text-base font-medium">Add Product</h2>
-            <p className="text-sm text-muted-foreground">
-              Probe at least three merchant URLs, review the fields, then create the product.
-            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-base font-medium">
+                  {editingProductId
+                    ? `Edit Product ${editingProductId}`
+                    : "Add Product"}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Probe at least three merchant URLs, review the fields, then save the product.
+                </p>
+              </div>
+              {editingProductId ? (
+                <ActionTooltip label="Cancel editing and clear the form">
+                  <Button type="button" variant="outline" onClick={resetProductForm}>
+                    <X aria-hidden="true" />
+                    Cancel Edit
+                  </Button>
+                </ActionTooltip>
+              ) : null}
+            </div>
           </div>
 
           <form className="mt-4 grid gap-5" onSubmit={createProduct}>
@@ -1510,17 +2064,29 @@ function AdminDashboard({
                 Product title
                 <Input
                   value={createTitle}
-                  onChange={(event) => setCreateTitle(event.target.value)}
+                  onChange={(event) =>
+                    setCreateTitle(decodeHtmlEntities(event.target.value))
+                  }
                   required
                 />
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Category
-                <Input
+                <select
                   value={createCategory}
                   onChange={(event) => setCreateCategory(event.target.value)}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
                   required
-                />
+                >
+                  <option value="" disabled>
+                    Select category
+                  </option>
+                  {visibleCategoryOptions.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Image URL
@@ -1533,12 +2099,53 @@ function AdminDashboard({
               </label>
             </div>
 
-            <div className="grid gap-4">
-              {createOffers.map((offer, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
-                >
+            {isCheckingDuplicates ? (
+              <p className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+                Checking for similar products...
+              </p>
+            ) : null}
+
+            {similarProducts.length > 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle
+                    aria-hidden="true"
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <div className="grid gap-2">
+                    <p className="font-medium">
+                      This may already exist in the catalog.
+                    </p>
+                    <ul className="grid gap-1">
+                      {similarProducts.slice(0, 3).map((product) => (
+                        <li key={product.id}>
+                          {product.title} | {product.category} | ID{" "}
+                          {product.id} | {Math.round(product.score * 100)}%
+                          similar
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start">
+              <div className="lg:order-2">
+                <AdminProductCardPreview
+                  title={createTitle}
+                  category={createCategory}
+                  image={createImage}
+                  offers={createOffers}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:order-1">
+                {createOffers.map((offer, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
+                  >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <label className="grid flex-1 gap-1 text-sm font-medium text-slate-700">
                       Offer {index + 1} URL
@@ -1553,24 +2160,28 @@ function AdminDashboard({
                         required
                       />
                     </label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => probeCreateOffer(index)}
-                      disabled={pendingProbeIndex === index}
-                    >
-                      <Search aria-hidden="true" />
-                      {pendingProbeIndex === index ? "Checking" : "Probe"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => removeCreateOffer(index)}
-                      disabled={createOffers.length <= 3}
-                    >
-                      <Trash2 aria-hidden="true" />
-                      Remove
-                    </Button>
+                    <ActionTooltip label="Fetch product details from this offer URL">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => probeCreateOffer(index)}
+                        disabled={pendingProbeIndex === index}
+                      >
+                        <Search aria-hidden="true" />
+                        {pendingProbeIndex === index ? "Checking" : "Probe"}
+                      </Button>
+                    </ActionTooltip>
+                    <ActionTooltip label="Remove this offer row">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => removeCreateOffer(index)}
+                        disabled={createOffers.length <= 3}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        Remove
+                      </Button>
+                    </ActionTooltip>
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
@@ -1663,19 +2274,40 @@ function AdminDashboard({
                       />
                     </label>
                   </div>
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Button type="button" variant="outline" onClick={addCreateOffer}>
-                <Plus aria-hidden="true" />
-                Add Offer
-              </Button>
-              <Button type="submit" disabled={isCreatingProduct}>
-                <Tags aria-hidden="true" />
-                {isCreatingProduct ? "Creating" : "Create Product"}
-              </Button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <ActionTooltip label="Add another merchant offer for this product">
+                    <Button type="button" variant="outline" onClick={addCreateOffer}>
+                      <Plus aria-hidden="true" />
+                      Add Offer
+                    </Button>
+                  </ActionTooltip>
+                  <ActionTooltip
+                    label={
+                      editingProductId
+                        ? "Save changes to this product and its offers"
+                        : "Create the product and save its offers"
+                    }
+                  >
+                    <Button type="submit" disabled={isCreatingProduct}>
+                      {editingProductId ? (
+                        <Save aria-hidden="true" />
+                      ) : (
+                        <Tags aria-hidden="true" />
+                      )}
+                      {isCreatingProduct
+                        ? editingProductId
+                          ? "Saving"
+                          : "Creating"
+                        : editingProductId
+                          ? "Save Changes"
+                          : "Create Product"}
+                    </Button>
+                  </ActionTooltip>
+                </div>
+              </div>
             </div>
           </form>
         </section>

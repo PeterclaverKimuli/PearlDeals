@@ -4,6 +4,7 @@ import {
   getCanonicalUrl,
   getMetaContent,
   getUgxPrices,
+  normalizeDecodedText,
   stripHtml,
 } from "./scrapers/parsing.js";
 import { jijiAdapter } from "./scrapers/adapters/jiji.js";
@@ -240,10 +241,10 @@ function getImage(product: Record<string, unknown> | null, html: string) {
 
 function getGenericTitle(product: Record<string, unknown> | null, html: string) {
   const productName = asString(product?.name);
-  if (productName) return productName;
+  if (productName) return normalizeDecodedText(productName);
 
   const ogTitle = getMetaContent(html, "og:title");
-  if (ogTitle) return ogTitle;
+  if (ogTitle) return normalizeDecodedText(ogTitle);
 
   const headingMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   if (headingMatch?.[1]) return stripHtml(headingMatch[1]);

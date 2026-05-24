@@ -103,6 +103,14 @@ export function formatUGX(value: number) {
   }).format(value)}`;
 }
 
+export function formatMerchantDisplayName(value: string) {
+  return value
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\.[a-z]{2,}(?:\.[a-z]{2,})?$/i, "");
+}
+
 export function getSavingsAmount(deal: Pick<Deal, "prices">) {
   if (!deal.prices.length) return 0;
 

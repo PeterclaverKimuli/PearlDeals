@@ -2,6 +2,7 @@ import "./env.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import type { Deal } from "../shared/deals/types.js";
+import { normalizeDecodedText } from "./scrapers/parsing.js";
 
 let prisma: PrismaClient | null = null;
 const visibleOfferWhere = {
@@ -59,9 +60,9 @@ type ProductWithOffers = {
 function productToDeal(product: ProductWithOffers): Deal {
   return {
     id: product.id,
-    title: product.title,
+    title: normalizeDecodedText(product.title),
     image: product.image,
-    category: product.category,
+    category: normalizeDecodedText(product.category),
     prices: product.offers.map((offer) => ({
       site: offer.merchant?.name ?? offer.site,
       price: offer.price,

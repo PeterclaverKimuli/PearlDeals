@@ -18,9 +18,11 @@ import {
 } from "./adminData.js";
 import {
   createAdminProduct,
+  findSimilarProducts,
   setMerchantEnabled,
   setOfferHidden,
   setProductHidden,
+  updateAdminProduct,
 } from "./adminMutations.js";
 import { probeScrapeUrl } from "./scrapeProbe.js";
 import {
@@ -51,6 +53,7 @@ const adminScrapeProbeSchema = z.object({
   url: z.string().trim().min(1),
 });
 const adminCreateProductOfferSchema = z.object({
+  id: z.number().int().positive().optional(),
   merchantName: z.string(),
   price: z.number().int().positive(),
   original: z.number().int().positive(),
@@ -64,6 +67,14 @@ const adminCreateProductSchema = z.object({
   category: z.string(),
   image: z.string(),
   offers: z.array(adminCreateProductOfferSchema).min(3),
+});
+const adminDuplicateCheckSchema = z.object({
+  title: z.string(),
+  category: z.string().optional().default(""),
+  excludeProductId: z.number().int().positive().optional(),
+});
+const adminUpdateProductSchema = adminCreateProductSchema.extend({
+  confirm: z.literal("update-product"),
 });
 
 function requireAdminRequest(request: AdminRequestLike) {
@@ -146,12 +157,68 @@ export function buildApp() {
       return reply.code(400).send({ error: "Invalid product creation payload." });
     }
 
+    try {
+      return {
+        created: await createAdminProduct({
+          input: parsedBody.data,
+          actor: "admin",
+        }),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Product creation failed.";
+      return reply.code(400).send({ error: message });
+    }
+  });
+
+  app.post("/api/admin/products/check-duplicate", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    const parsedBody = adminDuplicateCheckSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "Invalid duplicate check payload." });
+    }
+
     return {
-      created: await createAdminProduct({
-        input: parsedBody.data,
-        actor: "admin",
+      similarProducts: await findSimilarProducts({
+        title: parsedBody.data.title,
+        category: parsedBody.data.category,
+        excludeProductId: parsedBody.data.excludeProductId,
+        minimumScore: 0.62,
       }),
     };
+  });
+
+  app.post("/api/admin/products/:id/update", async (request, reply) => {
+    if (!requireAdminRequest(request)) {
+      return reply.code(401).send({ error: "Admin authentication required" });
+    }
+
+    const parsedParams = z.object({ id: z.coerce.number().int().positive() }).safeParse(request.params);
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid product id." });
+    }
+
+    const parsedBody = adminUpdateProductSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "Invalid product update payload." });
+    }
+
+    try {
+      return {
+        updated: await updateAdminProduct({
+          productId: parsedParams.data.id,
+          input: parsedBody.data,
+          actor: "admin",
+        }),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Product update failed.";
+      return reply.code(400).send({ error: message });
+    }
   });
 
   app.get("/api/admin/offers", async (request, reply) => {

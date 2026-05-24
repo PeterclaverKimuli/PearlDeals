@@ -3,17 +3,22 @@ export function decodeHtmlEntities(value: string) {
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&#x22;/gi, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&#x27;/gi, "'")
     .replace(/&apos;/g, "'")
     .replace(/&ndash;/g, "-")
     .replace(/&mdash;/g, "-")
     .replace(/&[a-z]+;/gi, " ");
 }
 
+export function normalizeDecodedText(value: string) {
+  return decodeHtmlEntities(value).replace(/\s+/g, " ").trim();
+}
+
 export function stripHtml(value: string) {
-  return decodeHtmlEntities(value.replace(/<[^>]*>/g, " "))
-    .replace(/\s+/g, " ")
-    .trim();
+  return normalizeDecodedText(value.replace(/<[^>]*>/g, " "));
 }
 
 export function getMetaContent(html: string, property: string) {

@@ -1,6 +1,11 @@
 import { getPrisma } from "./db.js";
 import { Prisma } from "@prisma/client";
-import type { AdminCreateProductInput } from "../shared/admin/types.js";
+import type {
+  AdminCreateProductInput,
+  AdminSimilarProduct,
+  AdminUpdateProductInput,
+} from "../shared/admin/types.js";
+import { normalizeDecodedText } from "./scrapers/parsing.js";
 
 type AdminActor = string | null;
 
@@ -98,7 +103,7 @@ function inferMerchantBaseUrl(offerUrl: string) {
 }
 
 function normalizeRequiredText(value: string, field: string) {
-  const normalized = value.trim();
+  const normalized = normalizeDecodedText(value);
   if (!normalized) throw new Error(`${field} is required.`);
 
   return normalized;
@@ -128,6 +133,212 @@ async function getNextAdminProductId() {
   });
 
   return product ? product.id + 1 : 20_000;
+}
+
+function getTitleTokens(value: string) {
+  return new Set(
+    Array.from(
+      normalizeDecodedText(value)
+        .toLowerCase()
+        .matchAll(/[a-z]+\d+[a-z]*|\d+(?:\.\d+)?[a-z]*|[a-z]+/g),
+      (match) => match[0],
+    ).filter((token) => token.length >= 2 || /^\d+(?:\.\d+)?$/.test(token)),
+  );
+}
+
+function getSpecTokenFamilies(tokens: Set<string>) {
+  const families = {
+    screen: new Set<string>(),
+    memory: new Set<string>(),
+    camera: new Set<string>(),
+    battery: new Set<string>(),
+    network: new Set<string>(),
+  };
+
+  for (const token of tokens) {
+    if (/^\d+\.\d+$/.test(token)) families.screen.add(token);
+    if (/^\d+(?:gb|tb|mb)$/.test(token)) families.memory.add(token);
+    if (/^\d+mp$/.test(token)) families.camera.add(token);
+    if (/^\d+mah$/.test(token)) families.battery.add(token);
+    if (/^\d+g$/.test(token)) families.network.add(token);
+  }
+
+  return families;
+}
+
+function hasMeaningfulSpecConflict(leftTokens: Set<string>, rightTokens: Set<string>) {
+  const leftFamilies = getSpecTokenFamilies(leftTokens);
+  const rightFamilies = getSpecTokenFamilies(rightTokens);
+  const familyNames = Object.keys(leftFamilies) as Array<keyof typeof leftFamilies>;
+
+  return familyNames.some((familyName) => {
+    const leftValues = leftFamilies[familyName];
+    const rightValues = rightFamilies[familyName];
+    if (leftValues.size === 0 || rightValues.size === 0) return false;
+
+    for (const value of leftValues) {
+      if (!rightValues.has(value)) return true;
+    }
+
+    for (const value of rightValues) {
+      if (!leftValues.has(value)) return true;
+    }
+
+    return false;
+  });
+}
+
+function getSimilarityScore(left: string, right: string) {
+  const leftTokens = getTitleTokens(left);
+  const rightTokens = getTitleTokens(right);
+  if (leftTokens.size === 0 || rightTokens.size === 0) return 0;
+
+  let sharedCount = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) sharedCount += 1;
+  }
+
+  const containmentScore = sharedCount / Math.min(leftTokens.size, rightTokens.size);
+  const unionSize = new Set([...leftTokens, ...rightTokens]).size;
+  const jaccardScore = sharedCount / unionSize;
+  const score = containmentScore * 0.65 + jaccardScore * 0.35;
+
+  return hasMeaningfulSpecConflict(leftTokens, rightTokens)
+    ? Math.min(score, 0.78)
+    : score;
+}
+
+export async function findSimilarProducts({
+  title,
+  category,
+  excludeProductId,
+  minimumScore = 0.62,
+}: {
+  title: string;
+  category?: string;
+  excludeProductId?: number;
+  minimumScore?: number;
+}): Promise<AdminSimilarProduct[]> {
+  const decodedTitle = normalizeDecodedText(title);
+  const normalizedCategory = normalizeDecodedText(category ?? "");
+  if (decodedTitle.length < 4) return [];
+
+  const products = await getPrisma().product.findMany({
+    where: {
+      ...(normalizedCategory
+        ? {
+            category: {
+              equals: normalizedCategory,
+              mode: "insensitive" as const,
+            },
+          }
+        : {}),
+      ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+    },
+  });
+
+  return products
+    .map((product) => ({
+      ...product,
+      title: normalizeDecodedText(product.title),
+      category: normalizeDecodedText(product.category),
+      score: getSimilarityScore(decodedTitle, product.title),
+    }))
+    .filter((product) => product.score >= minimumScore)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 5);
+}
+
+async function assertProductDoesNotExist(
+  title: string,
+  category: string,
+  excludeProductId?: number,
+) {
+  const products = await getPrisma().product.findMany({
+    where: {
+      category: {
+        equals: category,
+        mode: "insensitive",
+      },
+      ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+    },
+  });
+  const normalizedTitle = normalizeDecodedText(title).toLowerCase();
+  const duplicate = products.find(
+    (product) =>
+      normalizeDecodedText(product.title).toLowerCase() === normalizedTitle,
+  );
+
+  if (duplicate) {
+    throw new Error(
+      `Product already exists: ${duplicate.title} (${duplicate.category}, ID ${duplicate.id}).`,
+    );
+  }
+
+  const similarProducts = await findSimilarProducts({
+    title,
+    category,
+    excludeProductId,
+    minimumScore: 0.82,
+  });
+  if (similarProducts.length > 0) {
+    const similar = similarProducts[0];
+    throw new Error(
+      `Similar product already exists: ${similar.title} (${similar.category}, ID ${similar.id}).`,
+    );
+  }
+}
+
+function normalizeAdminProductInput(
+  input: AdminCreateProductInput | AdminUpdateProductInput,
+) {
+  if (input.offers.length < 3) {
+    throw new Error("At least 3 offers are required.");
+  }
+
+  const title = normalizeRequiredText(input.title, "Product title");
+  const category = normalizeRequiredText(input.category, "Product category");
+  const image = normalizeRequiredText(input.image, "Product image");
+  const offers = input.offers.map((offer, index) => {
+    const row = index + 1;
+    const url = normalizeRequiredText(offer.url, `Offer ${row} URL`);
+    const merchantName = normalizeRequiredText(
+      offer.merchantName,
+      `Offer ${row} merchant`,
+    );
+    const price = normalizePositiveInteger(offer.price, `Offer ${row} price`);
+    const original = normalizePositiveInteger(
+      offer.original || offer.price,
+      `Offer ${row} original price`,
+    );
+
+    return {
+      id: offer.id,
+      merchantName,
+      price,
+      original,
+      url,
+      status: offer.status.trim() || "New",
+      availability: offer.availability.trim() || "unknown",
+    };
+  });
+
+  return {
+    title,
+    category,
+    image,
+    offers,
+  };
 }
 
 export async function setProductHidden({
@@ -251,37 +462,10 @@ export async function createAdminProduct({
   input: AdminCreateProductInput;
   actor: AdminActor;
 }) {
-  if (input.offers.length < 3) {
-    throw new Error("At least 3 offers are required.");
-  }
-
-  const title = normalizeRequiredText(input.title, "Product title");
-  const category = normalizeRequiredText(input.category, "Product category");
-  const image = normalizeRequiredText(input.image, "Product image");
-  const offers = input.offers.map((offer, index) => {
-    const row = index + 1;
-    const url = normalizeRequiredText(offer.url, `Offer ${row} URL`);
-    const merchantName = normalizeRequiredText(
-      offer.merchantName,
-      `Offer ${row} merchant`,
-    );
-    const price = normalizePositiveInteger(offer.price, `Offer ${row} price`);
-    const original = normalizePositiveInteger(
-      offer.original || offer.price,
-      `Offer ${row} original price`,
-    );
-
-    return {
-      merchantName,
-      price,
-      original,
-      url,
-      status: offer.status.trim() || "New",
-      availability: offer.availability.trim() || "unknown",
-    };
-  });
+  const { title, category, image, offers } = normalizeAdminProductInput(input);
 
   const prisma = getPrisma();
+  await assertProductDoesNotExist(title, category);
   const productId = await getNextAdminProductId();
   const created = await prisma.$transaction(async (transaction) => {
     const product = await transaction.product.create({
@@ -372,4 +556,179 @@ export async function createAdminProduct({
   });
 
   return created;
+}
+
+export async function updateAdminProduct({
+  productId,
+  input,
+  actor,
+}: {
+  productId: number;
+  input: AdminUpdateProductInput;
+  actor: AdminActor;
+}) {
+  const { title, category, image, offers } = normalizeAdminProductInput(input);
+
+  const prisma = getPrisma();
+
+  const updated = await prisma.$transaction(async (transaction) => {
+    const before = await transaction.product.findUnique({
+      where: { id: productId },
+      include: {
+        offers: true,
+      },
+    });
+
+    if (!before) {
+      throw new Error(`Product ${productId} was not found.`);
+    }
+
+    const titleOrCategoryChanged =
+      normalizeDecodedText(before.title).toLowerCase() !== title.toLowerCase() ||
+      normalizeDecodedText(before.category).toLowerCase() !==
+        category.toLowerCase();
+    if (titleOrCategoryChanged) {
+      await assertProductDoesNotExist(title, category, productId);
+    }
+
+    const existingOfferIds = new Set(before.offers.map((offer) => offer.id));
+    const retainedOfferIds = new Set<number>();
+    const savedOffers = [];
+
+    const product = await transaction.product.update({
+      where: { id: productId },
+      data: {
+        title,
+        category,
+        image,
+      },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        image: true,
+        hidden: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    for (const offer of offers) {
+      const slug = createMerchantSlug(offer.merchantName);
+      const merchant = await transaction.merchant.upsert({
+        where: { slug },
+        update: {
+          name: offer.merchantName,
+          baseUrl: inferMerchantBaseUrl(offer.url),
+        },
+        create: {
+          name: offer.merchantName,
+          slug,
+          baseUrl: inferMerchantBaseUrl(offer.url),
+          enabled: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      });
+
+      if (offer.id) {
+        if (!existingOfferIds.has(offer.id)) {
+          throw new Error(`Offer ${offer.id} does not belong to product ${productId}.`);
+        }
+
+        retainedOfferIds.add(offer.id);
+        savedOffers.push(
+          await transaction.offer.update({
+            where: { id: offer.id },
+            data: {
+              merchantId: merchant.id,
+              site: offer.merchantName,
+              price: offer.price,
+              original: offer.original,
+              url: offer.url,
+              status: offer.status,
+              availability: offer.availability,
+              canonicalUrl: offer.url,
+            },
+            select: {
+              id: true,
+              productId: true,
+              merchantId: true,
+              site: true,
+              price: true,
+              original: true,
+              url: true,
+              status: true,
+              availability: true,
+              scrapeStatus: true,
+            },
+          }),
+        );
+      } else {
+        const createdOffer = await transaction.offer.create({
+          data: {
+            productId,
+            merchantId: merchant.id,
+            site: offer.merchantName,
+            price: offer.price,
+            original: offer.original,
+            url: offer.url,
+            status: offer.status,
+            availability: offer.availability,
+            scrapeStatus: "pending",
+            canonicalUrl: offer.url,
+          },
+          select: {
+            id: true,
+            productId: true,
+            merchantId: true,
+            site: true,
+            price: true,
+            original: true,
+            url: true,
+            status: true,
+            availability: true,
+            scrapeStatus: true,
+          },
+        });
+        retainedOfferIds.add(createdOffer.id);
+        savedOffers.push(createdOffer);
+      }
+    }
+
+    const offerIdsToDelete = before.offers
+      .map((offer) => offer.id)
+      .filter((offerId) => !retainedOfferIds.has(offerId));
+    if (offerIdsToDelete.length > 0) {
+      await transaction.offer.deleteMany({
+        where: {
+          productId,
+          id: {
+            in: offerIdsToDelete,
+          },
+        },
+      });
+    }
+
+    await transaction.adminAuditLog.create({
+      data: {
+        action: "update_product",
+        targetType: "product",
+        targetId: getTargetId(product.id),
+        actor,
+        before: toAuditJson(before),
+        after: toAuditJson({ product, offers: savedOffers }),
+      },
+    });
+
+    return {
+      product,
+      offers: savedOffers,
+    };
+  });
+
+  return updated;
 }

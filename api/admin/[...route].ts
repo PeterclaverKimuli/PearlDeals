@@ -7,9 +7,11 @@ import {
 } from "../../server/adminData.js";
 import {
   createAdminProduct,
+  findSimilarProducts,
   setMerchantEnabled,
   setOfferHidden,
   setProductHidden,
+  updateAdminProduct,
 } from "../../server/adminMutations.js";
 import {
   clearAdminSessionCookie,
@@ -82,6 +84,23 @@ function requireAdmin(req: AdminCatchAllRequest, res: AdminResponse) {
 function getCreateProductInput(body: unknown): AdminCreateProductInput {
   const record = getBodyRecord(body);
   requireConfirmation(body, "create-product");
+
+  const offers = Array.isArray(record.offers) ? record.offers : [];
+  if (offers.length < 3) {
+    throw new Error("At least 3 offers are required.");
+  }
+
+  return {
+    title: String(record.title ?? ""),
+    category: String(record.category ?? ""),
+    image: String(record.image ?? ""),
+    offers: offers as AdminCreateProductInput["offers"],
+  };
+}
+
+function getUpdateProductInput(body: unknown): AdminCreateProductInput {
+  const record = getBodyRecord(body);
+  requireConfirmation(body, "update-product");
 
   const offers = Array.isArray(record.offers) ? record.offers : [];
   if (offers.length < 3) {
@@ -208,6 +227,35 @@ export default async function handler(
 
     await sendRead(req, res, async () => ({
       products: await getAdminProducts(),
+    }));
+    return;
+  }
+
+  if (resource === "products" && id === "check-duplicate") {
+    await sendMutation(req, res, async () => {
+      const body = getBodyRecord(req.body);
+      const title = String(body.title ?? "");
+      const category = String(body.category ?? "");
+
+      return {
+        similarProducts: await findSimilarProducts({
+          title,
+          category,
+          excludeProductId: Number(body.excludeProductId) || undefined,
+          minimumScore: 0.62,
+        }),
+      };
+    });
+    return;
+  }
+
+  if (resource === "products" && action === "update") {
+    await sendMutation(req, res, async () => ({
+      updated: await updateAdminProduct({
+        productId: parseId(id, "product id"),
+        input: getUpdateProductInput(req.body),
+        actor: "admin",
+      }),
     }));
     return;
   }

@@ -110,6 +110,7 @@ export type AdminScrapeProbeResult = {
 };
 
 export type AdminCreateProductOfferInput = {
+  id?: number;
   merchantName: string;
   price: number;
   original: number;
@@ -123,4 +124,13 @@ export type AdminCreateProductInput = {
   category: string;
   image: string;
   offers: AdminCreateProductOfferInput[];
+};
+
+export type AdminUpdateProductInput = AdminCreateProductInput;
+
+export type AdminSimilarProduct = {
+  id: number;
+  title: string;
+  category: string;
+  score: number;
 };

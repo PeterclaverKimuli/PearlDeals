@@ -17,7 +17,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { imageFallback } from "../data";
 import type { EnrichedDeal } from "../types";
-import { formatUGX, getSavingsAmount, shareDeal } from "../utils";
+import {
+  formatMerchantDisplayName,
+  formatUGX,
+  getSavingsAmount,
+  shareDeal,
+} from "../utils";
 import { ActionPopover, ProductImage, ShareToast } from "./AppChrome";
 import {
   LeaveSiteModal,
@@ -414,10 +419,10 @@ export function DealCard({
             </span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-1">
-              <Store className="h-3.5 w-3.5" />
-              {bestDeal.site}
-            </span>
+              <span className="inline-flex items-center gap-1">
+                <Store className="h-3.5 w-3.5" />
+              {formatMerchantDisplayName(bestDeal.site)}
+              </span>
             {bestDeal.status ? (
               <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
                 {bestDeal.status}
@@ -433,7 +438,7 @@ export function DealCard({
               className="flex flex-wrap justify-between gap-2 text-sm"
             >
               <span className="flex items-center gap-1 text-gray-600">
-                <span>{p.site}</span>
+                <span>{formatMerchantDisplayName(p.site)}</span>
                 {p.price === bestPrice && (
                   <span className="text-green-600" aria-label="Lowest price site">
                     ★

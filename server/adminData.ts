@@ -1,4 +1,5 @@
 import { getPrisma } from "./db.js";
+import { normalizeDecodedText } from "./scrapers/parsing.js";
 import type {
   AdminMerchantRow,
   AdminOfferRow,
@@ -100,8 +101,8 @@ export async function getAdminProducts(): Promise<AdminProductRow[]> {
 
     return {
       id: product.id,
-      title: product.title,
-      category: product.category,
+      title: normalizeDecodedText(product.title),
+      category: normalizeDecodedText(product.category),
       image: product.image,
       visibility: product.hidden
         ? "hidden"
@@ -137,7 +138,7 @@ export async function getAdminOffers(): Promise<AdminOfferRow[]> {
   return offers.map((offer) => ({
     id: offer.id,
     productId: offer.productId,
-    productTitle: offer.product.title,
+    productTitle: normalizeDecodedText(offer.product.title),
     merchantId: offer.merchantId,
     merchantName: offer.merchant?.name ?? null,
     site: offer.site,
