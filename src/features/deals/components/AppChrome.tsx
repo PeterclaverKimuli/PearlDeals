@@ -9,7 +9,7 @@ const defaultQuickSearches = ["Phones", "Computers", "TVs", "Under 500k"];
 
 export function ProductImage({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+    <div className="flex h-56 w-full items-center justify-center overflow-hidden rounded-t-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)]">
       <img
         src={src || imageFallback}
         alt={alt}
@@ -17,7 +17,7 @@ export function ProductImage({ src, alt }: { src: string; alt: string }) {
           event.currentTarget.onerror = null;
           event.currentTarget.src = imageFallback;
         }}
-        className="h-full w-full px-4 pt-10 pb-4 object-contain transition duration-300 hover:scale-105"
+        className="h-full w-full px-4 pt-10 pb-4 object-contain transition duration-300 hover:scale-105 dark:mix-blend-multiply"
       />
     </div>
   );
@@ -86,7 +86,7 @@ export function AppHeader({
           <button
             type="button"
             onClick={onMenuClick}
-            className="absolute left-0 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-2xl text-gray-700 md:hidden"
+            className="absolute left-0 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-2xl text-gray-700 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/25 dark:border-emerald-300/25 dark:!bg-slate-800 dark:!text-emerald-100 dark:shadow-black/25 dark:ring-1 dark:ring-white/10 dark:hover:!bg-emerald-900/40 dark:hover:!text-white md:hidden"
             aria-label="Open categories"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
@@ -109,7 +109,7 @@ export function AppHeader({
         )}
       </div>
 
-      <div className="w-full md:w-[30rem]">
+      <div className="w-full md:w-[36rem] lg:w-[42rem]">
         <form
           className="rounded-[1.35rem] bg-gradient-to-r from-amber-300 via-lime-200 to-emerald-500 p-0.5 shadow-lg shadow-emerald-950/10 transition focus-within:shadow-xl focus-within:shadow-amber-950/15"
           onSubmit={(event) => {
@@ -117,7 +117,7 @@ export function AppHeader({
             submitSearch(draftSearch, "submit");
           }}
         >
-          <div className="rounded-[1.2rem] bg-white p-1.5 ring-1 ring-emerald-950/5">
+          <div className="rounded-[1.2rem] bg-white p-1.5 ring-1 ring-emerald-950/5 dark:!bg-slate-950 dark:ring-white/15">
             <div className="relative flex items-center gap-2">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
                 <Search className="h-4 w-4" />
@@ -126,7 +126,7 @@ export function AppHeader({
                 value={draftSearch}
                 onChange={(e) => updateSearch(e.target.value, "input")}
                 placeholder="Search phones, laptops, stores..."
-                className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-0 pr-2 text-base font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0 md:text-sm"
+                className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent pl-2 pr-2 text-base font-medium text-gray-950 placeholder:text-gray-500 focus-visible:ring-0 dark:!text-white dark:!placeholder:text-slate-100 md:text-sm"
               />
               {hasSubmittedSearch && typeof resultCount === "number" ? (
                 <span className="hidden shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900 min-[420px]:inline-flex">
@@ -149,11 +149,11 @@ export function AppHeader({
               {shouldShowSearchButton ? (
                 <button
                   type="submit"
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-full bg-gray-950 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/30"
+                  className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-gray-950 text-xs font-black text-white shadow-sm transition hover:bg-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/30 dark:bg-emerald-400 dark:text-slate-950 dark:shadow-emerald-950/30 dark:hover:bg-emerald-300 sm:w-auto sm:gap-1 sm:px-3"
                   aria-label={`Search for ${trimmedDraftSearch}`}
                 >
-                  <span className="hidden min-[360px]:inline">Search</span>
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">Search</span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </button>
               ) : null}
             </div>
@@ -197,7 +197,7 @@ function BrandMark() {
         {"\u{1F4B8}"}
       </span>
       <span className="inline-flex items-baseline gap-0">
-        <span className="text-gray-900">Pearl</span>
+        <span className="text-gray-900 dark:!text-white">Pearl</span>
         <span className="text-green-600">Deals</span>
       </span>
     </>
@@ -309,8 +309,8 @@ export function MobileOffcanvas({
 
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
-      <aside className="flex h-dvh w-[min(21rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-r-[1.75rem] border-r border-emerald-950/10 bg-white shadow-2xl shadow-emerald-950/20">
-        <div className="border-b border-emerald-950/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.18),transparent_36%),linear-gradient(180deg,#ffffff,#f7fee7)] px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4">
+      <aside className="flex h-dvh w-[min(21rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-r-[1.75rem] border-r border-emerald-950/10 bg-white shadow-2xl shadow-emerald-950/20 dark:border-white/10 dark:!bg-slate-950 dark:shadow-black/40">
+        <div className="border-b border-emerald-950/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.18),transparent_36%),linear-gradient(180deg,#ffffff,#f7fee7)] px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 dark:border-white/10 dark:bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.12),transparent_36%),linear-gradient(180deg,#102019,#111827)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               type="button"
@@ -327,7 +327,7 @@ export function MobileOffcanvas({
             </button>
             <button
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-emerald-950/10 bg-white text-gray-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/25"
+              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-emerald-950/10 bg-white text-gray-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-600/25 dark:border-emerald-300/25 dark:!bg-slate-800 dark:!text-emerald-100 dark:shadow-black/30 dark:ring-1 dark:ring-white/10 dark:hover:!bg-emerald-900/45 dark:hover:!text-white"
               type="button"
               aria-label="Close categories"
             >
@@ -340,10 +340,10 @@ export function MobileOffcanvas({
               <Grid2X2 className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-lg font-black leading-6 text-gray-950">
+              <h2 className="text-lg font-black leading-6 text-gray-950 dark:!text-white">
                 Browse categories
               </h2>
-              <p className="mt-1 text-sm leading-5 text-gray-600">
+              <p className="mt-1 text-sm leading-5 text-gray-600 dark:!text-slate-300">
                 Pick a category to compare trusted Ugandan deals.
               </p>
             </div>
@@ -359,8 +359,8 @@ export function MobileOffcanvas({
             }}
             className={`mb-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition ${
               selectedCategory === null
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5"
-                : "border-gray-200 bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5 dark:border-emerald-400/40 dark:!bg-emerald-950/35 dark:!text-emerald-100"
+                : "border-gray-200 bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:!bg-slate-900 dark:!text-slate-100 dark:hover:!bg-slate-800"
             }`}
           >
             <span className="flex min-w-0 items-center gap-3">
@@ -375,7 +375,7 @@ export function MobileOffcanvas({
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-black">All deals</span>
-                <span className="mt-0.5 block text-xs leading-4 text-gray-500">
+                <span className="mt-0.5 block text-xs leading-4 text-gray-500 dark:!text-slate-300">
                   Browse every product comparison.
                 </span>
               </span>
@@ -398,8 +398,8 @@ export function MobileOffcanvas({
                 }}
                 className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition ${
                   selectedCategory === cat.name
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5"
-                    : "border-transparent bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-950/5 dark:border-emerald-400/40 dark:!bg-emerald-950/35 dark:!text-emerald-100"
+                    : "border-transparent bg-white text-gray-800 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:!bg-slate-900 dark:!text-slate-100 dark:hover:!bg-slate-800"
                 }`}
               >
               <span className="flex min-w-0 items-center gap-3">
@@ -417,7 +417,7 @@ export function MobileOffcanvas({
                     {cat.name}
                   </span>
                   {cat.description ? (
-                    <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
+                    <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500 dark:!text-slate-300">
                       {cat.description}
                     </span>
                   ) : null}

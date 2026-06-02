@@ -91,10 +91,10 @@ export function FloatingNakiButton({
       <button
         type="button"
         onClick={handleClick}
-        className="group relative flex h-16 w-[min(13.5rem,calc(100vw-2rem))] cursor-pointer items-center gap-3 rounded-full border border-emerald-900/10 bg-gray-950 py-2 pr-4 pl-2 text-left text-white shadow-2xl shadow-emerald-950/30 ring-2 ring-white transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 hover:shadow-emerald-950/40 focus-visible:ring-4 focus-visible:ring-amber-300 md:w-[14.25rem]"
+        className="group relative flex h-16 w-[min(13.5rem,calc(100vw-2rem))] cursor-pointer items-center gap-3 rounded-full border border-emerald-900/10 bg-gray-950 py-2 pr-4 pl-2 text-left text-white shadow-2xl shadow-emerald-950/30 ring-2 ring-white transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 hover:shadow-emerald-950/40 focus-visible:ring-4 focus-visible:ring-amber-300 dark:border-emerald-300/20 dark:bg-slate-900 dark:shadow-black/40 dark:ring-emerald-300/25 dark:hover:bg-emerald-950 md:w-[14.25rem]"
         aria-label="Ready to shop? Ask Naki"
       >
-        <span className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm">
+        <span className="flex h-12 w-12 shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 shadow-sm ring-1 ring-emerald-950/10 dark:border-emerald-300/25 dark:!bg-slate-950 dark:ring-emerald-300/20">
           <img
             src={welcomeAvatar}
             alt="Naki shopping assistant"
@@ -111,7 +111,7 @@ export function FloatingNakiButton({
         </span>
         <span
           aria-hidden="true"
-          className="absolute -top-1 -right-1 h-5 w-5 animate-pulse rounded-full border-2 border-white bg-amber-300 shadow-md shadow-amber-950/20"
+          className="absolute -top-1 -right-1 h-5 w-5 animate-pulse rounded-full border-2 border-white bg-amber-300 shadow-md shadow-amber-950/20 dark:border-slate-900 dark:bg-amber-300/80"
         />
       </button>
     </div>

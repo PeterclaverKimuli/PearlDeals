@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Moon, Sun } from "lucide-react";
 import { AdminPage } from "@/features/admin/AdminPage";
 import { DealDetails } from "@/features/deals/components/DealViews";
 import { CategoryPage } from "@/features/deals/components/CategoryPage";
@@ -150,11 +151,46 @@ function getSearchQueryFromLocation() {
 }
 
 function getInitialTheme(): ThemePreference {
-  return "light";
+  if (typeof window === "undefined") return "light";
+
+  const storedTheme = window.localStorage.getItem(themeStorageKey);
+  if (storedTheme === "light" || storedTheme === "dark") {
+    return storedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function ThemeToggle({
+  theme,
+  onToggle,
+}: {
+  theme: ThemePreference;
+  onToggle: () => void;
+}) {
+  const isDark = theme === "dark";
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-[90] flex h-11 w-11 items-center justify-center rounded-full border border-emerald-950/10 bg-white/90 text-gray-800 shadow-xl shadow-emerald-950/15 backdrop-blur transition hover:-translate-y-0.5 hover:bg-emerald-50 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none dark:border-white/10 dark:bg-slate-900/90 dark:text-amber-200 dark:shadow-black/40 dark:hover:bg-slate-800 md:left-6"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Light mode" : "Dark mode"}
+    >
+      {isDark ? (
+        <Sun className="h-5 w-5" aria-hidden="true" />
+      ) : (
+        <Moon className="h-5 w-5" aria-hidden="true" />
+      )}
+    </button>
+  );
 }
 
 export default function DealsUI() {
-  const [theme] = useState<ThemePreference>(() => getInitialTheme());
+  const [theme, setTheme] = useState<ThemePreference>(() => getInitialTheme());
   const [routePath, setRoutePath] = useState(() =>
     typeof window === "undefined" ? "/" : window.location.pathname,
   );
@@ -216,7 +252,19 @@ export default function DealsUI() {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
-  const renderWithTheme = (content: ReactNode) => content;
+  const renderWithTheme = (content: ReactNode) => (
+    <>
+      {content}
+      <ThemeToggle
+        theme={theme}
+        onToggle={() =>
+          setTheme((currentTheme) =>
+            currentTheme === "dark" ? "light" : "dark",
+          )
+        }
+      />
+    </>
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -543,7 +591,7 @@ export default function DealsUI() {
             ? "ready"
             : routePath === "/naki/budget"
               ? "budget"
-          : "categories"
+              : "categories"
         }
       />,
     );

@@ -377,11 +377,11 @@ export function HomePage({
                   Save {formatUGX(getSavingsAmount(bestHeroDeal))}
                 </div>
                 <div className="rounded-[1.75rem] border border-white/15 bg-white p-4 shadow-2xl">
-                  <div className="rounded-[1.25rem] bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-4">
+                  <div className="rounded-[1.25rem] bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-4 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)]">
                     <img
                       src={bestHeroDeal.image}
                       alt={bestHeroDeal.title}
-                      className="mx-auto h-52 w-full object-contain drop-shadow-xl"
+                      className="mx-auto h-52 w-full object-contain drop-shadow-xl dark:mix-blend-multiply"
                     />
                   </div>
                   <div className="p-3">
@@ -401,7 +401,7 @@ export function HomePage({
                         </p>
                       </div>
                       <Button
-                        className="h-10 shrink-0 cursor-pointer rounded-full bg-gray-950 px-4 text-white hover:bg-gray-800"
+                        className="h-10 shrink-0 cursor-pointer rounded-full bg-gray-950 px-4 text-white hover:bg-gray-800 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:hover:bg-emerald-600"
                         onClick={() => setSelectedDeal(bestHeroDeal)}
                       >
                         Compare
@@ -414,7 +414,7 @@ export function HomePage({
           </div>
         </section>
 
-        <div className="mb-4 rounded-[1.75rem] bg-white/70 px-5 py-7 shadow-sm ring-1 ring-gray-950/5 backdrop-blur md:px-5">
+        <div className="mb-4 rounded-[1.75rem] bg-white/70 px-5 py-7 shadow-sm ring-1 ring-gray-950/5 backdrop-blur dark:!bg-white/10 dark:ring-white/10 md:px-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
@@ -478,20 +478,20 @@ export function HomePage({
 
                     setSelectedCategory(cat.name);
                   }}
-                  className={`group relative flex h-36 min-w-[150px] flex-shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-3xl border p-4 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${palette}`}
+                className={`group relative flex h-36 min-w-[150px] flex-shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-3xl border p-4 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${palette}`}
                 >
-                  <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/35" />
+                  <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/35 dark:!bg-white/35" />
                   <div className="relative flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 text-2xl shadow-sm transition group-hover:scale-110">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 text-2xl shadow-sm transition group-hover:scale-110 dark:!bg-white/80">
                       {cat.icon}
                     </div>
-                    <ArrowRight className="h-5 w-5 text-gray-700/60 transition group-hover:translate-x-1 group-hover:text-gray-900" />
+                    <ArrowRight className="h-5 w-5 text-gray-700/60 transition group-hover:translate-x-1 group-hover:text-gray-900 dark:!text-gray-700/60 dark:group-hover:!text-gray-900" />
                   </div>
                   <div className="relative">
-                    <h3 className="text-base font-black text-gray-950">
+                    <h3 className="text-base font-black text-gray-950 dark:!text-gray-950">
                       {cat.name}
                     </h3>
-                    <p className="mt-1 text-xs font-medium text-gray-700">
+                    <p className="mt-1 text-xs font-medium text-gray-700 dark:!text-gray-700">
                       {count} {count === 1 ? "deal" : "deals"} compared
                     </p>
                   </div>
@@ -547,7 +547,7 @@ export function HomePage({
                   <Button
                     type="button"
                     variant="outline"
-                    className="shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm"
+                    className="shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white"
                     onClick={() => {
                       posthog.capture("view_all_clicked", {
                         category: section.name,
@@ -620,7 +620,7 @@ export function HomePage({
             <Button
               type="button"
               variant="outline"
-              className="block h-10 w-full cursor-pointer rounded-xl px-6 text-sm font-semibold sm:w-1/2 lg:w-1/4"
+              className="block h-10 w-full cursor-pointer rounded-xl px-6 text-sm font-semibold dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white sm:w-1/2 lg:w-1/4"
               onClick={() => {
                 posthog.capture("view_all_clicked", {
                   category: "All Products",
@@ -664,20 +664,20 @@ export function HomePage({
 }
 
 const categoryTilePalettes = [
-  "border-emerald-200 bg-emerald-100",
-  "border-amber-200 bg-amber-100",
-  "border-sky-200 bg-sky-100",
-  "border-rose-200 bg-rose-100",
-  "border-violet-200 bg-violet-100",
-  "border-lime-200 bg-lime-100",
-  "border-orange-200 bg-orange-100",
+  "border-emerald-200 bg-emerald-100 dark:!border-emerald-200 dark:!bg-emerald-100",
+  "border-amber-200 bg-amber-100 dark:!border-amber-200 dark:!bg-amber-100",
+  "border-sky-200 bg-sky-100 dark:!border-sky-200 dark:!bg-sky-100",
+  "border-rose-200 bg-rose-100 dark:!border-rose-200 dark:!bg-rose-100",
+  "border-violet-200 bg-violet-100 dark:!border-violet-200 dark:!bg-violet-100",
+  "border-lime-200 bg-lime-100 dark:!border-lime-200 dark:!bg-lime-100",
+  "border-orange-200 bg-orange-100 dark:!border-orange-200 dark:!bg-orange-100",
 ];
 
 function NakiBudgetHelpRequest({ onOpenNaki }: { onOpenNaki: () => void }) {
   const posthog = usePostHog();
 
   return (
-    <section className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm shadow-emerald-950/5 md:p-6">
+    <section className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm shadow-emerald-950/5 dark:border-emerald-300/20 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-6">
       <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
         <div className="flex items-start gap-3 md:contents">
           <div className="h-16 w-16 shrink-0 md:h-24 md:w-24">
@@ -688,13 +688,13 @@ function NakiBudgetHelpRequest({ onOpenNaki }: { onOpenNaki: () => void }) {
             />
           </div>
           <div className="min-w-0 text-left">
-            <p className="text-sm font-semibold text-green-700">
+            <p className="text-sm font-semibold text-green-700 dark:!text-emerald-300">
               Need help shopping?
             </p>
-            <h2 className="mt-1 text-xl font-black leading-snug text-gray-950 md:text-2xl">
+            <h2 className="mt-1 text-xl font-black leading-snug text-gray-950 dark:!text-white md:text-2xl">
               Looking for items within your budget?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:!text-slate-300">
               Tell me what you need and how much you want to spend, and I will
               help you compare options.
             </p>
@@ -702,7 +702,7 @@ function NakiBudgetHelpRequest({ onOpenNaki }: { onOpenNaki: () => void }) {
         </div>
         <Button
           type="button"
-          className="h-11 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700"
+          className="h-11 cursor-pointer rounded-full bg-green-600 px-5 text-white hover:bg-green-700 dark:bg-emerald-700 dark:hover:bg-emerald-600"
           onClick={() => {
             posthog.capture("naki_budget_help_clicked", {
               source: "homepage_after_popular_deals",

@@ -82,7 +82,7 @@ export function CategoryPage({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <aside className="mt-4 hidden self-start rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 backdrop-blur md:block">
             <div className="mb-4 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:!bg-emerald-400/15 dark:!text-emerald-300">
                 <Grid2X2 className="h-5 w-5" />
               </span>
               <h2 className="font-black">Categories</h2>
@@ -101,7 +101,7 @@ export function CategoryPage({
                   }}
                   className={`flex cursor-pointer items-center justify-between rounded-2xl px-3 py-3 text-sm transition hover:bg-emerald-50 ${
                     selectedCategory === cat.name
-                      ? "bg-emerald-50 font-bold text-emerald-700 ring-1 ring-emerald-200"
+                      ? "bg-emerald-50 font-bold text-emerald-700 ring-1 ring-emerald-200 dark:!bg-emerald-400/15 dark:!text-emerald-300 dark:ring-emerald-300/25"
                       : "text-gray-700"
                   }`}
                 >
@@ -141,8 +141,8 @@ export function CategoryPage({
               </div>
             </section>
 
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-sm text-gray-600">
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-emerald-400/20 dark:!bg-slate-900/85">
+              <p className="text-sm text-gray-600 dark:!text-slate-200">
                 Compare best prices, conditions, and stores before you choose a
                 deal.
               </p>

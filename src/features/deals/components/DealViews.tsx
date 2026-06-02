@@ -100,7 +100,7 @@ export function DealDetails({
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f7fee7_34%,#f9fafb_62%)] p-4 md:p-6">
       <div className="mx-auto max-w-5xl">
         <Button
-          className="mb-4 cursor-pointer"
+          className="mb-4 cursor-pointer dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white"
           variant="outline"
           onClick={onBack}
         >
@@ -110,7 +110,7 @@ export function DealDetails({
 
         <Card className="h-full gap-0 overflow-hidden rounded-[2rem] border border-emerald-900/10 bg-white shadow-2xl shadow-emerald-950/10">
           <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="flex h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50 lg:h-full">
+            <div className="flex h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)] lg:h-full">
               <img
                 src={deal.image || imageFallback}
                 alt={deal.title}
@@ -118,7 +118,7 @@ export function DealDetails({
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = imageFallback;
                 }}
-                className="h-full w-full p-5 object-contain object-top transition duration-300 hover:scale-105"
+                className="h-full w-full rounded-l-[2rem] p-5 object-contain object-top transition duration-300 hover:scale-105 dark:mix-blend-multiply max-lg:rounded-t-[2rem] max-lg:rounded-l-none"
               />
             </div>
 
@@ -130,7 +130,7 @@ export function DealDetails({
               </div>
 
               <div className="mb-6">
-                <span className="text-3xl font-bold text-green-700">
+                <span className="text-3xl font-bold text-green-700 dark:!text-emerald-300">
                   {formatUGX(deal.bestDeal.price)}
                 </span>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -148,7 +148,7 @@ export function DealDetails({
                 </div>
               </div>
 
-              <div className="mb-3 rounded-3xl border border-emerald-900/10 bg-white p-4 shadow-sm">
+              <div className="mb-3 rounded-3xl border border-emerald-900/10 bg-white p-4 shadow-sm dark:border-white/10 dark:!bg-slate-900">
                 <h2 className="mb-3 text-lg font-black">Price comparison</h2>
                 <div className="space-y-3">
                   {deal.prices.map((p, idx) => {
@@ -159,8 +159,8 @@ export function DealDetails({
                         key={`${deal.id}-${idx}`}
                         className={`grid grid-cols-1 gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,52%)] ${
                           isBest
-                            ? "border-emerald-200 bg-emerald-50"
-                            : "border-gray-200 bg-white"
+                            ? "border-emerald-200 bg-emerald-50 dark:border-emerald-300/25 dark:!bg-emerald-400/10"
+                            : "border-gray-200 bg-white dark:border-white/10 dark:!bg-slate-950"
                         }`}
                       >
                         <div className="min-w-0">
@@ -171,7 +171,7 @@ export function DealDetails({
                             </p>
                           ) : null}
                           {isBest ? (
-                            <p className="mt-2 hidden items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-700 md:inline-flex md:whitespace-nowrap">
+                            <p className="mt-2 hidden items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-700 dark:!bg-emerald-400/15 dark:!text-emerald-200 dark:ring-1 dark:ring-emerald-300/20 md:inline-flex md:whitespace-nowrap">
                               <Flame className="h-3 w-3" aria-hidden="true" />
                               Lowest price today
                             </p>
@@ -181,12 +181,14 @@ export function DealDetails({
                         <div className="flex min-w-0 w-full flex-col items-stretch gap-2 md:items-end md:justify-center">
                           <div className="min-w-0 text-left md:text-right">
                             <p
-                              className={`text-xs font-semibold md:text-sm ${isBest ? "text-green-700" : ""}`}
+                              className={`text-xs font-semibold md:text-sm ${
+                                isBest ? "text-green-700 dark:!text-emerald-300" : ""
+                              }`}
                             >
                               {formatUGX(p.price)}
                             </p>
                             {isBest ? (
-                              <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700 md:hidden">
+                              <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700 dark:!bg-emerald-400/15 dark:!text-emerald-200 dark:ring-1 dark:ring-emerald-300/20 md:hidden">
                                 <Flame className="h-3 w-3" aria-hidden="true" />
                                 Lowest price today
                               </p>
@@ -199,8 +201,8 @@ export function DealDetails({
                               onClick={() => handleSiteClick(p.url, p.site)}
                               className={`mt-2 inline-flex h-11 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none md:mt-0 md:w-auto md:max-w-[12rem] ${
                                 isBest
-                                  ? "bg-emerald-700 shadow-emerald-900/25 ring-1 ring-emerald-500/20 hover:bg-emerald-800 hover:shadow-lg hover:shadow-emerald-900/30"
-                                  : "bg-gray-950 ring-1 ring-gray-900/10 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-900/20"
+                                  ? "bg-emerald-700 shadow-emerald-900/25 ring-1 ring-emerald-500/20 hover:bg-emerald-800 hover:shadow-lg hover:shadow-emerald-900/30 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                                  : "bg-gray-950 ring-1 ring-gray-900/10 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-900/20 dark:bg-slate-800 dark:ring-white/10 dark:hover:bg-emerald-700"
                               }`}
                             >
                               {isBest ? (
@@ -231,7 +233,7 @@ export function DealDetails({
                   <button
                     type="button"
                     onClick={() => setIsWaitlistOpen(true)}
-                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none"
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none dark:border-white/10 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-emerald-900/40 dark:hover:!text-emerald-200"
                     aria-label="Add deal"
                   >
                     <PlusCircle className="h-7 w-7" />
@@ -251,7 +253,7 @@ export function DealDetails({
 
                       handleShare();
                     }}
-                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none"
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md focus-visible:ring-4 focus-visible:ring-emerald-500/25 focus-visible:outline-none dark:border-white/10 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-emerald-900/40 dark:hover:!text-emerald-200"
                     aria-label="Share this deal"
                   >
                     <Share2 className="h-6 w-6" />
@@ -265,8 +267,8 @@ export function DealDetails({
                     onClick={() => setLiked((prev) => !prev)}
                     className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-4 focus-visible:ring-red-500/20 focus-visible:outline-none ${
                       liked
-                        ? "border-red-200 bg-red-50 text-red-500"
-                        : "border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                        ? "border-red-200 bg-red-50 text-red-500 dark:border-red-300/25 dark:!bg-red-500/15 dark:!text-red-300"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500 dark:border-white/10 dark:!bg-slate-800 dark:!text-slate-200 dark:hover:!bg-red-500/15 dark:hover:!text-red-300"
                     }`}
                     aria-label="Like this deal"
                   >
@@ -278,17 +280,17 @@ export function DealDetails({
                 </div>
               </div>
 
-              <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4">
+              <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-300/20 dark:!bg-amber-400/10">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200 dark:!bg-amber-300/15 dark:!text-amber-200 dark:ring-amber-300/25">
                       <BellRing className="h-5 w-5" aria-hidden="true" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-black text-gray-900">
+                      <h2 className="text-lg font-black text-gray-900 dark:!text-white">
                         Want to know when the price drops?
                       </h2>
-                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                      <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
                         Leave your email and we will let you know when this
                         product gets cheaper.
                       </p>
@@ -296,7 +298,7 @@ export function DealDetails({
                   </div>
                   <Button
                     type="button"
-                    className="h-12 shrink-0 cursor-pointer rounded-full bg-amber-400 px-6 font-black text-gray-950 shadow-lg shadow-amber-900/15 ring-1 ring-amber-300 transition hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl hover:shadow-amber-900/20 focus-visible:ring-4 focus-visible:ring-amber-300/50"
+                    className="h-12 shrink-0 cursor-pointer rounded-full bg-amber-400 px-6 font-black text-gray-950 shadow-lg shadow-amber-900/15 ring-1 ring-amber-300 transition hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl hover:shadow-amber-900/20 focus-visible:ring-4 focus-visible:ring-amber-300/50 dark:bg-amber-300 dark:text-slate-950 dark:hover:bg-amber-200"
                     onClick={handleOpenPriceDropAlert}
                   >
                     <BellRing className="h-4 w-4" aria-hidden="true" />
@@ -333,30 +335,30 @@ export function DealDetails({
                 onContinue={handleContinueToSite}
               />
 
-              <div className="rounded-3xl border border-emerald-900/10 bg-emerald-50 p-4">
+              <div className="rounded-3xl border border-emerald-900/10 bg-emerald-50 p-4 dark:border-emerald-300/20 dark:!bg-emerald-400/10">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:!bg-emerald-400/15 dark:!text-emerald-200 dark:ring-emerald-300/20">
                     <BadgeCheck className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <h2 className="text-lg font-black">
                     Why this deal stands out
                   </h2>
                 </div>
-                <ul className="space-y-3 text-sm text-gray-600">
+                <ul className="space-y-3 text-sm text-gray-600 dark:!text-slate-300">
                   <li className="flex items-start gap-3">
-                    <Store className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <Store className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:!text-emerald-300" aria-hidden="true" />
                     <span>
                     Lowest listed price across {deal.prices.length} sites.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Tag className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <Tag className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:!text-emerald-300" aria-hidden="true" />
                     <span>
                       Save {formatUGX(savingsAmount)} across listed prices.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Scale className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                    <Scale className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:!text-emerald-300" aria-hidden="true" />
                     <span>
                     Easy side-by-side comparison before you leave the app.
                     </span>
@@ -414,7 +416,7 @@ export function DealCard({
 
         <div className="mb-3">
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-xl font-black text-emerald-700">
+            <span className="text-xl font-black text-emerald-700 dark:!text-emerald-300">
               {formatUGX(bestDeal.price)}
             </span>
           </div>
@@ -424,14 +426,14 @@ export function DealCard({
               {formatMerchantDisplayName(bestDeal.site)}
               </span>
             {bestDeal.status ? (
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 dark:!bg-emerald-400/15 dark:!text-emerald-200 dark:ring-1 dark:ring-emerald-300/20">
                 {bestDeal.status}
               </span>
             ) : null}
           </div>
         </div>
 
-        <div className="mb-3 space-y-2 rounded-2xl bg-gray-50 p-3">
+        <div className="mb-1 space-y-2 rounded-2xl bg-gray-50 p-3">
           {deal.prices.map((p, index) => (
             <div
               key={`${deal.id}-${index}`}
@@ -440,13 +442,20 @@ export function DealCard({
               <span className="flex items-center gap-1 text-gray-600">
                 <span>{formatMerchantDisplayName(p.site)}</span>
                 {p.price === bestPrice && (
-                  <span className="text-green-600" aria-label="Lowest price site">
+                  <span
+                    className="text-green-600 dark:!text-emerald-300"
+                    aria-label="Lowest price site"
+                  >
                     ★
                   </span>
                 )}
               </span>
               <span
-                className={`break-words text-right text-xs md:text-sm ${p.price === bestPrice ? "font-semibold text-green-700" : ""}`}
+                className={`break-words text-right text-xs md:text-sm ${
+                  p.price === bestPrice
+                    ? "font-semibold text-green-700 dark:!text-emerald-300"
+                    : ""
+                }`}
               >
                 {formatUGX(p.price)}
               </span>
@@ -454,9 +463,9 @@ export function DealCard({
           ))}
         </div>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2">
           <span
-            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 font-bold whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700"
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 font-bold whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:group-hover/card:bg-emerald-600"
             aria-hidden="true"
           >
             Compare prices
@@ -518,7 +527,7 @@ export function FeaturedDealBanner({
           </Button>
         </div>
 
-        <div className="order-1 flex h-48 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50 md:h-56 lg:order-2 lg:h-full">
+        <div className="order-1 flex h-48 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)] md:h-56 lg:order-2 lg:h-full">
           <img
             src={deal.image || imageFallback}
             alt={deal.title}
@@ -526,7 +535,7 @@ export function FeaturedDealBanner({
               event.currentTarget.onerror = null;
               event.currentTarget.src = imageFallback;
             }}
-            className="h-full w-full p-4 object-contain"
+            className="h-full w-full p-4 object-contain dark:mix-blend-multiply"
           />
         </div>
       </div>

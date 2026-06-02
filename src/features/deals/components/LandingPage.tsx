@@ -414,14 +414,14 @@ export function LandingPage({
             </span>
             <span className="inline-flex items-baseline gap-0">
               <span className="text-gray-900">Pearl</span>
-              <span className="text-green-600">Deals</span>
+              <span className="text-green-600 dark:!text-emerald-300">Deals</span>
             </span>
           </button>
           {activeStep !== "welcome" && activeStep !== "categories" ? (
             <Button
               type="button"
               variant="outline"
-              className="h-9 shrink-0 cursor-pointer rounded-full px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
+              className="h-9 shrink-0 cursor-pointer rounded-full px-3 text-xs dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white sm:h-10 sm:px-4 sm:text-sm"
               onClick={onBrowseDeals}
             >
               Back to deals
@@ -442,7 +442,7 @@ export function LandingPage({
             }`}
           >
             <div className="mb-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
+              <div className="flex items-center gap-2 text-sm font-semibold text-green-700 dark:!text-emerald-300">
                 <Sparkles className="h-4 w-4" />
                 <span>{currentCopy.eyebrow}</span>
               </div>
@@ -519,7 +519,7 @@ export function LandingPage({
                   }`}
                 >
                   {activeStep === "categories" ? (
-                    <p className="mb-2 text-base font-bold text-green-700 md:text-lg">
+                    <p className="mb-2 text-base font-bold text-green-700 dark:!text-emerald-300 md:text-lg">
                       {nakiGreetingText.slice(0, typedGreetingLength)}
                       {typedGreetingLength < nakiGreetingText.length ? (
                         <span>|</span>
@@ -572,7 +572,7 @@ export function LandingPage({
 
               <Button
                 type="button"
-                className="h-11 cursor-pointer rounded-full bg-gray-950 px-5 font-bold text-white hover:bg-emerald-700"
+                className="h-11 cursor-pointer rounded-full bg-gray-950 px-5 font-bold text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600"
                 onClick={goNext}
               >
                 {activeStep === "ready"
@@ -589,7 +589,7 @@ export function LandingPage({
           {activeStep !== "welcome" ? (
             <aside className="rounded-[2rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.16),transparent_34%),linear-gradient(145deg,#064e3b,#111827)] p-5 text-white shadow-xl shadow-emerald-950/10 md:p-6">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100 text-green-700 dark:!bg-emerald-400/15 dark:!text-emerald-300">
                   <Search className="h-5 w-5" />
                 </div>
                 <div>
@@ -624,8 +624,8 @@ export function LandingPage({
               </div>
 
               {briefNote ? (
-                <div className="mt-6 rounded-3xl bg-gray-50 p-4">
-                  <p className="text-sm leading-6 text-gray-600">{briefNote}</p>
+                <div className="mt-6 rounded-3xl bg-gray-50 p-4 dark:!bg-amber-50/90 dark:ring-1 dark:ring-amber-200/25">
+                  <p className="text-sm leading-6 text-gray-600 dark:!text-slate-700">{briefNote}</p>
                 </div>
               ) : null}
             </aside>
@@ -650,7 +650,7 @@ export function LandingPage({
                 Budget in UGX
               </label>
               <div className="flex h-14 overflow-hidden rounded-2xl border border-gray-300 bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
-                <div className="flex items-center border-r border-gray-200 bg-gray-50 px-4 text-sm font-bold text-green-700">
+                <div className="flex items-center border-r border-gray-200 bg-gray-50 px-4 text-sm font-bold text-green-700 dark:text-emerald-300">
                   UGX
                 </div>
                 <Input
@@ -665,11 +665,11 @@ export function LandingPage({
                 />
               </div>
               {isSurpriseBudget ? (
-                <p className="mt-2 text-sm font-medium text-green-700">
+                <p className="mt-2 text-sm font-medium text-green-700 dark:text-emerald-300">
                   I will pick a surprise budget after I know what you want.
                 </p>
               ) : formattedBudget ? (
-                <p className="mt-2 text-sm font-medium text-green-700">
+                <p className="mt-2 text-sm font-medium text-green-700 dark:text-emerald-300">
                   I will work with UGX {formattedBudget}.
                 </p>
               ) : (
@@ -727,7 +727,18 @@ export function LandingPage({
         return (
           <div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {categories.map((category) => {
+              {categories.length === 0
+                ? Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={`category-skeleton-${index}`}
+                      className="flex min-h-24 animate-pulse flex-col items-start justify-between rounded-3xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:!bg-slate-900"
+                      aria-hidden="true"
+                    >
+                      <span className="h-7 w-7 rounded-xl bg-gray-200 dark:!bg-slate-700" />
+                      <span className="h-4 w-20 rounded-full bg-gray-200 dark:!bg-slate-700" />
+                    </div>
+                  ))
+                : categories.map((category) => {
                 const selected = selectedCategories.includes(category.name);
                 const capped =
                   !selected && selectedCategories.length >= maxSelectedCategories;
@@ -762,7 +773,9 @@ export function LandingPage({
               })}
             </div>
             <p className="mt-4 text-sm text-gray-500">
-              More categories will be added with time as PearlDeals grows.
+              {categories.length === 0
+                ? "Loading available categories..."
+                : "More categories will be added with time as PearlDeals grows."}
             </p>
           </div>
         );
@@ -815,15 +828,6 @@ export function LandingPage({
 
             <div className="divide-y divide-gray-200">
               <PreferenceRow
-                icon={<Briefcase className="h-5 w-5" />}
-                label="Budget"
-                onEdit={() => goToStep("budget")}
-              >
-                <span className="text-base font-semibold text-gray-950">
-                  {budgetSummary}
-                </span>
-              </PreferenceRow>
-              <PreferenceRow
                 icon={<Grid2X2 className="h-5 w-5" />}
                 label="Categories"
                 onEdit={() => goToStep("categories")}
@@ -835,8 +839,8 @@ export function LandingPage({
                         key={category}
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           index % 2 === 0
-                            ? "bg-violet-100 text-violet-900"
-                            : "bg-sky-100 text-sky-900"
+                            ? "bg-[oklch(0.94_0.03_300)] text-[oklch(0.34_0.13_300)]"
+                            : "bg-[oklch(0.95_0.03_245)] text-[oklch(0.32_0.09_245)]"
                         }`}
                       >
                         {category}
@@ -848,6 +852,15 @@ export function LandingPage({
                     Not selected
                   </span>
                 )}
+              </PreferenceRow>
+              <PreferenceRow
+                icon={<Briefcase className="h-5 w-5" />}
+                label="Budget"
+                onEdit={() => goToStep("budget")}
+              >
+                <span className="text-base font-semibold text-gray-950">
+                  {budgetSummary}
+                </span>
               </PreferenceRow>
               <PreferenceRow
                 icon={<CheckCircle2 className="h-5 w-5" />}
@@ -885,12 +898,14 @@ export function LandingPage({
       <>
         {prefixText}
         {nameText ? (
-          <span className="font-extrabold text-green-600">
+          <span className="font-extrabold text-green-600 dark:!text-emerald-300">
             {nameText}
           </span>
         ) : null}
         {suffixText}
-        {isTyping ? <span className="text-green-600">|</span> : null}
+        {isTyping ? (
+          <span className="text-green-600 dark:!text-emerald-300">|</span>
+        ) : null}
       </>
     );
   }
@@ -969,18 +984,20 @@ function BriefRow({
     <div
       className={`flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 transition ${
         active
-          ? "border-amber-300 bg-amber-50 shadow-sm"
+          ? "border-amber-300 bg-[oklch(0.97_0.03_90)] shadow-sm"
           : "border-white/10 bg-white/10"
       }`}
     >
       <span
-        className={`font-medium ${active ? "text-amber-700" : "text-emerald-50/70"}`}
+        className={`font-medium ${
+          active ? "text-[oklch(0.48_0.08_82)]" : "text-emerald-50/70"
+        }`}
       >
         {label}
       </span>
       <span
         className={`max-w-[11rem] text-right font-semibold ${
-          active ? "text-amber-900" : "text-white"
+          active ? "text-[oklch(0.2_0.025_82)]" : "text-white"
         }`}
       >
         {value}

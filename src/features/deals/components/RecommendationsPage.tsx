@@ -186,15 +186,15 @@ export function RecommendationsPage({
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button
                     type="button"
-                    variant="outline"
-                    className="cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
+                    className="cursor-pointer rounded-full bg-amber-300 px-4 font-bold text-gray-950 hover:bg-amber-200 dark:bg-amber-300 dark:text-slate-950 dark:shadow-lg dark:shadow-amber-950/20 dark:hover:bg-amber-200"
                     onClick={onEditBrief}
                   >
                     Edit brief
                   </Button>
                   <Button
                     type="button"
-                    className="cursor-pointer rounded-full bg-amber-300 px-4 font-bold text-gray-950 hover:bg-amber-200"
+                    variant="outline"
+                    className="cursor-pointer rounded-full border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white"
                     onClick={onBrowseDeals}
                   >
                     Browse all deals
@@ -220,7 +220,7 @@ export function RecommendationsPage({
           />
         ) : (
           <section className="space-y-5">
-            <div className="rounded-3xl border border-emerald-900/10 bg-white/80 p-2 shadow-sm shadow-emerald-950/5">
+            <div className="rounded-3xl border border-emerald-900/10 bg-white/80 p-2 shadow-sm shadow-emerald-950/5 dark:border-white/10 dark:!bg-slate-900/90">
               <div className="grid grid-cols-2 gap-2">
                 <RecommendationTabButton
                   active={activeRecommendationsTab === "baskets"}
@@ -240,12 +240,12 @@ export function RecommendationsPage({
             </div>
 
             {activeRecommendationsTab === "baskets" ? (
-              <p className="px-1 text-sm leading-6 text-gray-600">
+              <p className="px-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
                 Baskets are suggested product combinations that fit your brief,
                 budget, and condition preferences.
               </p>
             ) : (
-              <p className="px-1 text-sm leading-6 text-gray-600">
+              <p className="px-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
                 All matches shows every product that fits your selected
                 categories, budget, and condition preferences.
               </p>
@@ -349,8 +349,8 @@ function RecommendationTabButton({
       type="button"
       className={`flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-black transition ${
         active
-          ? "bg-gray-950 text-white shadow-md shadow-gray-950/15"
-          : "bg-white text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
+          ? "bg-gray-950 text-white shadow-md shadow-gray-950/15 dark:bg-emerald-700 dark:text-white dark:shadow-emerald-950/25"
+          : "bg-white text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 dark:!bg-slate-800 dark:!text-slate-300 dark:hover:!bg-slate-700 dark:hover:!text-emerald-200"
       }`}
       aria-pressed={active}
       onClick={onClick}
@@ -359,7 +359,9 @@ function RecommendationTabButton({
       <span>{label}</span>
       <span
         className={`rounded-full px-2 py-0.5 text-[0.68rem] ${
-          active ? "bg-white/15 text-white" : "bg-gray-100 text-gray-500"
+          active
+            ? "bg-white/15 text-white"
+            : "bg-gray-100 text-gray-500 dark:!bg-slate-700 dark:!text-slate-200"
         }`}
       >
         {count}
@@ -789,8 +791,8 @@ function RecommendationBasketView({
           )}
         </div>
 
-        <aside className="self-start rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-          <h3 className="text-base font-black text-gray-950">Budget summary</h3>
+        <aside className="self-start rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm dark:border-emerald-300/20 dark:!bg-slate-900">
+          <h3 className="text-base font-black text-gray-950 dark:!text-white">Budget summary</h3>
           <div className="mt-4 space-y-3 text-sm">
             <SummaryAmount label="Products total" value={basket.total} />
             <SummaryAmount label="Balance" value={basket.balance} highlight />
@@ -804,11 +806,11 @@ function RecommendationBasketView({
           </div>
 
           {basket.complete ? (
-            <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+            <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800 dark:!bg-emerald-400/10 dark:!text-emerald-200">
               This basket stays within budget and leaves you with a balance.
             </p>
           ) : (
-            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:!bg-amber-300/10 dark:!text-amber-100 dark:ring-1 dark:ring-amber-300/20">
               <p className="font-semibold">Some categories were not included.</p>
               <p className="mt-1">
                 Missing: {basket.missingCategories.join(", ")}
@@ -869,21 +871,21 @@ function BasketShopModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`basket-shop-title-${basket.id}`}
-        className="my-3 w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl shadow-emerald-950/20 sm:my-6"
+        className="my-3 w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl shadow-emerald-950/20 dark:border dark:border-white/10 dark:!bg-slate-950 dark:shadow-black/50 sm:my-6"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-4 py-4 dark:border-white/10 sm:px-6 sm:py-5">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700">
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
               <ShoppingBasket className="h-4 w-4" aria-hidden="true" />
               Shopping plan
             </p>
             <h2
               id={`basket-shop-title-${basket.id}`}
-              className="mt-1 text-2xl font-black text-gray-950"
+              className="mt-1 text-2xl font-black text-gray-950 dark:!text-white"
             >
               Shop Basket {basket.id}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-gray-600">
+            <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
               Use the best listed store for each product, then compare details
               before you leave PearlDeals.
             </p>
@@ -891,14 +893,14 @@ function BasketShopModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:border-emerald-300/25 dark:!bg-slate-800 dark:!text-emerald-100 dark:shadow-sm dark:shadow-black/30 dark:ring-1 dark:ring-white/10 dark:hover:!bg-emerald-900/45 dark:hover:!text-white"
             aria-label="Close shop basket modal"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="grid gap-3 border-b border-gray-200 bg-emerald-50/70 px-4 py-4 text-sm sm:grid-cols-3 sm:px-6">
+        <div className="grid gap-3 border-b border-gray-200 bg-emerald-50/70 px-4 py-4 text-sm dark:border-white/10 dark:!bg-emerald-400/10 sm:grid-cols-3 sm:px-6">
           <SummaryTile label="Products total" value={formatUGX(basket.total)} />
           <SummaryTile label="Balance" value={formatUGX(basket.balance)} />
           <SummaryTile label="Savings" value={formatUGX(savings)} />
@@ -910,14 +912,14 @@ function BasketShopModal({
               role="button"
               tabIndex={0}
               key={deal.id}
-              className="group/card grid cursor-pointer gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
+              className="group/card grid cursor-pointer gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 dark:hover:border-emerald-300/35 dark:hover:ring-emerald-300/20 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
               onClick={() => onSelectDeal(deal)}
               onKeyDown={(event) =>
                 handleProductSurfaceKeyDown(event, () => onSelectDeal(deal))
               }
               aria-label={`View comparison for ${deal.title}`}
             >
-              <div className="flex h-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+              <div className="flex h-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)]">
                 <img
                   src={deal.image || imageFallback}
                   alt={deal.title}
@@ -925,17 +927,17 @@ function BasketShopModal({
                     event.currentTarget.onerror = null;
                     event.currentTarget.src = imageFallback;
                   }}
-                  className="h-full w-full p-2 object-contain"
+                  className="h-full w-full p-2 object-contain dark:mix-blend-multiply"
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+                <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
                   {deal.category}
                 </p>
-                <h3 className="mt-1 text-base font-black leading-snug text-gray-950">
+                <h3 className="mt-1 text-base font-black leading-snug text-gray-950 dark:!text-white">
                   {deal.title}
                 </h3>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:!text-slate-300">
                   <span className="inline-flex items-center gap-1">
                     <Store className="h-3.5 w-3.5" aria-hidden="true" />
                     {deal.bestDeal.site}
@@ -944,14 +946,14 @@ function BasketShopModal({
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:min-w-44 sm:items-end">
-                <p className="text-lg font-black text-green-700">
+                <p className="text-lg font-black text-green-700 dark:!text-emerald-300">
                   {formatUGX(deal.bestDeal.price)}
                 </p>
                 <div className="flex w-full flex-col gap-2 sm:w-auto">
                   {deal.bestDeal.url ? (
                     <Button
                       type="button"
-                      className="h-10 w-full cursor-pointer rounded-full bg-emerald-700 px-4 font-bold text-white hover:bg-emerald-800 sm:w-auto"
+                    className="h-10 w-full cursor-pointer rounded-full bg-emerald-700 px-4 font-bold text-white hover:bg-emerald-800 dark:bg-emerald-700 dark:hover:bg-emerald-600 sm:w-auto"
                       onClick={(event) => {
                         event.stopPropagation();
                         onSiteClick(deal);
@@ -971,7 +973,7 @@ function BasketShopModal({
                     </Button>
                   )}
                   <span
-                    className="inline-flex h-10 w-full items-center justify-center rounded-full border border-gray-200 bg-white px-4 font-bold text-gray-950 transition-colors group-hover/card:border-emerald-200 group-hover/card:text-emerald-700 sm:w-auto"
+                    className="inline-flex h-10 w-full items-center justify-center rounded-full border border-gray-200 bg-white px-4 font-bold text-gray-950 transition-colors group-hover/card:border-emerald-200 group-hover/card:text-emerald-700 dark:border-white/10 dark:!bg-slate-800 dark:!text-white dark:group-hover/card:border-emerald-300/30 dark:group-hover/card:!text-emerald-200 sm:w-auto"
                     aria-hidden="true"
                   >
                     View comparison
@@ -988,11 +990,11 @@ function BasketShopModal({
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm dark:border-emerald-300/20 dark:!bg-slate-900 dark:ring-1 dark:ring-white/5">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:!text-slate-300">
         {label}
       </p>
-      <p className="mt-1 text-base font-black text-gray-950">{value}</p>
+      <p className="mt-1 text-base font-black text-gray-950 dark:!text-white">{value}</p>
     </div>
   );
 }
@@ -1025,14 +1027,14 @@ function RecommendationRow({
     <article
       role="button"
       tabIndex={0}
-      className="group/card grid cursor-pointer gap-3 rounded-3xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center"
+      className="group/card grid cursor-pointer gap-3 rounded-3xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 dark:hover:border-emerald-300/35 dark:hover:ring-emerald-300/20 sm:grid-cols-[7rem_minmax(0,1fr)_minmax(12rem,auto)] sm:items-center"
       onClick={openComparison}
       onKeyDown={(event) =>
         handleProductSurfaceKeyDown(event, openComparison)
       }
       aria-label={`Compare prices for ${deal.title}`}
     >
-      <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+      <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)]">
         <img
           src={deal.image || imageFallback}
           alt={deal.title}
@@ -1040,7 +1042,7 @@ function RecommendationRow({
             event.currentTarget.onerror = null;
             event.currentTarget.src = imageFallback;
           }}
-          className="h-full w-full p-3 object-contain"
+          className="h-full w-full p-3 object-contain dark:mix-blend-multiply"
         />
       </div>
       <div className="min-w-0">
@@ -1074,7 +1076,7 @@ function RecommendationRow({
               Save {formatUGX(savingsAmount)}
             </p>
           ) : null}
-          <p className="text-lg font-bold text-green-700">
+          <p className="text-lg font-bold text-green-700 dark:!text-emerald-300">
             {formatUGX(deal.bestDeal.price)}
           </p>
         </div>
@@ -1125,7 +1127,7 @@ function RecommendationRow({
           </div>
         ) : null}
         <span
-          className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700 sm:w-auto"
+          className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-bold whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:group-hover/card:bg-emerald-600 sm:w-auto"
           aria-hidden="true"
         >
           Compare prices
@@ -1168,9 +1170,13 @@ function SummaryAmount({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-gray-600">{label}</span>
+      <span className="text-gray-600 dark:!text-slate-300">{label}</span>
       <span
-        className={`font-bold ${highlight ? "text-green-700" : "text-gray-950"}`}
+        className={`font-bold ${
+          highlight
+            ? "text-green-700 dark:!text-emerald-300"
+            : "text-gray-950 dark:!text-white"
+        }`}
       >
         {formatUGX(value)}
       </span>
@@ -1180,7 +1186,7 @@ function SummaryAmount({
 
 function SummaryChip({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-800 min-[375px]:px-3 min-[375px]:text-xs">
+    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[0.7rem] font-semibold text-emerald-800 dark:border-emerald-300/25 dark:!bg-emerald-400/10 dark:!text-emerald-200 min-[375px]:px-3 min-[375px]:text-xs">
       {label}
     </span>
   );
@@ -1200,9 +1206,9 @@ function EmptyRecommendations({
   showActions?: boolean;
 }) {
   return (
-    <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm">
-      <h2 className="text-xl font-black text-gray-950">{title}</h2>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
+    <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5">
+      <h2 className="text-xl font-black text-gray-950 dark:!text-white">{title}</h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:!text-slate-300">
         {body}
       </p>
       {showActions ? (
@@ -1210,14 +1216,15 @@ function EmptyRecommendations({
           <Button
             type="button"
             variant="outline"
-            className="cursor-pointer rounded-full px-5"
+            className="cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:hover:bg-emerald-600"
             onClick={onEditBrief}
           >
             Edit brief
           </Button>
           <Button
             type="button"
-            className="cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
+            variant="outline"
+            className="cursor-pointer rounded-full px-5 dark:border-emerald-300/30 dark:!bg-emerald-400/10 dark:!text-emerald-100 dark:shadow-sm dark:shadow-emerald-950/20 dark:hover:!bg-emerald-400/18 dark:hover:!text-white"
             onClick={onBrowseDeals}
           >
             Browse all deals
@@ -1263,10 +1270,10 @@ function NoRecommendationMatches({
       {suggestedDeals.length > 0 ? (
         <section>
           <div className="mb-3">
-            <h2 className="text-xl font-bold text-gray-950">
+            <h2 className="text-xl font-bold text-gray-950 dark:!text-white">
               You could also look into
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-600 dark:!text-slate-300">
               These nearby products are not exact matches, but they may still be
               worth comparing.
             </p>
@@ -1315,15 +1322,15 @@ function SingleCategoryRecommendationList({
   const safePage = Math.min(Math.max(pagination.page, 1), pagination.pageCount);
 
   return (
-    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 md:p-5">
+    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
       <div className="mb-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
           Best matches
         </p>
-        <h2 className="mt-1 text-xl font-black text-gray-950">
+        <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
           Recommended {category.toLowerCase()} in your budget
         </h2>
-        <p className="mt-1 text-sm leading-6 text-gray-600">
+        <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
           I found {pagination.totalCount}{" "}
           {pagination.totalCount === 1 ? "product" : "products"} that match
           your brief.
@@ -1377,11 +1384,11 @@ function SuggestionCard({
   return (
     <button
       type="button"
-      className="group/card flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
+      className="group/card flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/30 focus-visible:outline-none dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 dark:hover:border-emerald-300/35 dark:hover:ring-emerald-300/20"
       onClick={openComparison}
       aria-label={`Compare prices for ${deal.title}`}
     >
-      <div className="flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50">
+      <div className="flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-white to-emerald-50 dark:!bg-[linear-gradient(135deg,#fff7ed,#ffffff,#dcfce7)]">
         <img
           src={deal.image || imageFallback}
           alt={deal.title}
@@ -1389,15 +1396,15 @@ function SuggestionCard({
             event.currentTarget.onerror = null;
             event.currentTarget.src = imageFallback;
           }}
-          className="h-full w-full p-4 object-contain"
+          className="h-full w-full p-4 object-contain dark:mix-blend-multiply"
         />
       </div>
 
       <div className="flex flex-1 flex-col p-3 text-sm">
-        <h3 className="text-base font-black leading-snug text-gray-950">
+        <h3 className="text-base font-black leading-snug text-gray-950 dark:!text-white">
           {deal.title}
         </h3>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:!text-slate-300">
           Best at {deal.bestDeal.site}
         </p>
 
@@ -1419,9 +1426,9 @@ function SuggestionCard({
           />
         </div>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-3">
           <span
-            className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700"
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-gray-950 px-2.5 text-sm font-bold whitespace-nowrap text-white transition-colors group-hover/card:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:group-hover/card:bg-emerald-600"
             aria-hidden="true"
           >
             Compare prices
@@ -1446,8 +1453,8 @@ function AttributeChip({
     <span
       className={`inline-flex max-w-full flex-col rounded-xl border px-3 py-2 ${
         matches
-          ? "border-green-200 bg-green-50 text-green-800"
-          : "border-gray-200 bg-gray-50 text-gray-700"
+          ? "border-green-200 bg-green-50 text-green-800 dark:border-emerald-300/25 dark:!bg-emerald-400/10 dark:!text-emerald-200"
+          : "border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:!bg-slate-800 dark:!text-slate-200"
       }`}
     >
       <span className="text-[0.65rem] font-semibold uppercase tracking-wide">

@@ -143,20 +143,20 @@ export function SearchResultsPage({
             />
           </div>
         ) : (
-          <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
+          <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 dark:!bg-amber-300/15 dark:!text-amber-200 dark:ring-1 dark:ring-amber-300/25">
               <Search className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-black text-gray-950">
+            <h2 className="text-xl font-black text-gray-950 dark:!text-white">
               No products found
             </h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:!text-slate-300">
               Try a category, product name, or store like Phones, HP, Jumia, or
               TVs.
             </p>
             <Button
               type="button"
-              className="mt-5 cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700"
+              className="mt-5 cursor-pointer rounded-full bg-gray-950 px-5 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:shadow-lg dark:shadow-emerald-950/25 dark:hover:bg-emerald-600"
               onClick={clearSearch}
             >
               Back to all deals
