@@ -200,7 +200,7 @@ function getRecommendationReasons(deal: EnrichedDeal, brief: ShoppingBrief) {
   const reasons: string[] = [];
   const matchingConditions = getMatchingConditionLabels(deal, brief);
 
-  if (deal.bestDeal.price <= brief.budget) {
+  if (typeof brief.budget === "number" && deal.bestDeal.price <= brief.budget) {
     reasons.push("Within budget");
   }
 
@@ -224,12 +224,13 @@ function createBasketFromMatches(
   brief: ShoppingBrief,
   id: number,
 ): RecommendationBasket {
+  const budget = brief.budget ?? 0;
   const items: RecommendationMatch[] = [];
   let runningTotal = 0;
 
   for (const match of matches) {
     const nextTotal = runningTotal + match.deal.bestDeal.price;
-    if (nextTotal <= brief.budget) {
+    if (nextTotal <= budget) {
       items.push(match);
       runningTotal = nextTotal;
     }
@@ -250,7 +251,7 @@ function createBasketFromMatches(
         a.deal.bestDeal.price - b.deal.bestDeal.price,
     ),
     total,
-    balance: brief.budget - total,
+    balance: budget - total,
     missingCategories,
     complete: missingCategories.length === 0,
   };
@@ -267,7 +268,7 @@ export function getRecommendationBaskets(
   deals: EnrichedDeal[],
   brief: ShoppingBrief | null,
 ): RecommendationBasket[] {
-  if (!brief) {
+  if (!brief || typeof brief.budget !== "number") {
     return [];
   }
 
@@ -279,7 +280,7 @@ export function getRecommendationBaskets(
     )
     .map((deal) => getDealForBrief(deal, brief))
     .filter((deal): deal is EnrichedDeal => !!deal)
-    .filter((deal) => deal.bestDeal.price <= brief.budget)
+    .filter((deal) => deal.bestDeal.price <= brief.budget!)
     .map((deal) => ({
       deal,
       reasons: getRecommendationReasons(deal, brief),
@@ -386,12 +387,16 @@ export function getBriefMatchingDeals(
   return deals
     .filter(
       (deal) =>
-        brief.categories.includes(deal.category) &&
+        (brief.categories.length === 0 ||
+          brief.categories.includes(deal.category)) &&
         dealMatchesConditions(deal, brief),
     )
     .map((deal) => getDealForBrief(deal, brief))
     .filter((deal): deal is EnrichedDeal => !!deal)
-    .filter((deal) => deal.bestDeal.price <= brief.budget)
+    .filter(
+      (deal) =>
+        typeof brief.budget !== "number" || deal.bestDeal.price <= brief.budget,
+    )
     .sort(
       (a, b) =>
         brief.categories.indexOf(a.category) - brief.categories.indexOf(b.category) ||

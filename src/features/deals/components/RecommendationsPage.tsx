@@ -38,7 +38,11 @@ import { matchesDealSearch } from "../search";
 import { AppHeaderShell, MobileOffcanvas } from "./AppChrome";
 import { DealCard } from "./DealViews";
 import { LoadingState } from "./LoadingState";
-import { LeaveSiteModal, RecommendationFeedbackModal } from "./Modals";
+import {
+  LeaveSiteModal,
+  RecommendationFeedbackModal,
+  UnavailableProductModal,
+} from "./Modals";
 import { paginateItems, Pagination } from "./Pagination";
 
 export function RecommendationsPage({
@@ -47,6 +51,14 @@ export function RecommendationsPage({
   suggestedDeals,
   matchingDeals,
   matchingDealsPagination,
+  productMatches = [],
+  productAnchor,
+  productAddOnCategories = [],
+  productAddOnMatches = [],
+  productRemainingBudget,
+  productOriginalBudget,
+  productClosestMatches = [],
+  productResultState = "not_applicable",
   search,
   setSearch,
   isSidebarOpen,
@@ -69,6 +81,19 @@ export function RecommendationsPage({
   suggestedDeals: EnrichedDeal[];
   matchingDeals: EnrichedDeal[];
   matchingDealsPagination: PaginationMeta;
+  productMatches?: EnrichedDeal[];
+  productAnchor?: EnrichedDeal;
+  productAddOnCategories?: string[];
+  productAddOnMatches?: EnrichedDeal[];
+  productRemainingBudget?: number;
+  productOriginalBudget?: number;
+  productClosestMatches?: EnrichedDeal[];
+  productResultState?:
+    | "not_applicable"
+    | "exact"
+    | "condition_mismatch"
+    | "closest"
+    | "none";
   search: string;
   setSearch: (value: string) => void;
   isSidebarOpen: boolean;
@@ -91,23 +116,87 @@ export function RecommendationsPage({
   >("baskets");
   const [isRecommendationFeedbackOpen, setIsRecommendationFeedbackOpen] =
     useState(false);
+  const [isUnavailableProductModalOpen, setIsUnavailableProductModalOpen] =
+    useState(false);
+  const [promptedProductQuery, setPromptedProductQuery] = useState("");
+  const briefProductQuery = brief?.productQuery?.trim() ?? "";
+  const recommendationFilter = briefProductQuery || search.trim();
+  const isProductOnlyBrief = !!briefProductQuery && brief?.categories.length === 0;
+  const isProductAddOnBrief =
+    !!briefProductQuery && productAddOnCategories.length > 0;
+  const hasProductAnchorAddOns = isProductAddOnBrief && !!productAnchor;
+  const selectedCategoryCount = brief?.categories.length ?? 0;
+  const shouldUseFlatAddOnResults =
+    hasProductAnchorAddOns && selectedCategoryCount === 1;
+  const shouldUseBasketAddOnResults =
+    hasProductAnchorAddOns && selectedCategoryCount >= 2;
+  const shouldShowAddOnContext =
+    isProductAddOnBrief || (!!briefProductQuery && !!brief?.categories.length);
+  const isProductFocusedBrief = !!briefProductQuery;
+  const basketFilter = shouldShowAddOnContext ? search.trim() : recommendationFilter;
+  const visibleProductAddOnMatches = productAddOnMatches.filter((deal) =>
+    matchesDealSearch(deal, search.trim()),
+  );
+
+  useEffect(() => {
+    if (isProductOnlyBrief) {
+      setActiveRecommendationsTab("matches");
+    }
+  }, [isProductOnlyBrief]);
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      !isProductOnlyBrief ||
+      productResultState !== "none" ||
+      !briefProductQuery ||
+      promptedProductQuery === briefProductQuery
+    ) {
+      return;
+    }
+
+    setPromptedProductQuery(briefProductQuery);
+    setIsUnavailableProductModalOpen(true);
+  }, [
+    briefProductQuery,
+    isLoading,
+    isProductOnlyBrief,
+    productResultState,
+    promptedProductQuery,
+  ]);
+
   const visibleBaskets = baskets
     .map((basket) => ({
       basket,
-      visibleItems: filterMatchesBySearch(basket.items, search),
+      visibleItems: filterMatchesBySearch(basket.items, basketFilter),
     }))
     .filter(({ visibleItems }) => visibleItems.length > 0);
-  const visibleMatchCount = visibleBaskets.reduce(
+  const basketMatchCount = visibleBaskets.reduce(
     (total, { visibleItems }) => total + visibleItems.length,
     0,
   );
-  const visibleStoreCount = getVisibleStoreCount(visibleBaskets);
-  const hasVisibleRecommendations = visibleBaskets.length > 0;
+  const visibleMatchCount = shouldUseFlatAddOnResults
+    ? visibleProductAddOnMatches.length
+    : shouldUseBasketAddOnResults
+      ? activeRecommendationsTab === "baskets"
+        ? basketMatchCount
+        : visibleProductAddOnMatches.length
+      : isProductFocusedBrief
+        ? matchingDealsPagination.totalCount
+        : basketMatchCount;
   const visibleMatchingDeals = matchingDeals.filter((deal) =>
-    matchesDealSearch(deal, search),
+    matchesDealSearch(deal, recommendationFilter),
   );
+  const visibleStoreCount = isProductOnlyBrief
+    ? getVisibleStoreCountFromDeals(
+        productResultState === "closest"
+          ? productClosestMatches
+          : visibleMatchingDeals,
+      )
+    : getVisibleStoreCount(visibleBaskets);
   const shouldShowSingleCategoryProducts =
     !!brief &&
+    !briefProductQuery &&
     brief.categories.length === 1 &&
     visibleMatchingDeals.length > 0 &&
     !visibleBaskets.some(({ visibleItems }) => visibleItems.length > 1);
@@ -160,9 +249,11 @@ export function RecommendationsPage({
                         <p className="text-[0.68rem] font-bold uppercase tracking-wide text-amber-100">
                           Surprise budget picked
                         </p>
-                        <p className="mt-1 text-lg font-black leading-tight text-white">
-                          {formatUGX(brief.budget)}
-                        </p>
+                        {typeof brief.budget === "number" ? (
+                          <p className="mt-1 text-lg font-black leading-tight text-white">
+                            {formatUGX(brief.budget)}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                     {visibleStoreCount > 0 ? (
@@ -182,7 +273,7 @@ export function RecommendationsPage({
                   </p>
                 )}
               </div>
-              {hasVisibleRecommendations ? (
+              {brief ? (
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button
                     type="button"
@@ -218,8 +309,50 @@ export function RecommendationsPage({
             onEditBrief={onEditBrief}
             onBrowseDeals={onBrowseDeals}
           />
+        ) : isProductOnlyBrief && brief ? (
+          <ProductOnlyRecommendationList
+            query={briefProductQuery}
+            deals={visibleMatchingDeals}
+            closestDeals={productClosestMatches}
+            resultState={productResultState}
+            pagination={matchingDealsPagination}
+            page={matchingDealsPagination.page}
+            setSelectedDeal={setSelectedDeal}
+            onPageChange={onMatchingDealsPageChange}
+            onEditBrief={onEditBrief}
+            onBrowseDeals={onBrowseDeals}
+            onRequestProduct={() => setIsUnavailableProductModalOpen(true)}
+          />
         ) : (
           <section className="space-y-5">
+            {hasProductAnchorAddOns ? (
+              <ProductAnchorSummary
+                query={briefProductQuery}
+                productMatches={productMatches.length > 0 ? productMatches : visibleMatchingDeals}
+                productAnchor={productAnchor}
+                addOnCategories={productAddOnCategories}
+                originalBudget={productOriginalBudget}
+                remainingBudget={productRemainingBudget}
+                setSelectedDeal={setSelectedDeal}
+              />
+            ) : null}
+            {shouldUseFlatAddOnResults ? (
+              <ProductAddOnResults
+                categories={productAddOnCategories}
+                deals={visibleProductAddOnMatches}
+                remainingBudget={productRemainingBudget}
+                suggestedDeals={suggestedDeals}
+                setSelectedDeal={setSelectedDeal}
+              />
+            ) : shouldShowAddOnContext && !productAnchor ? (
+              <ProductQueryFallbackNotice
+                query={briefProductQuery}
+                resultState={productResultState}
+                closestDeals={productClosestMatches}
+                setSelectedDeal={setSelectedDeal}
+              />
+            ) : null}
+            {!hasProductAnchorAddOns || shouldUseBasketAddOnResults ? (
             <div className="rounded-3xl border border-emerald-900/10 bg-white/80 p-2 shadow-sm shadow-emerald-950/5 dark:border-white/10 dark:!bg-slate-900/90">
               <div className="grid grid-cols-2 gap-2">
                 <RecommendationTabButton
@@ -233,25 +366,83 @@ export function RecommendationsPage({
                   active={activeRecommendationsTab === "matches"}
                   icon={<ListChecks className="h-4 w-4" aria-hidden="true" />}
                   label="All matches"
-                  count={matchingDealsPagination.totalCount}
+                  count={
+                    shouldUseBasketAddOnResults
+                      ? visibleProductAddOnMatches.length
+                      : matchingDealsPagination.totalCount
+                  }
                   onClick={() => setActiveRecommendationsTab("matches")}
                 />
               </div>
             </div>
+            ) : null}
 
-            {activeRecommendationsTab === "baskets" ? (
+            {shouldUseBasketAddOnResults && productAnchor && activeRecommendationsTab === "baskets" ? (
+              <ProductBasketPlanningNote
+                anchor={productAnchor}
+                categories={productAddOnCategories}
+                remainingBudget={productRemainingBudget}
+              />
+            ) : shouldUseBasketAddOnResults && activeRecommendationsTab === "matches" ? (
+              <p className="px-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+                These are all the add-on products that fit within the remaining
+                balance, grouped by category.
+              </p>
+            ) : !hasProductAnchorAddOns && activeRecommendationsTab === "baskets" ? (
               <p className="px-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
                 Baskets are suggested product combinations that fit your brief,
                 budget, and condition preferences.
               </p>
-            ) : (
+            ) : !hasProductAnchorAddOns ? (
               <p className="px-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
                 All matches shows every product that fits your selected
                 categories, budget, and condition preferences.
               </p>
-            )}
+            ) : null}
 
-            {activeRecommendationsTab === "baskets" ? (
+            {shouldUseBasketAddOnResults && activeRecommendationsTab === "baskets" ? (
+              baskets.length > 0 ? (
+                visibleBaskets.length > 0 ? (
+                  <div className="space-y-5">
+                    {visibleBaskets.map(({ basket, visibleItems }) => (
+                      <RecommendationBasketView
+                        key={basket.id}
+                        basket={basket}
+                        visibleItems={visibleItems}
+                        setSelectedDeal={setSelectedDeal}
+                        onSelectBasketDeal={onSelectBasketDeal}
+                        restoreBasketShopModalId={restoreBasketShopModalId}
+                        onBasketShopModalRestored={onBasketShopModalRestored}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyRecommendations
+                    title="No matches found"
+                    body="No add-on baskets match your current search."
+                    onEditBrief={onEditBrief}
+                    onBrowseDeals={onBrowseDeals}
+                    showActions={false}
+                  />
+                )
+              ) : (
+                <AddOnBudgetEmptyState
+                  categories={productAddOnCategories}
+                  remainingBudget={productRemainingBudget}
+                  suggestedDeals={suggestedDeals}
+                  setSelectedDeal={setSelectedDeal}
+                />
+              )
+            ) : shouldUseBasketAddOnResults ? (
+              <ProductAddOnGroupedMatches
+                categories={productAddOnCategories}
+                deals={visibleProductAddOnMatches}
+                remainingBudget={productRemainingBudget}
+                setSelectedDeal={setSelectedDeal}
+                onEditBrief={onEditBrief}
+                onBrowseDeals={onBrowseDeals}
+              />
+            ) : !hasProductAnchorAddOns && activeRecommendationsTab === "baskets" ? (
               shouldShowSingleCategoryProducts ? (
                 <SingleCategoryRecommendationList
                   brief={brief}
@@ -293,7 +484,7 @@ export function RecommendationsPage({
                   onBrowseDeals={onBrowseDeals}
                 />
               )
-            ) : (
+            ) : !hasProductAnchorAddOns ? (
               <RecommendationAllMatchesList
                 brief={brief}
                 deals={visibleMatchingDeals}
@@ -304,7 +495,7 @@ export function RecommendationsPage({
                 onEditBrief={onEditBrief}
                 onBrowseDeals={onBrowseDeals}
               />
-            )}
+            ) : null}
           </section>
         )}
 
@@ -323,6 +514,11 @@ export function RecommendationsPage({
               onClose={() => setIsRecommendationFeedbackOpen(false)}
               hasBrief
               basketCount={baskets.length}
+            />
+            <UnavailableProductModal
+              open={isUnavailableProductModalOpen}
+              onClose={() => setIsUnavailableProductModalOpen(false)}
+              searchQuery={briefProductQuery}
             />
           </>
         ) : null}
@@ -367,6 +563,509 @@ function RecommendationTabButton({
         {count}
       </span>
     </button>
+  );
+}
+
+function ProductAnchorSummary({
+  query,
+  productMatches,
+  productAnchor,
+  addOnCategories,
+  originalBudget,
+  remainingBudget,
+  setSelectedDeal,
+}: {
+  query: string;
+  productMatches: EnrichedDeal[];
+  productAnchor: EnrichedDeal;
+  addOnCategories: string[];
+  originalBudget?: number;
+  remainingBudget?: number;
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  const sortedMatches = [...productMatches].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+
+  return (
+    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
+      <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_18rem] lg:items-start">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+            Product first
+          </p>
+          <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+            {query} options
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+            I used the cheapest matching option as the anchor, then checked what
+            fits from {addOnCategories.join(", ")} with the balance.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-300/20 dark:!bg-slate-950">
+          <SummaryAmount label="Anchor product" value={productAnchor.bestDeal.price} />
+          {typeof originalBudget === "number" ? (
+            <div className="mt-3">
+              <SummaryAmount label="Original budget" value={originalBudget} />
+            </div>
+          ) : null}
+          {typeof remainingBudget === "number" ? (
+            <div className="mt-3">
+              <SummaryAmount label="Remaining" value={remainingBudget} highlight />
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {sortedMatches.map((deal) => (
+          <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProductQueryFallbackNotice({
+  query,
+  resultState,
+  closestDeals,
+  setSelectedDeal,
+}: {
+  query: string;
+  resultState:
+    | "not_applicable"
+    | "exact"
+    | "condition_mismatch"
+    | "closest"
+    | "none";
+  closestDeals: EnrichedDeal[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  const hasClosestDeals = closestDeals.length > 0;
+  const title =
+    resultState === "condition_mismatch"
+      ? `No ${query} matches for that condition`
+      : `No exact matches for ${query}`;
+  const body =
+    resultState === "condition_mismatch"
+      ? "I found the product, but not with the condition you selected. I will still show your category recommendations below."
+      : "I could not find that exact product in the current catalog. I will still show recommendations from your selected categories below.";
+
+  return (
+    <section className="space-y-4 rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-sm shadow-amber-950/5 dark:border-amber-300/20 dark:!bg-amber-300/10 dark:ring-1 dark:ring-amber-300/15 md:p-5">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:!text-amber-200">
+          Product check
+        </p>
+        <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+          {title}
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-gray-700 dark:!text-amber-50">
+          {body}
+        </p>
+      </div>
+      {hasClosestDeals ? (
+        <div>
+          <h3 className="text-sm font-black text-gray-950 dark:!text-white">
+            Closest product matches
+          </h3>
+          <div className="mt-3 grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {closestDeals.slice(0, 4).map((deal) => (
+              <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function AddOnBudgetEmptyState({
+  categories,
+  remainingBudget,
+  suggestedDeals,
+  setSelectedDeal,
+}: {
+  categories: string[];
+  remainingBudget?: number;
+  suggestedDeals: EnrichedDeal[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  const categoryLabel = categories.join(", ") || "selected categories";
+  const nearbyDeals = suggestedDeals
+    .filter((deal) => categories.includes(deal.category))
+    .slice(0, 4);
+  const nearestDeal = nearbyDeals[0];
+  const shortfall =
+    nearestDeal && typeof remainingBudget === "number"
+      ? Math.max(0, nearestDeal.bestDeal.price - remainingBudget)
+      : 0;
+
+  return (
+    <div className="space-y-5">
+      <EmptyRecommendations
+        title={`No ${categoryLabel} fit within the remaining budget`}
+        body={
+          shortfall > 0 && nearestDeal
+            ? `Your main product fits, but the closest ${nearestDeal.category.toLowerCase()} is ${formatUGX(shortfall)} above the remaining ${formatUGX(remainingBudget ?? 0)}.`
+            : typeof remainingBudget === "number"
+              ? `Your main product fits, but I could not fit ${categoryLabel} within the remaining ${formatUGX(remainingBudget)}.`
+            : `Your main product fits, but I could not fit ${categoryLabel} with the remaining budget.`
+        }
+        onEditBrief={() => undefined}
+        onBrowseDeals={() => undefined}
+        showActions={false}
+      />
+      {nearbyDeals.length > 0 ? (
+        <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+              Closest add-ons
+            </p>
+            <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+              {categoryLabel} worth comparing
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+              These exceed the remaining balance, but they are the closest
+              options from your selected categories. Adjusting the budget may
+              make one fit.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {nearbyDeals.map((deal) => (
+              <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function ProductAddOnResults({
+  categories,
+  deals,
+  remainingBudget,
+  suggestedDeals,
+  setSelectedDeal,
+}: {
+  categories: string[];
+  deals: EnrichedDeal[];
+  remainingBudget?: number;
+  suggestedDeals: EnrichedDeal[];
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+}) {
+  const categoryLabel = categories.join(", ") || "selected categories";
+  const sortedDeals = [...deals].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+
+  if (sortedDeals.length === 0) {
+    return (
+      <AddOnBudgetEmptyState
+        categories={categories}
+        remainingBudget={remainingBudget}
+        suggestedDeals={suggestedDeals}
+        setSelectedDeal={setSelectedDeal}
+      />
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+          Add-ons in budget
+        </p>
+        <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+          {categoryLabel} that fit the balance
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+          I found {sortedDeals.length}{" "}
+          {sortedDeals.length === 1 ? "product" : "products"} that fit within
+          the remaining {typeof remainingBudget === "number" ? formatUGX(remainingBudget) : "budget"}.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {sortedDeals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProductBasketPlanningNote({
+  anchor,
+  categories,
+  remainingBudget,
+}: {
+  anchor: EnrichedDeal;
+  categories: string[];
+  remainingBudget?: number;
+}) {
+  const categoryLabel = categories.join(" and ") || "the selected categories";
+  const balanceText =
+    typeof remainingBudget === "number" ? formatUGX(remainingBudget) : "the remaining budget";
+
+  return (
+    <section className="rounded-3xl border border-emerald-900/10 bg-emerald-50/90 p-4 shadow-sm shadow-emerald-950/5 dark:border-emerald-300/20 dark:!bg-[#fff8df] dark:!text-slate-950 dark:shadow-black/20 md:p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-wide text-green-700 dark:!text-green-700">
+            How Naki planned this
+          </p>
+          <h2 className="mt-1 text-lg font-black leading-tight text-gray-950 dark:!text-slate-950">
+            I found your product first, then built baskets with the balance.
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-gray-700 dark:!text-slate-700">
+            I used the cheapest matching option, {anchor.title}, at{" "}
+            <span className="font-black text-green-700 dark:!text-green-700">
+              {formatUGX(anchor.bestDeal.price)}
+            </span>
+            . The {categoryLabel} baskets below are built from the remaining{" "}
+            <span className="font-black text-green-700 dark:!text-green-700">
+              {balanceText}
+            </span>
+            .
+          </p>
+        </div>
+        <div className="shrink-0 rounded-2xl border border-emerald-900/10 bg-white/80 px-4 py-3 text-left shadow-sm dark:border-emerald-900/10 dark:!bg-white/70">
+          <p className="text-[0.7rem] font-bold uppercase tracking-wide text-gray-500 dark:!text-slate-600">
+            Basket budget
+          </p>
+          <p className="mt-1 text-xl font-black text-green-700 dark:!text-green-700">
+            {balanceText}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProductAddOnGroupedMatches({
+  categories,
+  deals,
+  remainingBudget,
+  setSelectedDeal,
+  onEditBrief,
+  onBrowseDeals,
+}: {
+  categories: string[];
+  deals: EnrichedDeal[];
+  remainingBudget?: number;
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+}) {
+  const sections = categories
+    .map((category) => ({
+      category,
+      deals: deals
+        .filter((deal) => deal.category === category)
+        .sort(
+          (a, b) =>
+            a.bestDeal.price - b.bestDeal.price ||
+            b.discount - a.discount ||
+            a.title.localeCompare(b.title),
+        ),
+    }))
+    .filter((section) => section.deals.length > 0);
+
+  if (sections.length === 0) {
+    return (
+      <EmptyRecommendations
+        title="No add-ons found"
+        body="No add-on products fit within the remaining balance and current search."
+        onEditBrief={onEditBrief}
+        onBrowseDeals={onBrowseDeals}
+        showActions={false}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {sections.map((section) => (
+        <section
+          key={section.category}
+          className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5"
+        >
+          <div className="mb-4">
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+              <ListChecks className="h-4 w-4" aria-hidden="true" />
+              Fits the balance
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-950 dark:!text-white">
+              {section.category}
+            </h2>
+            <p className="mt-1 text-sm text-gray-600 dark:!text-slate-300">
+              {section.deals.length}{" "}
+              {section.deals.length === 1 ? "match" : "matches"} within{" "}
+              {typeof remainingBudget === "number"
+                ? formatUGX(remainingBudget)
+                : "the remaining budget"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {section.deals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                onSelect={setSelectedDeal}
+                showActionIcon={false}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function ProductOnlyRecommendationList({
+  query,
+  deals,
+  closestDeals,
+  resultState,
+  pagination,
+  page,
+  setSelectedDeal,
+  onPageChange,
+  onEditBrief,
+  onBrowseDeals,
+  onRequestProduct,
+}: {
+  query: string;
+  deals: EnrichedDeal[];
+  closestDeals: EnrichedDeal[];
+  resultState:
+    | "not_applicable"
+    | "exact"
+    | "condition_mismatch"
+    | "closest"
+    | "none";
+  pagination: PaginationMeta;
+  page: number;
+  setSelectedDeal: (deal: EnrichedDeal) => void;
+  onPageChange: (page: number) => void;
+  onEditBrief: () => void;
+  onBrowseDeals: () => void;
+  onRequestProduct: () => void;
+}) {
+  const safePage = Math.min(Math.max(page, 1), pagination.pageCount);
+  const sortedDeals = [...deals].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+  const sortedClosestDeals = [...closestDeals].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+  if (
+    (resultState === "closest" || resultState === "condition_mismatch") &&
+    sortedClosestDeals.length > 0
+  ) {
+    const isConditionMismatch = resultState === "condition_mismatch";
+
+    return (
+      <section className="space-y-5">
+        <EmptyRecommendations
+          title={
+            isConditionMismatch
+              ? `No ${query} matches for that condition`
+              : `No exact matches for ${query}`
+          }
+          body={
+            isConditionMismatch
+              ? "I found the product, but not with the condition you selected. Here are the available options I can compare."
+              : "I found nearby products that may still be worth comparing."
+          }
+          onEditBrief={onEditBrief}
+          onBrowseDeals={onBrowseDeals}
+          showActions={false}
+        />
+        <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+              Closest matches
+            </p>
+            <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+                {isConditionMismatch
+                  ? "Available options I found"
+                  : "Similar products I found"}
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+                {isConditionMismatch
+                  ? "These match the product name, but their listed condition is different from your preference."
+                  : `These are not exact matches for ${query}, but they share useful product details.`}
+              </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {sortedClosestDeals.map((deal) => (
+              <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+            ))}
+          </div>
+        </section>
+      </section>
+    );
+  }
+
+  if (sortedDeals.length === 0) {
+    return (
+      <EmptyRecommendations
+        title={`No matches for ${query}`}
+        body="I could not find exact or nearby products in the current catalog."
+        onEditBrief={onEditBrief}
+        onBrowseDeals={onBrowseDeals}
+      >
+        <Button
+          type="button"
+          className="mt-3 cursor-pointer rounded-full bg-emerald-700 px-5 text-white hover:bg-emerald-600"
+          onClick={onRequestProduct}
+        >
+          Request this product
+        </Button>
+      </EmptyRecommendations>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm shadow-emerald-950/5 dark:border-white/15 dark:!bg-slate-900/90 dark:shadow-black/20 dark:ring-1 dark:ring-white/5 md:p-5">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-700 dark:!text-emerald-300">
+          Best matches
+        </p>
+        <h2 className="mt-1 text-xl font-black text-gray-950 dark:!text-white">
+          {query} options sorted by price
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-gray-600 dark:!text-slate-300">
+          I found {pagination.totalCount}{" "}
+          {pagination.totalCount === 1 ? "product" : "products"} matching your
+          condition preference.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 min-[425px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {sortedDeals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} onSelect={setSelectedDeal} />
+        ))}
+      </div>
+      <Pagination
+        page={safePage}
+        pageCount={pagination.pageCount}
+        onPageChange={onPageChange}
+      />
+    </section>
   );
 }
 
@@ -1198,12 +1897,14 @@ function EmptyRecommendations({
   onEditBrief,
   onBrowseDeals,
   showActions = true,
+  children,
 }: {
   title: string;
   body: string;
   onEditBrief: () => void;
   onBrowseDeals: () => void;
   showActions?: boolean;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl border border-emerald-900/10 bg-white p-6 text-center shadow-sm dark:border-white/15 dark:!bg-slate-900 dark:shadow-black/20 dark:ring-1 dark:ring-white/5">
@@ -1231,6 +1932,7 @@ function EmptyRecommendations({
           </Button>
         </div>
       ) : null}
+      {children}
     </div>
   );
 }
@@ -1366,7 +2068,8 @@ function SuggestionCard({
 }) {
   const posthog = usePostHog();
   const condition = deal.bestDeal.status || "New";
-  const priceMatches = deal.bestDeal.price <= brief.budget;
+  const priceMatches =
+    typeof brief.budget === "number" && deal.bestDeal.price <= brief.budget;
   const categoryMatches = brief.categories.includes(deal.category);
   const conditionMatches =
     condition !== "New" &&
@@ -1481,6 +2184,10 @@ function getVisibleStoreCount(
   ).size;
 }
 
+function getVisibleStoreCountFromDeals(deals: EnrichedDeal[]) {
+  return new Set(deals.map((deal) => deal.bestDeal.site)).size;
+}
+
 function getMatchingDealSections(
   deals: EnrichedDeal[],
   brief: ShoppingBrief | null,
@@ -1489,7 +2196,12 @@ function getMatchingDealSections(
     return [];
   }
 
-  return brief.categories
+  const sectionCategories =
+    brief.categories.length > 0
+      ? brief.categories
+      : Array.from(new Set(deals.map((deal) => deal.category)));
+
+  return sectionCategories
     .map((category) => ({
       category,
       deals: deals
@@ -1507,9 +2219,14 @@ function getMatchingDealSections(
 function BriefChips({ brief }: { brief: ShoppingBrief }) {
   return (
     <div className="mt-3 flex flex-wrap gap-1.5 min-[375px]:mt-4 min-[375px]:gap-2">
-      <SummaryChip
-        label={formatUGX(brief.budget)}
-      />
+      {typeof brief.budget === "number" ? (
+        <SummaryChip
+          label={formatUGX(brief.budget)}
+        />
+      ) : null}
+      {brief.productQuery ? (
+        <SummaryChip label={brief.productQuery} />
+      ) : null}
       {brief.categories.map((category) => (
         <SummaryChip key={category} label={category} />
       ))}

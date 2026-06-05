@@ -18,6 +18,7 @@ import {
   Shuffle,
   Sparkles,
   Tags,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +71,7 @@ const stepCopy: Record<
   categories: {
     eyebrow: "Step 1",
     title: "What deals are you looking for?",
-    body: "You can choose up to 3 product categories",
+    body: "",
     avatar: categoryAvatar,
     avatarAlt: "Naki pointing at product categories",
   },
@@ -114,6 +115,7 @@ const budgetQuickChips = [
   { label: "500k", value: "500000" },
   { label: "1M", value: "1000000" },
 ];
+const productPromptExamples = ["iPhone 16", "HP EliteBook", "Samsung TV"];
 const surpriseBudgetPresets = [500000, 1000000, 1500000, 2000000];
 const fallbackSurpriseBudget = 2000000;
 const introPrefix = "Let’s find ";
@@ -152,6 +154,9 @@ export function LandingPage({
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialBrief?.categories ?? [],
   );
+  const [productQuery, setProductQuery] = useState(
+    initialBrief?.productQuery ?? "",
+  );
   const [selectedConditions, setSelectedConditions] = useState<ConditionChoice[]>(
     initialBrief?.conditions ?? [],
   );
@@ -159,11 +164,22 @@ export function LandingPage({
   const [typedIntroLength, setTypedIntroLength] = useState(0);
   const [typedGreetingLength, setTypedGreetingLength] = useState(0);
 
-  const stepIndex = steps.indexOf(activeStep);
   const currentCopy = stepCopy[activeStep];
   const isSurpriseBudget = budgetMode === "surprise";
-  const isFirstStep = stepIndex === 0;
-  const inputStepCount = steps.length - 1;
+  const trimmedProductQuery = productQuery.trim();
+  const isProductOnlyBrief =
+    trimmedProductQuery.length > 0 && selectedCategories.length === 0;
+  const currentSteps = useMemo<IntakeStep[]>(
+    () =>
+      isProductOnlyBrief
+        ? ["categories", "condition", "ready"]
+        : steps,
+    [isProductOnlyBrief],
+  );
+  const currentStepIndex = currentSteps.indexOf(activeStep);
+  const isFirstStep = currentStepIndex === 0;
+  const inputStepCount = currentSteps.length - 1;
+  const categoryLimit = trimmedProductQuery ? 2 : maxSelectedCategories;
 
   const cleanBudget = useMemo(() => budget.replace(/[^\d]/g, ""), [budget]);
   const formattedBudget = useMemo(() => {
@@ -181,7 +197,9 @@ export function LandingPage({
     ? "Surprise budget"
     : formattedBudget
       ? `UGX ${formattedBudget}`
-      : "Not set";
+      : isProductOnlyBrief
+        ? "Skipped"
+        : "Not set";
 
   const briefNote = useMemo(() => {
     if (activeStep === "budget") {
@@ -195,8 +213,16 @@ export function LandingPage({
     }
 
     if (activeStep === "categories") {
+      if (trimmedProductQuery && selectedCategories.length === 0) {
+        return `I will search for ${trimmedProductQuery} across the catalog first.`;
+      }
+
+      if (trimmedProductQuery) {
+        return `I will prioritize ${trimmedProductQuery}, with ${selectedCategories.join(", ")} as backup context.`;
+      }
+
       if (selectedCategories.length === 0) {
-        return "Pick the product areas you care about, and I will keep the search focused.";
+        return "Type one product or pick the product areas you care about, and I will keep the search focused.";
       }
 
       if (selectedCategories.length === 1) {
@@ -223,9 +249,10 @@ export function LandingPage({
     formattedBudget,
     isSurpriseBudget,
     selectedCategories,
+    trimmedProductQuery,
   ]);
 
-  const canGoBack = stepIndex > 0;
+  const canGoBack = currentStepIndex > 0;
 
   useLayoutEffect(() => {
     if (typeof window !== "undefined") {
@@ -273,14 +300,17 @@ export function LandingPage({
     if (activeStep !== "ready") return;
 
     posthog.capture("shopping_brief_prompt_viewed", {
-      step: "4_of_4",
-      ...(budgetMode === "manual" ? { budget: Number(cleanBudget) } : {}),
+      step: isProductOnlyBrief ? "3_of_3" : "4_of_4",
+      ...(!isProductOnlyBrief && budgetMode === "manual"
+        ? { budget: Number(cleanBudget) }
+        : {}),
       budget_mode: budgetMode,
       categories: selectedCategories,
       category_count: selectedCategories.length,
       conditions: selectedConditions,
       condition_count: selectedConditions.length,
       all_conditions_selected: selectedConditions.includes("All"),
+      product_query: trimmedProductQuery || undefined,
     });
   }, [
     activeStep,
@@ -289,6 +319,8 @@ export function LandingPage({
     posthog,
     selectedCategories,
     selectedConditions,
+    trimmedProductQuery,
+    isProductOnlyBrief,
   ]);
 
   const goToStep = (nextStep: IntakeStep) => {
@@ -298,12 +330,13 @@ export function LandingPage({
 
   const goBack = () => {
     if (!canGoBack) return;
-    goToStep(steps[stepIndex - 1]);
+    goToStep(currentSteps[currentStepIndex - 1]);
   };
 
   const validateCurrentStep = () => {
     if (
       activeStep === "budget" &&
+      !isProductOnlyBrief &&
       budgetMode !== "surprise" &&
       Number(cleanBudget) <= 0
     ) {
@@ -311,8 +344,12 @@ export function LandingPage({
       return false;
     }
 
-    if (activeStep === "categories" && selectedCategories.length === 0) {
-      setValidationMessage("Choose at least one category.");
+    if (
+      activeStep === "categories" &&
+      selectedCategories.length === 0 &&
+      !trimmedProductQuery
+    ) {
+      setValidationMessage("Enter one product or choose at least one category.");
       return false;
     }
 
@@ -329,7 +366,9 @@ export function LandingPage({
 
     if (activeStep === "ready") {
       const resolvedBudget =
-        budgetMode === "surprise"
+        isProductOnlyBrief
+          ? undefined
+          : budgetMode === "surprise"
           ? resolveSurpriseBudget({
               deals,
               categories: selectedCategories,
@@ -338,15 +377,16 @@ export function LandingPage({
           : Number(cleanBudget);
 
       onCompleteBrief({
-        budget: resolvedBudget,
+        ...(typeof resolvedBudget === "number" ? { budget: resolvedBudget } : {}),
         budgetMode,
         categories: selectedCategories,
         conditions: selectedConditions,
+        productQuery: trimmedProductQuery || undefined,
       });
       return;
     }
 
-    goToStep(steps[stepIndex + 1]);
+    goToStep(currentSteps[currentStepIndex + 1]);
   };
 
   const toggleCategory = (category: string) => {
@@ -356,8 +396,8 @@ export function LandingPage({
         return current.filter((item) => item !== category);
       }
 
-      if (current.length >= maxSelectedCategories) {
-        setValidationMessage("You can choose up to three categories.");
+      if (current.length >= categoryLimit) {
+        setValidationMessage(`You can choose up to ${categoryLimit} categories.`);
         return current;
       }
 
@@ -397,6 +437,14 @@ export function LandingPage({
     setValidationMessage("");
     setBudgetMode("surprise");
     setBudget("");
+  };
+
+  const updateProductQuery = (value: string) => {
+    setValidationMessage("");
+    setProductQuery(value);
+    if (value.trim()) {
+      setSelectedCategories((current) => current.slice(0, 2));
+    }
   };
 
   return (
@@ -450,7 +498,7 @@ export function LandingPage({
                 <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
                   {activeStep === "ready"
                     ? "Ready"
-                    : `${stepIndex + 1} of ${inputStepCount}`}
+                    : `${currentStepIndex + 1} of ${inputStepCount}`}
                 </span>
               ) : null}
             </div>
@@ -529,9 +577,11 @@ export function LandingPage({
                   <h1 className="text-3xl font-black tracking-normal text-gray-950 md:text-5xl">
                     {currentCopy.title}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
-                    {currentCopy.body}
-                  </p>
+                  {currentCopy.body ? (
+                    <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
+                      {currentCopy.body}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -597,25 +647,38 @@ export function LandingPage({
                     Naki&apos;s brief
                   </h2>
                   <p className="text-sm text-emerald-50/70">
-                    I will use this to find deals that fit your budget.
+                    {isProductOnlyBrief
+                      ? "I will use this to find matching products."
+                      : "I will use this to find deals that fit your budget."}
                   </p>
                 </div>
               </div>
               <div className="space-y-3 text-sm">
-                <BriefRow
-                  label="Categories"
-                  value={
-                    selectedCategories.length > 0
-                      ? selectedCategories.join(", ")
-                      : "Not selected"
-                  }
-                  active={activeStep === "categories"}
-                />
-                <BriefRow
-                  label="Budget"
-                  value={budgetSummary}
-                  active={activeStep === "budget"}
-                />
+                {trimmedProductQuery ? (
+                  <BriefRow
+                    label="Product"
+                    value={trimmedProductQuery}
+                    active={activeStep === "categories"}
+                  />
+                ) : null}
+                {selectedCategories.length > 0 || !trimmedProductQuery ? (
+                  <BriefRow
+                    label="Categories"
+                    value={
+                      selectedCategories.length > 0
+                        ? selectedCategories.join(", ")
+                        : "Not selected"
+                    }
+                    active={activeStep === "categories"}
+                  />
+                ) : null}
+                {!isProductOnlyBrief ? (
+                  <BriefRow
+                    label="Budget"
+                    value={budgetSummary}
+                    active={activeStep === "budget"}
+                  />
+                ) : null}
                 <BriefRow
                   label="Condition"
                   value={conditionSummary || "Not selected"}
@@ -726,6 +789,65 @@ export function LandingPage({
       case "categories":
         return (
           <div>
+            <div className="mb-5 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 dark:border-emerald-300/15 dark:!bg-slate-900 dark:ring-1 dark:ring-white/5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:!bg-emerald-400/15 dark:!text-emerald-300">
+                  <Search className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-gray-950 dark:text-white">
+                    Looking for one product?
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-slate-300">
+                    Type the product and I will start with exact matches before broader ideas.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex min-h-14 items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 transition focus-within:border-emerald-400 focus-within:bg-white focus-within:ring-3 focus-within:ring-emerald-100 dark:border-white/10 dark:!bg-slate-950 dark:focus-within:border-emerald-300/50 dark:focus-within:ring-emerald-300/15">
+                <Input
+                  value={productQuery}
+                  onChange={(event) => updateProductQuery(event.target.value)}
+                  placeholder="iPhone 16, HP EliteBook, Samsung TV..."
+                  className="h-12 flex-1 rounded-none border-0 bg-transparent px-0 text-base font-semibold text-gray-950 placeholder:text-gray-400 focus-visible:ring-0 dark:!bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
+                  aria-label="Specific product Naki should look for"
+                />
+                {trimmedProductQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => updateProductQuery("")}
+                    className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-gray-500 shadow-sm transition hover:text-gray-950 dark:!bg-slate-800 dark:!text-slate-300 dark:hover:!text-white"
+                    aria-label="Clear product"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {productPromptExamples.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => updateProductQuery(example)}
+                    className="cursor-pointer rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-300/25 dark:!bg-emerald-400/10 dark:!text-emerald-200 dark:hover:!bg-emerald-400/18"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-8 mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-gray-950 dark:text-white">
+                  Browse by category
+                </p>
+                <p className="mt-1 text-xs font-semibold text-gray-500 dark:text-slate-400">
+                  Choose up to {categoryLimit}
+                </p>
+              </div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400">
+                Optional for one product
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {categories.length === 0
                 ? Array.from({ length: 5 }).map((_, index) => (
@@ -741,7 +863,7 @@ export function LandingPage({
                 : categories.map((category) => {
                 const selected = selectedCategories.includes(category.name);
                 const capped =
-                  !selected && selectedCategories.length >= maxSelectedCategories;
+                  !selected && selectedCategories.length >= categoryLimit;
 
                 return (
                   <button
@@ -827,41 +949,56 @@ export function LandingPage({
             </div>
 
             <div className="divide-y divide-gray-200">
-              <PreferenceRow
-                icon={<Grid2X2 className="h-5 w-5" />}
-                label="Categories"
-                onEdit={() => goToStep("categories")}
-              >
-                {selectedCategories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCategories.map((category, index) => (
-                      <span
-                        key={category}
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          index % 2 === 0
-                            ? "bg-[oklch(0.94_0.03_300)] text-[oklch(0.34_0.13_300)]"
-                            : "bg-[oklch(0.95_0.03_245)] text-[oklch(0.32_0.09_245)]"
-                        }`}
-                      >
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
+              {trimmedProductQuery ? (
+                <PreferenceRow
+                  icon={<Search className="h-5 w-5" />}
+                  label="Product"
+                  onEdit={() => goToStep("categories")}
+                >
                   <span className="text-base font-semibold text-gray-950">
-                    Not selected
+                    {trimmedProductQuery}
                   </span>
-                )}
-              </PreferenceRow>
-              <PreferenceRow
-                icon={<Briefcase className="h-5 w-5" />}
-                label="Budget"
-                onEdit={() => goToStep("budget")}
-              >
-                <span className="text-base font-semibold text-gray-950">
-                  {budgetSummary}
-                </span>
-              </PreferenceRow>
+                </PreferenceRow>
+              ) : null}
+              {selectedCategories.length > 0 || !trimmedProductQuery ? (
+                <PreferenceRow
+                  icon={<Grid2X2 className="h-5 w-5" />}
+                  label="Categories"
+                  onEdit={() => goToStep("categories")}
+                >
+                  {selectedCategories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCategories.map((category, index) => (
+                        <span
+                          key={category}
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            index % 2 === 0
+                              ? "bg-[oklch(0.94_0.03_300)] text-[oklch(0.34_0.13_300)]"
+                              : "bg-[oklch(0.95_0.03_245)] text-[oklch(0.32_0.09_245)]"
+                          }`}
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-base font-semibold text-gray-950">
+                      Not selected
+                    </span>
+                  )}
+                </PreferenceRow>
+              ) : null}
+              {!isProductOnlyBrief ? (
+                <PreferenceRow
+                  icon={<Briefcase className="h-5 w-5" />}
+                  label="Budget"
+                  onEdit={() => goToStep("budget")}
+                >
+                  <span className="text-base font-semibold text-gray-950">
+                    {budgetSummary}
+                  </span>
+                </PreferenceRow>
+              ) : null}
               <PreferenceRow
                 icon={<CheckCircle2 className="h-5 w-5" />}
                 label="Condition"

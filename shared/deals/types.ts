@@ -30,10 +30,11 @@ export type EnrichedDeal = Deal & {
 export type ConditionChoice = "New" | "Refurbished" | "Used" | "All";
 
 export type ShoppingBrief = {
-  budget: number;
+  budget?: number;
   categories: string[];
   conditions: ConditionChoice[];
   budgetMode?: "manual" | "surprise";
+  productQuery?: string;
 };
 
 export type RecommendationMatch = {
@@ -62,6 +63,19 @@ export type RecommendationsPayload = {
   suggestions: EnrichedDeal[];
   matchingDeals: EnrichedDeal[];
   matchingDealsPagination: PaginationMeta;
+  productMatches?: EnrichedDeal[];
+  productAnchor?: EnrichedDeal;
+  productAddOnCategories?: string[];
+  productAddOnMatches?: EnrichedDeal[];
+  productRemainingBudget?: number;
+  productOriginalBudget?: number;
+  productClosestMatches?: EnrichedDeal[];
+  productResultState?:
+    | "not_applicable"
+    | "exact"
+    | "condition_mismatch"
+    | "closest"
+    | "none";
 };
 
 export type CategoryItem = {

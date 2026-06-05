@@ -221,20 +221,146 @@ export function getSearchPayload(
   };
 }
 
+function getSearchTokens(query: string) {
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+}
+
+function getClosestProductMatches(
+  deals: EnrichedDeal[],
+  query: string,
+  limit = 8,
+) {
+  const tokens = getSearchTokens(query);
+  if (tokens.length === 0) return [];
+
+  return deals
+    .map((deal) => {
+      const haystack = [
+        deal.title,
+        deal.category,
+        ...deal.prices.map((price) => price.site),
+      ]
+        .join(" ")
+        .toLowerCase();
+      const score = tokens.reduce(
+        (total, token) => total + (haystack.includes(token) ? 1 : 0),
+        0,
+      );
+
+      return { deal, score };
+    })
+    .filter(({ deal, score }) => score > 0 && !matchesDealSearch(deal, query))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.deal.bestDeal.price - b.deal.bestDeal.price ||
+        b.deal.discount - a.deal.discount,
+    )
+    .slice(0, limit)
+    .map(({ deal }) => deal);
+}
+
+function sortProductMatches(deals: EnrichedDeal[]) {
+  return [...deals].sort(
+    (a, b) =>
+      a.bestDeal.price - b.bestDeal.price ||
+      b.discount - a.discount ||
+      a.title.localeCompare(b.title),
+  );
+}
+
 export function getRecommendationsPayload(
   deals: EnrichedDeal[],
   brief: ShoppingBrief,
   options: RecommendationsOptions = {},
 ) {
-  const matchingDeals = getBriefMatchingDeals(deals, brief).filter((deal) =>
-    matchesDealSearch(deal, options.query ?? ""),
+  const query = options.query ?? "";
+  const productQuery = brief.productQuery?.trim() ?? "";
+  const hasProductQuery = !!productQuery;
+  const exactProductMatches = hasProductQuery
+    ? sortProductMatches(deals.filter((deal) => matchesDealSearch(deal, productQuery)))
+    : [];
+  const productEligibleMatches = exactProductMatches
+    .map((deal) => getBriefMatchingDeals([deal], { ...brief, categories: [] })[0])
+    .filter((deal): deal is EnrichedDeal => !!deal);
+  const productAnchor = productEligibleMatches[0];
+  const productAnchorCategory = productAnchor?.category;
+  const productAddOnCategories =
+    productAnchorCategory && typeof brief.budget === "number"
+      ? brief.categories.filter((category) => category !== productAnchorCategory)
+      : [];
+  const fallbackAddOnCategories =
+    hasProductQuery && brief.categories.length > 0 && !productAnchor
+      ? brief.categories
+      : [];
+  const productRemainingBudget =
+    productAnchor && typeof brief.budget === "number"
+      ? Math.max(0, brief.budget - productAnchor.bestDeal.price)
+      : undefined;
+  const shouldBuildProductAddOns =
+    !!productAnchor &&
+    productAddOnCategories.length > 0 &&
+    typeof productRemainingBudget === "number" &&
+    productRemainingBudget > 0;
+  const addOnBrief: ShoppingBrief | null = shouldBuildProductAddOns
+    ? {
+        ...brief,
+        productQuery: undefined,
+        categories: productAddOnCategories,
+        budget: productRemainingBudget,
+      }
+    : null;
+  const productAddOnMatches = addOnBrief
+    ? getBriefMatchingDeals(deals, addOnBrief)
+    : [];
+  const eligibleDeals = hasProductQuery
+    ? productEligibleMatches
+    : getBriefMatchingDeals(deals, brief);
+  const matchingDeals = eligibleDeals.filter((deal) =>
+    matchesDealSearch(deal, hasProductQuery ? productQuery : query),
   );
   const matchingDealsPage = paginateDeals(matchingDeals, options);
+  const conditionFilteredProductMatches = exactProductMatches.filter(
+    (deal) => !matchingDeals.some((matchingDeal) => matchingDeal.id === deal.id),
+  );
+  const productClosestMatches =
+    hasProductQuery && matchingDeals.length === 0
+      ? conditionFilteredProductMatches.length > 0
+        ? conditionFilteredProductMatches
+        : getClosestProductMatches(deals, productQuery)
+      : [];
+  const productResultState = !hasProductQuery
+    ? "not_applicable"
+    : matchingDeals.length > 0
+      ? "exact"
+      : conditionFilteredProductMatches.length > 0
+        ? "condition_mismatch"
+      : productClosestMatches.length > 0
+        ? "closest"
+        : "none";
 
   return {
-    baskets: getRecommendationBaskets(deals, brief),
+    baskets: addOnBrief
+      ? getRecommendationBaskets(deals, addOnBrief)
+      : getRecommendationBaskets(deals, brief),
     suggestions: getRecommendationSuggestions(deals, brief),
     matchingDeals: matchingDealsPage.items,
     matchingDealsPagination: matchingDealsPage.pagination,
+    productMatches: hasProductQuery ? productEligibleMatches : [],
+    productAnchor,
+    productAddOnCategories:
+      productAddOnCategories.length > 0
+        ? productAddOnCategories
+        : fallbackAddOnCategories,
+    productAddOnMatches,
+    productRemainingBudget,
+    productOriginalBudget: brief.budget,
+    productClosestMatches,
+    productResultState,
   };
 }

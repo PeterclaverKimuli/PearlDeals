@@ -34,10 +34,11 @@ import {
 } from "./catalog.js";
 
 const shoppingBriefSchema = z.object({
-  budget: z.number().nonnegative(),
+  budget: z.number().nonnegative().optional(),
   categories: z.array(z.string()),
   conditions: z.array(z.enum(["New", "Refurbished", "Used", "All"])),
   budgetMode: z.enum(["manual", "surprise"]).optional(),
+  productQuery: z.string().trim().max(120).optional(),
 });
 
 const adminLoginSchema = z.object({

@@ -239,6 +239,28 @@ export default function DealsUI() {
   >([]);
   const [matchingRecommendationPagination, setMatchingRecommendationPagination] =
     useState<PaginationMeta>(initialPagination);
+  const [productRecommendationMatches, setProductRecommendationMatches] =
+    useState<EnrichedDeal[]>([]);
+  const [productRecommendationAnchor, setProductRecommendationAnchor] =
+    useState<EnrichedDeal | undefined>();
+  const [productAddOnCategories, setProductAddOnCategories] = useState<string[]>(
+    [],
+  );
+  const [productAddOnMatches, setProductAddOnMatches] = useState<EnrichedDeal[]>(
+    [],
+  );
+  const [productRemainingBudget, setProductRemainingBudget] = useState<
+    number | undefined
+  >();
+  const [productOriginalBudget, setProductOriginalBudget] = useState<
+    number | undefined
+  >();
+  const [productClosestMatches, setProductClosestMatches] = useState<
+    EnrichedDeal[]
+  >([]);
+  const [productResultState, setProductResultState] = useState<
+    RecommendationsResponse["productResultState"]
+  >("not_applicable");
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isRecommendationsLoading, setIsRecommendationsLoading] =
@@ -404,6 +426,14 @@ export default function DealsUI() {
         setRecommendationSuggestions([]);
         setMatchingRecommendationDeals([]);
         setMatchingRecommendationPagination(initialPagination);
+        setProductRecommendationMatches([]);
+        setProductRecommendationAnchor(undefined);
+        setProductAddOnCategories([]);
+        setProductAddOnMatches([]);
+        setProductRemainingBudget(undefined);
+        setProductOriginalBudget(undefined);
+        setProductClosestMatches([]);
+        setProductResultState("not_applicable");
         setIsRecommendationsLoading(false);
         return;
       }
@@ -412,7 +442,9 @@ export default function DealsUI() {
       const params = new URLSearchParams({
         page: String(productPage),
       });
-      if (search.trim()) params.set("q", search.trim());
+      const recommendationQuery =
+        shoppingBrief.productQuery?.trim() || search.trim() || "";
+      if (recommendationQuery) params.set("q", recommendationQuery);
 
       const response = await fetch(`/api/recommendations?${params.toString()}`, {
         method: "POST",
@@ -431,6 +463,14 @@ export default function DealsUI() {
         setRecommendationSuggestions(payload.suggestions);
         setMatchingRecommendationDeals(payload.matchingDeals);
         setMatchingRecommendationPagination(payload.matchingDealsPagination);
+        setProductRecommendationMatches(payload.productMatches ?? []);
+        setProductRecommendationAnchor(payload.productAnchor);
+        setProductAddOnCategories(payload.productAddOnCategories ?? []);
+        setProductAddOnMatches(payload.productAddOnMatches ?? []);
+        setProductRemainingBudget(payload.productRemainingBudget);
+        setProductOriginalBudget(payload.productOriginalBudget);
+        setProductClosestMatches(payload.productClosestMatches ?? []);
+        setProductResultState(payload.productResultState ?? "not_applicable");
         setIsRecommendationsLoading(false);
       }
     }
@@ -441,6 +481,14 @@ export default function DealsUI() {
         setRecommendationSuggestions([]);
         setMatchingRecommendationDeals([]);
         setMatchingRecommendationPagination(initialPagination);
+        setProductRecommendationMatches([]);
+        setProductRecommendationAnchor(undefined);
+        setProductAddOnCategories([]);
+        setProductAddOnMatches([]);
+        setProductRemainingBudget(undefined);
+        setProductOriginalBudget(undefined);
+        setProductClosestMatches([]);
+        setProductResultState("none");
         setIsRecommendationsLoading(false);
       }
     });
@@ -468,6 +516,7 @@ export default function DealsUI() {
   }, [
     routePath,
     search,
+    shoppingBrief,
     selectedCategory,
     selectedBehavioralCategory,
     isViewingAllProducts,
@@ -666,6 +715,14 @@ export default function DealsUI() {
         suggestedDeals={recommendationSuggestions}
         matchingDeals={matchingRecommendationDeals}
         matchingDealsPagination={matchingRecommendationPagination}
+        productMatches={productRecommendationMatches}
+        productAnchor={productRecommendationAnchor}
+        productAddOnCategories={productAddOnCategories}
+        productAddOnMatches={productAddOnMatches}
+        productRemainingBudget={productRemainingBudget}
+        productOriginalBudget={productOriginalBudget}
+        productClosestMatches={productClosestMatches}
+        productResultState={productResultState}
         search={search}
         setSearch={setSearch}
         isSidebarOpen={isSidebarOpen}
